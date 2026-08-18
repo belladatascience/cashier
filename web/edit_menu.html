@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html class="light" lang="id">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Coffee Shop - Menu</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#442a22",
+                        "secondary": "#7d562d",
+                        "background": "#fafaf5",
+                        "surface": "#fafaf5",
+                        "surface-container-low": "#f4f4ef",
+                        "surface-container-lowest": "#ffffff",
+                        "outline-variant": "#d4c3be",
+                        "outline": "#827470",
+                        "on-surface-variant": "#504441",
+                        "on-surface": "#1a1c19",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#5d4037",
+                        "on-primary-container": "#d4ada1",
+                        "secondary-container": "#ffca98",
+                        "on-secondary-container": "#7a532a",
+                        "surface-variant": "#e2e3de"
+                    },
+                    fontFamily: {
+                        "headline": ["\"Source Serif 4\"", "serif"],
+                        "body": ["Work Sans", "sans-serif"],
+                        "label": ["Work Sans", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Work Sans', sans-serif; }
+        h1, h2, h3, h4, h5, h6, .font-headline { font-family: 'Source Serif 4', serif; }
+</style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen pb-24 md:pb-0">
+<!-- TopAppBar -->
+<header class="w-full top-0 left-0 bg-surface z-40 sticky border-b border-primary/10">
+<div class="flex justify-between items-center px-6 md:px-16 py-4 w-full max-w-[1200px] mx-auto">
+<button onclick="history.back()" aria-label="Menu" class="text-on-surface-variant hover:text-secondary transition-colors p-2 rounded-full">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="font-headline text-2xl font-bold text-primary">BGA Co.</h1>
+<button aria-label="Shopping Bag" class="text-on-surface-variant hover:text-secondary transition-colors p-2 rounded-full">
+<span class="material-symbols-outlined">shopping_bag</span>
+</button>
+</div>
+</header>
+
+<!-- Cashier Banner -->
+<div class="bg-primary text-on-primary w-full py-3 px-6 text-center shadow-sm">
+<span class="font-label text-sm tracking-widest uppercase font-bold">CASHIER: Bella gita a</span>
+</div>
+
+<!-- Main Content Container -->
+<main class="max-w-[1200px] mx-auto px-5 md:px-16 pt-8 pb-32">
+<!-- Tabs -->
+<div class="flex border-b border-primary/10 max-w-md mx-auto mb-6">
+<button class="flex-1 py-3 text-center font-label text-base text-primary border-b-2 border-primary font-bold">Food</button>
+<button class="flex-1 py-3 text-center font-label text-base text-on-surface-variant hover:text-primary transition-colors">Drink</button>
+<button class="flex-1 py-3 text-center font-label text-base text-on-surface-variant hover:text-primary transition-colors">Snack</button>
+</div>
+
+<!-- Menu Items List -->
+<div class="space-y-4 max-w-3xl mx-auto">
+<!-- Item 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 flex gap-4 items-center shadow-sm border border-primary/5 hover:-translate-y-0.5 transition-transform">
+<div class="w-20 h-20 md:w-24 md:h-24 shrink-0 rounded-lg overflow-hidden border border-primary/10 bg-surface-variant flex items-center justify-center">
+<img class="w-full h-full object-cover" alt="Sourdough Loaf" src="https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=300&q=80">
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-headline text-lg font-bold text-on-surface truncate pr-2">Sourdough Loaf</h3>
+<span class="font-label text-sm font-bold text-secondary shrink-0 bg-secondary/10 px-2.5 py-1 rounded">Rp 8.500</span>
+</div>
+<p class="font-body text-sm text-on-surface-variant line-clamp-2">Classic artisanal loaf, naturally leavened with a dark, crackly crust and chewy crumb.</p>
+</div>
+<button aria-label="Edit Sourdough Loaf" class="shrink-0 p-3 rounded-full bg-primary-container text-on-primary-container hover:bg-secondary hover:text-on-secondary transition-colors cursor-pointer" onclick="alert('Edit Sourdough Loaf')">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</div>
+
+<!-- Item 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 flex gap-4 items-center shadow-sm border border-primary/5 hover:-translate-y-0.5 transition-transform">
+<div class="w-20 h-20 md:w-24 md:h-24 shrink-0 rounded-lg overflow-hidden border border-primary/10 bg-surface-variant flex items-center justify-center">
+<img class="w-full h-full object-cover" alt="Butter Croissant" src="https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=300&q=80">
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-headline text-lg font-bold text-on-surface truncate pr-2">Butter Croissant</h3>
+<span class="font-label text-sm font-bold text-secondary shrink-0 bg-secondary/10 px-2.5 py-1 rounded">Rp 4.250</span>
+</div>
+<p class="font-body text-sm text-on-surface-variant line-clamp-2">Traditional French pastry with shattered, buttery layers. Baked fresh daily.</p>
+</div>
+<button aria-label="Edit Butter Croissant" class="shrink-0 p-3 rounded-full bg-primary-container text-on-primary-container hover:bg-secondary hover:text-on-secondary transition-colors cursor-pointer" onclick="alert('Edit Butter Croissant')">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</div>
+
+<!-- Item 3 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 flex gap-4 items-center shadow-sm border border-primary/5 hover:-translate-y-0.5 transition-transform">
+<div class="w-20 h-20 md:w-24 md:h-24 shrink-0 rounded-lg overflow-hidden border border-primary/10 bg-surface-variant flex items-center justify-center">
+<img class="w-full h-full object-cover" alt="Berry Tart" src="https://images.unsplash.com/photo-1519869325930-281384150729?auto=format&fit=crop&w=300&q=80">
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-headline text-lg font-bold text-on-surface truncate pr-2">Berry Tart</h3>
+<span class="font-label text-sm font-bold text-secondary shrink-0 bg-secondary/10 px-2.5 py-1 rounded">Rp 12.000</span>
+</div>
+<p class="font-body text-sm text-on-surface-variant line-clamp-2">Seasonal mixed berries on a bed of vanilla pastry cream in a sweet crust.</p>
+</div>
+<button aria-label="Edit Berry Tart" class="shrink-0 p-3 rounded-full bg-primary-container text-on-primary-container hover:bg-secondary hover:text-on-secondary transition-colors cursor-pointer" onclick="alert('Edit Berry Tart')">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</div>
+
+<!-- Item 4 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 flex gap-4 items-center shadow-sm border border-primary/5 hover:-translate-y-0.5 transition-transform">
+<div class="w-20 h-20 md:w-24 md:h-24 shrink-0 rounded-lg overflow-hidden border border-primary/10 bg-surface-variant flex items-center justify-center">
+<img class="w-full h-full object-cover" alt="Avocado Toast" src="https://images.unsplash.com/photo-1588137378633-dea1336ce1e2?auto=format&fit=crop&w=300&q=80">
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-headline text-lg font-bold text-on-surface truncate pr-2">Avocado Toast</h3>
+<span class="font-label text-sm font-bold text-secondary shrink-0 bg-secondary/10 px-2.5 py-1 rounded">Rp 9.500</span>
+</div>
+<p class="font-body text-sm text-on-surface-variant line-clamp-2">Mashed Hass avocado with lemon, chili flakes, and sea salt on thick-cut toast.</p>
+</div>
+<button aria-label="Edit Avocado Toast" class="shrink-0 p-3 rounded-full bg-primary-container text-on-primary-container hover:bg-secondary hover:text-on-secondary transition-colors cursor-pointer" onclick="alert('Edit Avocado Toast')">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</div>
+
+<!-- Item 5 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 flex gap-4 items-center shadow-sm border border-primary/5 hover:-translate-y-0.5 transition-transform">
+<div class="w-20 h-20 md:w-24 md:h-24 shrink-0 rounded-lg overflow-hidden border border-primary/10 bg-surface-variant flex items-center justify-center">
+<img class="w-full h-full object-cover" alt="Pain au Chocolat" src="https://images.unsplash.com/photo-1608198093002-ad4e005484ec?auto=format&fit=crop&w=300&q=80">
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-headline text-lg font-bold text-on-surface truncate pr-2">Pain au Chocolat</h3>
+<span class="font-label text-sm font-bold text-secondary shrink-0 bg-secondary/10 px-2.5 py-1 rounded">Rp 4.750</span>
+</div>
+<p class="font-body text-sm text-on-surface-variant line-clamp-2">Flaky, buttery dough rolled around two batons of semi-sweet dark chocolate.</p>
+</div>
+<button aria-label="Edit Pain au Chocolat" class="shrink-0 p-3 rounded-full bg-primary-container text-on-primary-container hover:bg-secondary hover:text-on-secondary transition-colors cursor-pointer" onclick="alert('Edit Pain au Chocolat')">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</div>
+</div>
+</main>
+
+<!-- Floating Action Button -->
+<button class="fixed bottom-24 md:bottom-8 right-6 md:right-8 bg-primary text-on-primary rounded-xl px-6 py-4 flex items-center gap-2 shadow-lg hover:bg-secondary transition-all cursor-pointer z-40" onclick="alert('Tambah Menu Baru')">
+<span class="material-symbols-outlined">add</span>
+<span class="font-label text-sm font-bold tracking-wider">New Menu</span>
+</button>
+
+<!-- BottomNavBar Component -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center h-20 px-4 bg-surface-container-low border-t border-primary/10 z-50">
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2">
+<span class="material-symbols-outlined">storefront</span>
+<span class="font-label text-[10px] mt-1">Shop</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-5 py-2 shadow-md">
+<span class="material-symbols-outlined">auto_awesome</span>
+<span class="font-label text-[10px] mt-1 font-bold">Discover</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2">
+<span class="material-symbols-outlined">shopping_basket</span>
+<span class="font-label text-[10px] mt-1">Cart</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label text-[10px] mt-1">Profile</span>
+</button>
+</nav>
+</body>
+</html>

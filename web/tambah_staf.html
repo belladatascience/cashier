@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Tambah Staf - Artisan Goods</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400..700&family=Work+Sans:wght@400..700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#442a22",
+                        "secondary": "#7d562d",
+                        "background": "#fafaf5",
+                        "surface": "#fafaf5",
+                        "surface-container-low": "#f4f4ef",
+                        "surface-container-lowest": "#ffffff",
+                        "outline-variant": "#d4c3be",
+                        "outline": "#827470",
+                        "on-surface-variant": "#504441",
+                        "on-surface": "#1a1c19",
+                        "on-primary": "#ffffff"
+                    },
+                    fontFamily: {
+                        "headline": ["\"Source Serif 4\"", "serif"],
+                        "body": ["Work Sans", "sans-serif"],
+                        "label": ["Work Sans", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Work Sans', sans-serif; }
+        h1, h2, h3, h4, h5, h6, .font-headline { font-family: 'Source Serif 4', serif; }
+        .soft-shadow { box-shadow: 0 4px 20px rgba(68, 42, 34, 0.05); }
+</style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col">
+<!-- Top App Bar -->
+<header class="bg-surface border-b border-primary/10 flex justify-between items-center px-4 md:px-8 py-4 w-full sticky top-0 z-30">
+<div class="flex items-center gap-4">
+<button onclick="history.back()" class="p-2 -ml-2 rounded-full hover:bg-surface-container-low text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h2 class="font-headline text-2xl font-semibold text-primary">Tambah Staf</h2>
+</div>
+</header>
+
+<!-- Form Canvas -->
+<section class="flex-1 p-4 md:p-8 lg:p-12 overflow-y-auto">
+<div class="max-w-2xl mx-auto">
+<div class="mb-8 text-center md:text-left">
+<p class="font-body text-base text-on-surface-variant mb-2">Tambahkan anggota tim baru ke dalam jadwal operasional kafe.</p>
+</div>
+
+<form class="bg-surface-container-lowest rounded-xl soft-shadow p-6 md:p-8 space-y-6">
+<!-- Section: Upload Photo -->
+<div class="flex flex-col items-center justify-center space-y-4 pb-4 border-b border-outline-variant/40">
+<div class="relative group cursor-pointer">
+<div class="w-24 h-24 rounded-full bg-surface-container-low border-2 border-dashed border-outline-variant flex items-center justify-center transition-colors hover:border-primary/40">
+<span class="material-symbols-outlined text-outline text-[32px]">add_a_photo</span>
+</div>
+</div>
+<div class="text-center">
+<label class="block font-label text-xs uppercase tracking-wide font-bold text-on-surface">Unggah Foto Profil</label>
+<p class="text-xs text-on-surface-variant mt-1">Format JPG atau PNG, maks. 2MB</p>
+</div>
+</div>
+
+<!-- Section: Informasi Dasar -->
+<div class="space-y-4">
+<h3 class="font-headline text-lg font-semibold text-primary border-b border-outline-variant/40 pb-2">Informasi Dasar</h3>
+<div>
+<label class="block font-label text-xs font-bold text-on-surface mb-1.5 uppercase tracking-wide" for="nama">Nama Lengkap</label>
+<div class="relative rounded-md overflow-hidden bg-surface-container-low border border-outline-variant">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">person</span>
+<input class="w-full bg-transparent py-3 pl-10 pr-4 text-base text-on-surface focus:outline-none placeholder:text-outline-variant" id="nama" name="nama" placeholder="Masukkan nama staf" type="text">
+</div>
+</div>
+</div>
+
+<!-- Section: Role & Schedule -->
+<div class="space-y-4 pt-4">
+<h3 class="font-headline text-lg font-semibold text-primary border-b border-outline-variant/40 pb-2">Peran &amp; Jadwal</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Position -->
+<div>
+<label class="block font-label text-xs font-bold text-on-surface mb-1.5 uppercase tracking-wide" for="posisi">Posisi</label>
+<div class="relative rounded-md bg-surface-container-low border border-outline-variant">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">badge</span>
+<select class="w-full bg-transparent py-3 pl-10 pr-10 text-base text-on-surface focus:outline-none appearance-none cursor-pointer" id="posisi" name="posisi">
+<option disabled="" selected="" value="">Pilih posisi...</option>
+<option value="barista">Barista</option>
+<option value="kasir">Kasir</option>
+<option value="runner">Runner</option>
+<option value="kitchen">Kitchen Staff</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">arrow_drop_down</span>
+</div>
+</div>
+
+<!-- Shift Time -->
+<div>
+<label class="block font-label text-xs font-bold text-on-surface mb-1.5 uppercase tracking-wide" for="waktu_shift">Waktu Shift</label>
+<div class="relative rounded-md bg-surface-container-low border border-outline-variant">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">schedule</span>
+<select class="w-full bg-transparent py-3 pl-10 pr-10 text-base text-on-surface focus:outline-none appearance-none cursor-pointer" id="waktu_shift" name="waktu_shift">
+<option disabled="" selected="" value="">Pilih shift...</option>
+<option value="pagi">Pagi (07:00 - 15:00)</option>
+<option value="sore">Sore (14:30 - 22:30)</option>
+<option value="middle">Middle (11:00 - 19:00)</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">arrow_drop_down</span>
+</div>
+</div>
+</div>
+
+<!-- Hours/Duration -->
+<div>
+<label class="block font-label text-xs font-bold text-on-surface mb-1.5 uppercase tracking-wide" for="jam">Total Jam per Minggu (Estimasi)</label>
+<div class="relative rounded-md overflow-hidden bg-surface-container-low border border-outline-variant">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">timer</span>
+<input class="w-full bg-transparent py-3 pl-10 pr-4 text-base text-on-surface focus:outline-none placeholder:text-outline-variant" id="jam" name="jam" placeholder="Contoh: 40" type="number">
+</div>
+<p class="text-xs text-on-surface-variant mt-1">Standar full-time adalah 40 jam.</p>
+</div>
+</div>
+
+<!-- Action Area -->
+<div class="pt-8 mt-4 border-t border-outline-variant/40 flex flex-col sm:flex-row gap-4 justify-end">
+<button onclick="history.back()" class="px-6 py-3 rounded-lg font-label text-xs uppercase tracking-wide font-bold text-primary border border-primary/20 hover:bg-surface-container transition-colors" type="button">
+Batal
+</button>
+<button class="px-8 py-3 rounded-lg font-label text-xs uppercase tracking-wide font-bold bg-primary text-on-primary hover:bg-secondary transition-all flex items-center justify-center gap-2" type="button" onclick="alert('Staf berhasil disimpan!')">
+<span class="material-symbols-outlined text-[20px]">add_circle</span>
+Simpan Staf
+</button>
+</div>
+</form>
+</div>
+</section>
+</body>
+</html>

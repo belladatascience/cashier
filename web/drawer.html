@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html class="light" lang="id">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>BGA Co. - Navigation Drawer</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400..700&family=Oswald:wght@400..700&family=Literata:wght@400..700&display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "inverse-surface": "#2f312e",
+                "on-primary": "#ffffff",
+                "tertiary-container": "#45492d",
+                "on-secondary-container": "#7a532a",
+                "inverse-on-surface": "#f1f1ec",
+                "on-primary-fixed": "#1b1b1b",
+                "surface-container-lowest": "#ffffff",
+                "surface-container-high": "#e8e8e4",
+                "secondary-fixed-dim": "#f0bd8b",
+                "on-surface-variant": "#504441",
+                "primary-fixed-dim": "#c6c6c6",
+                "tertiary-fixed-dim": "#c5caa4",
+                "on-tertiary-fixed": "#1a1d06",
+                "on-error-container": "#93000a",
+                "primary-fixed": "#e2e2e2",
+                "on-secondary": "#ffffff",
+                "surface-variant": "#e2e3de",
+                "on-primary-fixed-variant": "#474747",
+                "primary-container": "#474747",
+                "error-container": "#ffdad6",
+                "surface-dim": "#dadad6",
+                "inverse-primary": "#c6c6c6",
+                "tertiary": "#2e3218",
+                "surface-container-highest": "#e2e3de",
+                "primary": "#303030",
+                "on-tertiary-container": "#b4b894",
+                "on-background": "#1a1c19",
+                "on-secondary-fixed": "#2c1600",
+                "surface-container": "#eeeee9",
+                "surface": "#fafaf5",
+                "outline": "#827470",
+                "on-tertiary": "#ffffff",
+                "outline-variant": "#d4c3be",
+                "surface-container-low": "#f4f4ef",
+                "on-tertiary-fixed-variant": "#45492d",
+                "on-surface": "#1a1c19",
+                "on-error": "#ffffff",
+                "surface-tint": "#5e5e5e",
+                "secondary-container": "#ffca98",
+                "tertiary-fixed": "#e2e6bf",
+                "error": "#ba1a1a",
+                "background": "#fafaf5",
+                "on-secondary-fixed-variant": "#623f18",
+                "secondary-fixed": "#ffdcbd",
+                "on-primary-container": "#b5b5b5",
+                "surface-bright": "#fafaf5",
+                "secondary": "#7d562d"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+        },
+        "spacing": {
+                "container-max": "1200px",
+                "gutter": "24px",
+                "margin-desktop": "64px",
+                "unit": "8px",
+                "margin-mobile": "20px"
+        },
+        "fontFamily": {
+                "headline-lg-mobile": ["\"Source Serif 4\"", "serif"],
+                "headline-md": ["\"Source Serif 4\"", "serif"],
+                "headline-xl": ["\"Source Serif 4\"", "serif"],
+                "label-md": ["Literata", "serif"],
+                "body-lg": ["Oswald", "sans-serif"],
+                "caption": ["Literata", "serif"],
+                "headline-lg": ["\"Source Serif 4\"", "serif"],
+                "body-md": ["Oswald", "sans-serif"]
+        }
+      }
+    }
+  }
+</script>
+</head>
+<body class="bg-background text-on-background antialiased overflow-hidden min-h-screen relative font-headline-md">
+<!-- Main Content Area -->
+<div class="absolute inset-0 z-0 bg-surface-container-highest transition-opacity duration-300">
+<div class="h-full w-full flex flex-col p-6 md:p-margin-desktop opacity-40 blur-[1px]">
+<!-- Header -->
+<header class="flex justify-between items-center mb-8">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-3xl cursor-pointer" onclick="toggleDrawer()">menu</span>
+<h1 class="font-headline-lg text-headline-lg text-primary">Discover</h1>
+</div>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-2xl">search</span>
+<span class="material-symbols-outlined text-2xl">notifications</span>
+</div>
+</header>
+<main class="grid grid-cols-1 md:grid-cols-12 gap-6 flex-1">
+<div class="col-span-8 bg-surface-container-low rounded-xl p-8 border border-outline/10 h-80">
+<div class="h-8 w-1/3 bg-surface-variant rounded mb-4 animate-pulse"></div>
+<div class="h-4 w-full bg-surface-variant rounded mb-2 animate-pulse"></div>
+<div class="h-4 w-5/6 bg-surface-variant rounded mb-2 animate-pulse"></div>
+</div>
+</main>
+</div>
+</div>
+
+<!-- Scrim (Dimming overlay) -->
+<div id="scrim" onclick="toggleDrawer()" class="fixed inset-0 bg-inverse-surface/40 z-40 backdrop-blur-[1px] transition-opacity duration-300"></div>
+
+<!-- Navigation Drawer Component -->
+<aside id="sidebar" class="fixed left-0 top-0 h-full z-50 flex flex-col w-[320px] rounded-r-3xl bg-surface-container-lowest shadow-[4px_0_24px_rgba(45,40,36,0.1)] transition-transform duration-300 ease-in-out transform translate-x-0">
+<!-- Header Card Section -->
+<div class="p-6 pt-10">
+<div class="bg-surface-container-low rounded-2xl p-5 border border-outline-variant/30 flex flex-col gap-2 relative">
+<h2 class="font-headline-md text-headline-md text-on-surface-variant" id="display-store-name">Bella Caffee</h2>
+<div class="flex flex-col gap-1 mt-1">
+<p class="text-label-md text-outline font-headline-md" id="display-store-location">Jakarta</p>
+<p class="text-label-md text-on-surface-variant font-headline-md" id="display-shift">Shift: Pagi</p>
+</div>
+<button aria-label="Edit settings" class="absolute top-4 right-4 p-1.5 text-outline hover:text-on-surface-variant hover:bg-surface-variant/50 rounded-full transition-colors duration-200">
+<span class="material-symbols-outlined text-xl">edit</span>
+</button>
+</div>
+</div>
+
+<!-- Decorative Image Section -->
+<div class="px-6 pb-6 border-b border-outline-variant/20">
+<div class="w-full h-36 rounded-xl overflow-hidden shadow-sm">
+<img alt="Cozy artisanal coffee shop interior" class="w-full h-full object-cover" src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=600&q=80">
+</div>
+</div>
+
+<!-- Navigation Links -->
+<nav class="flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-2">
+<a class="flex items-center gap-4 px-4 py-3.5 text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-all rounded-xl mx-2" href="#">
+<span class="material-symbols-outlined text-[22px]">person</span>
+<span class="text-label-md text-[15px] tracking-wide font-headline-md">Profile</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3.5 text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-all rounded-xl mx-2" href="#">
+<span class="material-symbols-outlined text-[22px]">calendar_today</span>
+<span class="text-label-md text-[15px] tracking-wide font-headline-md">Shift</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3.5 text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-all rounded-xl mx-2" href="#">
+<span class="material-symbols-outlined text-[22px]">settings</span>
+<span class="text-label-md text-[15px] tracking-wide font-headline-md">Setting</span>
+</a>
+<div class="flex-1"></div>
+<!-- Logout Section -->
+<div class="mt-auto pt-4 pb-2">
+<a class="flex items-center gap-4 px-4 py-3.5 text-on-surface-variant hover:bg-error-container/50 hover:text-error transition-all rounded-xl mx-2 group" href="login.html" onclick="alert('Anda telah keluar dari sistem kasir.')">
+<span class="material-symbols-outlined text-[22px] group-hover:text-error transition-colors">logout</span>
+<span class="text-label-md text-[15px] tracking-wide group-hover:text-error transition-colors font-headline-md">Logout</span>
+</a>
+</div>
+</nav>
+</aside>
+
+<script>
+    function toggleDrawer() {
+        const sidebar = document.getElementById('sidebar');
+        const scrim = document.getElementById('scrim');
+        if (sidebar.classList.contains('translate-x-0')) {
+            sidebar.classList.remove('translate-x-0');
+            sidebar.classList.add('-translate-x-full');
+            scrim.classList.add('hidden');
+        } else {
+            sidebar.classList.remove('-translate-x-full');
+            sidebar.classList.add('translate-x-0');
+            scrim.classList.remove('hidden');
+        }
+    }
+</script>
+</body>
+</html>

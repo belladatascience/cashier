@@ -2,10 +2,10 @@ import 'package:cashier/halaman1/models/user_login.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
-class DBHelper {
-  static final DBHelper _instance = DBHelper._internal();
-  factory DBHelper() => _instance;
-  DBHelper._internal();
+class DataBaseHelper {
+  static final DataBaseHelper _instance = DataBaseHelper._internal();
+  factory DataBaseHelper() => _instance;
+  DataBaseHelper._internal();
 
   static Database? _database;
 
@@ -21,7 +21,7 @@ class DBHelper {
 
     return await openDatabase(
       path,
-      version: 5, // DINAIKKAN KE 5 AGAR MIGRASI BERJALAN
+      version: 5,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE users(
@@ -41,6 +41,15 @@ class DBHelper {
             kelas TEXT
           )
         ''');
+
+        // Otomatis buatkan akun kasir bawaan/default jika pertama kali di-install
+        await db.insert('users', {
+          'email': 'KASIR01',
+          'password': '123',
+          'nama': 'Kasir Utama BGA',
+          'nomor_hp': '08123456789',
+          'asalKota': 'Jakarta',
+        });
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 5) {
@@ -68,12 +77,13 @@ class DBHelper {
     }
   }
 
-  Future<UserModelSQL?> loginUser(String email, String password) async {
+  /// Login menggunakan Email atau ID Kasir
+  Future<UserModelSQL?> loginUser(String emailOrId, String password) async {
     final db = await database;
     final List<Map<String, dynamic>> results = await db.query(
       'users',
-      where: 'email = ? AND password = ?',
-      whereArgs: [email, password],
+      where: '(email = ? OR nomor_hp = ?) AND password = ?',
+      whereArgs: [emailOrId, emailOrId, password],
     );
 
     if (results.isNotEmpty) {

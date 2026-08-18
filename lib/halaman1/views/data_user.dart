@@ -1,17 +1,17 @@
-import 'package:cashier/halaman1/database/db_helper.dart';
+import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/models/user_login.dart';
 import 'package:flutter/material.dart';
 // import 'package:ppkd_b7/day_18/database/db_helper.dart';
 // import 'package:ppkd_b7/day_18/models/user_login_model.dart';
 
-class DataUserDay18 extends StatefulWidget {
-  const DataUserDay18({super.key});
+class DataUserCashier extends StatefulWidget {
+  const DataUserCashier({super.key});
 
   @override
-  State<DataUserDay18> createState() => _DataUserDay18State();
+  State<DataUserCashier> createState() => _DataUserCashierState();
 }
 
-class _DataUserDay18State extends State<DataUserDay18> {
+class _DataUserCashierState extends State<DataUserCashier> {
   void _refreshList() {
     setState(() {});
   }
@@ -33,7 +33,7 @@ class _DataUserDay18State extends State<DataUserDay18> {
           Expanded(
             // FutureBuilder digunakan untuk mengambil data secara asynchronous dari fungsi DBHelper().getAllUsers()
             child: FutureBuilder<List<UserModelSQL>>(
-              future: DBHelper().getAllUsers(),
+              future: DataBaseHelper().getAllUsers(),
               builder: (context, snapshot) {
                 // Status 1: Sedang memuat data dari database
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -177,7 +177,7 @@ class _DataUserDay18State extends State<DataUserDay18> {
                     nomor_hp: noHpController.text,
                   );
 
-                  bool success = await DBHelper().registerUser(newUser);
+                  bool success = await DataBaseHelper().registerUser(newUser);
                   if (success && context.mounted) {
                     Navigator.pop(context);
                     _refreshList();
@@ -213,7 +213,9 @@ class _DataUserDay18State extends State<DataUserDay18> {
                           nomor_hp: noHpController.text,
                         );
 
-                        bool success = await DBHelper().updateUser(updatedUser);
+                        bool success = await DataBaseHelper().updateUser(
+                          updatedUser,
+                        );
                         if (success && context.mounted) {
                           Navigator.pop(context);
                           _refreshList();
@@ -238,7 +240,7 @@ class _DataUserDay18State extends State<DataUserDay18> {
                     ),
                     onPressed: () async {
                       if (user?.id != null) {
-                        await DBHelper().deleteUser(user!.id!);
+                        await DataBaseHelper().deleteUser(user!.id!);
                         if (context.mounted) {
                           Navigator.pop(context);
                           _refreshList();

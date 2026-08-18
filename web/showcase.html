@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Artisan Goods - Store Showcase</title>
+    <!-- Tailwind CSS with specific configuration -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed-dim": "#f0bd8b",
+                        "on-tertiary-fixed": "#1a1d06",
+                        "on-secondary": "#ffffff",
+                        "surface-tint": "#77574d",
+                        "primary": "#442a22",
+                        "tertiary-container": "#45492d",
+                        "inverse-surface": "#2f312e",
+                        "primary-fixed-dim": "#e7bdb1",
+                        "outline": "#827470",
+                        "secondary-container": "#ffca98",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#7d562d",
+                        "on-error-container": "#93000a",
+                        "on-background": "#1a1c19",
+                        "on-secondary-fixed-variant": "#623f18",
+                        "primary-container": "#5d4037",
+                        "on-secondary-fixed": "#2c1600",
+                        "background": "#fafaf5",
+                        "secondary-fixed": "#ffdcbd",
+                        "inverse-on-surface": "#f1f1ec",
+                        "on-error": "#ffffff",
+                        "outline-variant": "#d4c3be",
+                        "surface-container-high": "#e8e8e4",
+                        "surface-container-low": "#f4f4ef",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-primary-container": "#d4ada1",
+                        "surface-bright": "#fafaf5",
+                        "surface-dim": "#dadad6",
+                        "on-tertiary-container": "#b4b894",
+                        "on-surface": "#1a1c19",
+                        "on-primary": "#ffffff",
+                        "surface-container": "#eeeee9",
+                        "on-secondary-container": "#7a532a",
+                        "on-surface-variant": "#504441",
+                        "tertiary-fixed": "#e2e6bf",
+                        "on-primary-fixed": "#2c160e",
+                        "primary-fixed": "#ffdbd0",
+                        "surface": "#fafaf5",
+                        "on-tertiary-fixed-variant": "#45492d",
+                        "surface-variant": "#e2e3de",
+                        "surface-container-highest": "#e2e3de",
+                        "tertiary": "#2e3218",
+                        "error-container": "#ffdad6",
+                        "inverse-primary": "#e7bdb1",
+                        "tertiary-fixed-dim": "#c5caa4",
+                        "on-primary-fixed-variant": "#5d4037"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "container-max": "1200px",
+                        "unit": "8px",
+                        "margin-desktop": "64px",
+                        "margin-mobile": "20px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Work Sans", "sans-serif"],
+                        "headline-lg": ["\"Source Serif 4\"", "serif"],
+                        "headline-lg-mobile": ["\"Source Serif 4\"", "serif"],
+                        "body-md": ["Work Sans", "sans-serif"],
+                        "headline-xl": ["\"Source Serif 4\"", "serif"],
+                        "headline-md": ["\"Source Serif 4\"", "serif"],
+                        "caption": ["Work Sans", "sans-serif"],
+                        "label-md": ["Work Sans", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-xl": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .warm-gradient-bg {
+            background: linear-gradient(135deg, #3e2723 0%, #5d4037 100%);
+        }
+
+        #particles-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            bottom: -10px;
+            background-color: #f0bd8b;
+            border-radius: 50%;
+            opacity: 0.6;
+            animation: rise linear forwards;
+        }
+
+        @keyframes rise {
+            to {
+                transform: translateY(-100vh);
+                opacity: 0;
+            }
+        }
+
+        .shadow-level-1 {
+            box-shadow: 0 4px 6px -1px rgba(68, 42, 34, 0.15), 0 2px 4px -1px rgba(68, 42, 34, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-lg text-body-lg">
+    <!-- TopAppBar -->
+    <header class="bg-surface dark:bg-surface-dim text-primary dark:text-primary-fixed-dim w-full top-0 left-0 flex justify-between items-center px-margin-mobile md:px-margin-desktop py-4 z-10 relative border-b border-primary/10">
+        <button aria-label="Menu" class="text-on-surface-variant dark:text-outline hover:text-secondary dark:hover:text-secondary-fixed-dim transition-colors">
+            <span class="material-symbols-outlined">menu</span>
+        </button>
+        <button aria-label="Shopping Bag" class="text-on-surface-variant dark:text-outline hover:text-secondary dark:hover:text-secondary-fixed-dim transition-colors">
+            <span class="material-symbols-outlined">shopping_bag</span>
+        </button>
+    </header>
+
+    <!-- Main Content Canvas -->
+    <main class="flex-grow relative flex items-center justify-center warm-gradient-bg overflow-hidden pt-[32px] pb-[90px]">
+        <!-- Particle Background -->
+        <div id="particles-container"></div>
+
+        <!-- Floating Card Container -->
+        <div class="relative z-10 p-4 w-full max-w-md mx-auto px-margin-mobile">
+            <div class="bg-surface-container-lowest/95 backdrop-blur-sm p-6 rounded-xl shadow-level-1 text-center max-w-sm mx-auto border border-outline-variant/30">
+                <form class="flex flex-col items-start gap-4 w-full" onsubmit="event.preventDefault(); alert('Data berhasil dikirim!');">
+                    <div class="flex flex-col items-start gap-2 w-full">
+                        <label for="store-name" class="font-label-md text-label-md text-primary font-semibold">Nama Toko</label>
+                        <input type="text" id="store-name" placeholder="Caffee" required class="w-full p-3 rounded-lg border border-outline-variant bg-surface-container-low text-on-surface focus:outline-none focus:border-primary transition-colors font-body-md text-body-md">
+                    </div>
+                    <div class="flex flex-col items-start gap-2 w-full">
+                        <label for="store-location" class="font-label-md text-label-md text-primary font-semibold">Lokasi Toko</label>
+                        <input type="text" id="store-location" placeholder="Jakarta" required class="w-full p-3 rounded-lg border border-outline-variant bg-surface-container-low text-on-surface focus:outline-none focus:border-primary transition-colors font-body-md text-body-md">
+                    </div>
+                    <div class="flex flex-col items-start gap-2 w-full">
+                        <label for="shift" class="font-label-md text-label-md text-primary font-semibold">Shift</label>
+                        <select id="shift" required class="w-full p-3 rounded-lg border border-outline-variant bg-surface-container-low text-on-surface focus:outline-none focus:border-primary transition-colors font-body-md text-body-md">
+                            <option value="" disabled selected>Pilih shift</option>
+                            <option value="Pagi">Pagi</option>
+                            <option value="Siang">Siang</option>
+                            <option value="Malam">Malam</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full mt-4 py-4 bg-primary text-on-primary rounded-lg font-label-md text-label-md hover:bg-primary-container transition-colors shadow-level-1 cursor-pointer">Kirim</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- BottomNavBar -->
+    <nav class="bg-surface-container-low text-primary fixed bottom-0 left-0 w-full z-50 rounded-t-[24px] border-t border-primary/10 shadow-sm flex justify-around items-center h-[80px] px-4 pb-safe">
+        <a class="flex flex-col items-center justify-center text-on-surface-variant px-6 py-2 hover:bg-secondary-fixed/20 transition-all font-label-md text-label-md" href="#">
+            <span class="material-symbols-outlined mb-1">storefront</span>
+            Shop
+        </a>
+        <a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-6 py-2 transition-all font-label-md text-label-md scale-95" href="#">
+            <span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+            Discover
+        </a>
+        <a class="flex flex-col items-center justify-center text-on-surface-variant px-6 py-2 hover:bg-secondary-fixed/20 transition-all font-label-md text-label-md" href="#">
+            <span class="material-symbols-outlined mb-1">shopping_basket</span>
+            Cart
+        </a>
+        <a class="flex flex-col items-center justify-center text-on-surface-variant px-6 py-2 hover:bg-secondary-fixed/20 transition-all font-label-md text-label-md" href="#">
+            <span class="material-symbols-outlined mb-1">person</span>
+            Profile
+        </a>
+    </nav>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('particles-container');
+            const particleCount = 45;
+
+            for (let i = 0; i < particleCount; i++) {
+                createParticle();
+            }
+
+            function createParticle() {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                
+                const size = Math.random() * 4 + 2;
+                const left = Math.random() * 100;
+                const duration = Math.random() * 10 + 10;
+                const delay = Math.random() * 5;
+
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.left = `${left}%`;
+                particle.style.animationDuration = `${duration}s`;
+                particle.style.animationDelay = `${delay}s`;
+
+                container.appendChild(particle);
+
+                particle.addEventListener('animationend', () => {
+                    particle.remove();
+                    createParticle();
+                });
+            }
+        });
+    </script>
+</body>
+</html>

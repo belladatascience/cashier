@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Login Kasir - Artisan Goods | BGA Co.</title>
+    <!-- Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap">
+    <!-- Lottie Web Animation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+    <!-- Tailwind CSS with specific configuration -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-container": "#7a532a",
+                        "on-tertiary-fixed-variant": "#45492d",
+                        "on-secondary-fixed": "#2c1600",
+                        "on-primary-fixed-variant": "#5d4037",
+                        "secondary": "#7d562d",
+                        "primary-fixed-dim": "#e7bdb1",
+                        "tertiary": "#2e3218",
+                        "on-error-container": "#93000a",
+                        "surface-container-highest": "#e2e3de",
+                        "outline-variant": "#d4c3be",
+                        "background": "#fafaf5",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed": "#2c160e",
+                        "tertiary-fixed-dim": "#c5caa4",
+                        "secondary-fixed": "#ffdcbd",
+                        "inverse-primary": "#e7bdb1",
+                        "surface-tint": "#77574d",
+                        "surface-variant": "#e2e3de",
+                        "on-secondary-fixed-variant": "#623f18",
+                        "error": "#ba1a1a",
+                        "surface-container-high": "#e8e8e4",
+                        "on-primary-container": "#d4ada1",
+                        "inverse-surface": "#2f312e",
+                        "outline": "#827470",
+                        "inverse-on-surface": "#f1f1ec",
+                        "on-surface": "#1a1c19",
+                        "surface-container-low": "#f4f4ef",
+                        "surface-container": "#eeeee9",
+                        "on-tertiary-fixed": "#1a1d06",
+                        "on-tertiary-container": "#b4b894",
+                        "primary-container": "#5d4037",
+                        "primary-fixed": "#ffdbd0",
+                        "tertiary-container": "#45492d",
+                        "on-primary": "#ffffff",
+                        "on-surface-variant": "#504441",
+                        "tertiary-fixed": "#e2e6bf",
+                        "secondary-container": "#ffca98",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "surface-bright": "#fafaf5",
+                        "on-background": "#1a1c19",
+                        "primary": "#442a22",
+                        "surface-dim": "#dadad6",
+                        "secondary-fixed-dim": "#f0bd8b",
+                        "on-error": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface": "#fafaf5"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "container-max": "1200px",
+                        "margin-desktop": "64px",
+                        "margin-mobile": "20px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "caption": ["Work Sans", "sans-serif"],
+                        "headline-lg-mobile": ["\"Source Serif 4\"", "serif"],
+                        "body-md": ["Work Sans", "sans-serif"],
+                        "headline-xl": ["\"Source Serif 4\"", "serif"],
+                        "headline-lg": ["\"Source Serif 4\"", "serif"],
+                        "label-md": ["Work Sans", "sans-serif"],
+                        "body-lg": ["Work Sans", "sans-serif"],
+                        "headline-md": ["\"Source Serif 4\"", "serif"]
+                    },
+                    "fontSize": {
+                        "caption": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-xl": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "600" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-image: radial-gradient(circle at center, rgba(231, 189, 177, 0.12) 0%, transparent 100%);
+        }
+        
+        .soft-shadow {
+            box-shadow: 0 10px 30px -10px rgba(68, 42, 34, 0.15);
+        }
+        
+        .inset-shadow {
+            box-shadow: inset 0 2px 4px rgba(68, 42, 34, 0.05);
+        }
+
+        .pulse-glow {
+            animation: pulseGlow 3s infinite alternate;
+        }
+
+        @keyframes pulseGlow {
+            0% { transform: scale(1); opacity: 0.85; }
+            100% { transform: scale(1.03); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-background min-h-screen flex items-center justify-center p-margin-mobile md:p-margin-desktop font-body-md text-on-surface relative overflow-x-hidden">
+    <!-- Decorative Background Image -->
+    <div class="absolute inset-0 z-0 opacity-[0.04] pointer-events-none" style="background-image: url('https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1200&q=80'); background-size: cover; background-position: center center; background-repeat: no-repeat;"></div>
+    
+    <div class="w-full max-w-md relative z-10 my-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="font-headline-xl text-headline-xl text-primary mb-1 tracking-tight">CASHIER</h1>
+            <p class="font-body-md text-body-md text-on-surface-variant font-medium tracking-wide">BGA Co.</p>
+        </div>
+
+        <!-- Lottie Animation Container -->
+        <div class="flex justify-center items-center mb-6 h-[180px] w-full relative" id="lottie-container">
+            <div id="lottie-animation" class="w-[180px] h-[180px] flex items-center justify-center">
+                <!-- Fallback Container if Lottie is loading -->
+                <div class="w-[160px] h-[160px] bg-primary/10 rounded-full flex items-center justify-center pulse-glow border border-primary/10 shadow-inner">
+                    <span class="material-symbols-outlined text-primary opacity-60" style="font-size: 72px;">storefront</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Login Card -->
+        <div class="bg-surface-container-lowest rounded-xl soft-shadow p-8 md:p-10 border border-surface-container-highest transition-all duration-300">
+            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-6">
+                <!-- Notification Alert -->
+                <div id="alert-box" class="hidden p-3 rounded text-sm text-center font-medium transition-all"></div>
+
+                <!-- ID Kasir Input -->
+                <div>
+                    <label class="block font-label-md text-label-md text-primary mb-2" for="cashier-id">ID Kasir</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="material-symbols-outlined text-outline">badge</span>
+                        </span>
+                        <input class="block w-full pl-10 pr-3 py-3 border border-outline-variant rounded bg-surface focus:ring-2 focus:ring-secondary focus:border-secondary inset-shadow transition-all font-body-md text-body-md text-on-surface placeholder:text-outline-variant focus:outline-none" 
+                               id="cashier-id" 
+                               name="cashier-id" 
+                               placeholder="Masukkan ID Anda" 
+                               required 
+                               type="text"
+                               autocomplete="username">
+                    </div>
+                </div>
+
+                <!-- Kata Sandi Input -->
+                <div>
+                    <label class="block font-label-md text-label-md text-primary mb-2" for="password">Kata Sandi</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="material-symbols-outlined text-outline">lock</span>
+                        </span>
+                        <input class="block w-full pl-10 pr-10 py-3 border border-outline-variant rounded bg-surface focus:ring-2 focus:ring-secondary focus:border-secondary inset-shadow transition-all font-body-md text-body-md text-on-surface placeholder:text-outline-variant focus:outline-none" 
+                               id="password" 
+                               name="password" 
+                               placeholder="••••••••" 
+                               required 
+                               type="password"
+                               autocomplete="current-password">
+                        <button type="button" 
+                                onclick="togglePasswordVisibility()" 
+                                class="absolute inset-y-0 right-0 pr-3 flex items-center text-outline hover:text-primary transition-colors focus:outline-none"
+                                title="Tampilkan Kata Sandi">
+                            <span class="material-symbols-outlined text-[20px]" id="visibility-icon">visibility</span>
+                        </button>
+                    </div>
+                    <div class="flex justify-end mt-2">
+                        <a class="font-label-md text-label-md text-secondary hover:text-primary hover:underline transition-colors" href="#" onclick="alert('Silakan hubungi administrator sistem BGA Co. untuk mereset kata sandi.')">Lupa Kata Sandi?</a>
+                    </div>
+                </div>
+
+                <!-- Login Button -->
+                <button class="w-full bg-primary-container text-on-primary-container font-label-md text-label-md py-4 rounded hover:bg-secondary hover:text-on-secondary transition-all active:translate-y-[1px] shadow-sm hover:shadow-md flex justify-center items-center gap-2 mt-4 cursor-pointer" 
+                        id="btn-submit"
+                        type="submit">
+                    <span id="btn-text">Masuk</span>
+                    <span class="material-symbols-outlined text-[18px]" id="btn-icon">login</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Footer Info -->
+        <div class="mt-8 text-center">
+            <p class="font-caption text-caption text-outline">© 2026 BGA Co. All rights reserved.</p>
+        </div>
+    </div>
+
+    <!-- Script for Interactions -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            try {
+                lottie.loadAnimation({
+                    container: document.getElementById('lottie-animation'),
+                    renderer: 'svg',
+                    loop: true,
+                    autoplay: true,
+                    path: 'https://assets5.lottiefiles.com/packages/lf20_ygi0z8eb.json'
+                });
+            } catch (e) {
+                console.log("Using fallback animation icon");
+            }
+        });
+
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('password');
+            const icon = document.getElementById('visibility-icon');
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.textContent = 'visibility_off';
+            } else {
+                passwordInput.type = 'password';
+                icon.textContent = 'visibility';
+            }
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const cashierId = document.getElementById('cashier-id').value.trim();
+            const password = document.getElementById('password').value;
+            const btnSubmit = document.getElementById('btn-submit');
+            const btnText = document.getElementById('btn-text');
+            const btnIcon = document.getElementById('btn-icon');
+
+            if (!cashierId || !password) {
+                showAlert('Harap isi ID Kasir dan Kata Sandi!', 'bg-error-container text-on-error-container border border-error/20');
+                return;
+            }
+
+            btnSubmit.disabled = true;
+            btnText.textContent = 'Memproses...';
+            btnIcon.textContent = 'sync';
+            btnIcon.classList.add('animate-spin');
+
+            setTimeout(() => {
+                btnSubmit.disabled = false;
+                btnText.textContent = 'Masuk';
+                btnIcon.textContent = 'login';
+                btnIcon.classList.remove('animate-spin');
+
+                showAlert('Berhasil masuk! Mengalihkan ke Store Showcase...', 'bg-secondary-container text-on-secondary-container border border-secondary/20');
+                setTimeout(() => {
+                    window.location.href = 'showcase.html';
+                }, 800);
+            }, 1000);
+        }
+
+        function showAlert(message, classes) {
+            const alertBox = document.getElementById('alert-box');
+            alertBox.className = `p-3 rounded text-sm text-center font-medium transition-all ${classes}`;
+            alertBox.textContent = message;
+            alertBox.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

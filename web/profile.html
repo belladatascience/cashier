@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html class="light" lang="id">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Cashier Profile - Artisan Goods</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#623f18",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#504441",
+                        "on-tertiary-fixed": "#1a1d06",
+                        "on-error": "#ffffff",
+                        "error": "#ba1a1a",
+                        "outline": "#827470",
+                        "surface-container-low": "#f4f4ef",
+                        "on-primary": "#ffffff",
+                        "primary": "#442a22",
+                        "background": "#fafaf5",
+                        "surface-dim": "#dadad6",
+                        "inverse-primary": "#e7bdb1",
+                        "on-tertiary-container": "#b4b894",
+                        "outline-variant": "#d4c3be",
+                        "secondary-fixed-dim": "#f0bd8b",
+                        "tertiary": "#2e3218",
+                        "on-secondary-container": "#7a532a",
+                        "on-primary-fixed-variant": "#5d4037",
+                        "on-tertiary-fixed-variant": "#45492d",
+                        "tertiary-fixed-dim": "#c5caa4",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-fixed": "#ffdbd0",
+                        "error-container": "#ffdad6",
+                        "surface": "#fafaf5",
+                        "on-error-container": "#93000a",
+                        "tertiary-container": "#45492d",
+                        "on-secondary-fixed": "#2c1600",
+                        "surface-container-highest": "#e2e3de",
+                        "surface-tint": "#77574d",
+                        "primary-fixed-dim": "#e7bdb1",
+                        "on-surface": "#1a1c19",
+                        "on-primary-fixed": "#2c160e",
+                        "surface-variant": "#e2e3de",
+                        "surface-container": "#eeeee9",
+                        "tertiary-fixed": "#e2e6bf",
+                        "inverse-on-surface": "#f1f1ec",
+                        "on-background": "#1a1c19",
+                        "secondary-fixed": "#ffdcbd",
+                        "inverse-surface": "#2f312e",
+                        "on-secondary": "#ffffff",
+                        "on-primary-container": "#d4ada1",
+                        "secondary": "#7d562d",
+                        "primary-container": "#5d4037",
+                        "surface-bright": "#fafaf5",
+                        "surface-container-high": "#e8e8e4",
+                        "secondary-container": "#ffca98"
+                    },
+                    "fontFamily": {
+                        "headline": ["\"Source Serif 4\"", "serif"],
+                        "body": ["Work Sans", "sans-serif"],
+                        "label": ["Work Sans", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Work Sans', sans-serif; }
+        h1, h2, h3, h4, h5, h6, .font-headline { font-family: 'Source Serif 4', serif; }
+</style>
+</head>
+<body class="bg-background text-on-background min-h-screen md:pb-8 flex flex-col items-center">
+<!-- Top Navigation App Bar -->
+<header class="w-full top-0 left-0 bg-surface flat border-b border-outline-variant/30 sticky z-40 flex justify-between items-center px-6 md:px-16 py-4">
+<div class="flex items-center gap-4 text-primary">
+<button onclick="history.back()" class="hover:text-secondary transition-colors flex items-center justify-center p-2 rounded-full hover:bg-surface-container-highest">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="font-headline font-bold text-2xl tracking-tight">Artisan Goods</h1>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="font-label text-sm uppercase font-semibold text-on-surface-variant hover:text-secondary transition-colors flex flex-col items-center gap-1" href="showcase.html">
+<span class="material-symbols-outlined">storefront</span>
+Shop
+</a>
+<a class="font-label text-sm uppercase font-semibold text-secondary transition-colors flex flex-col items-center gap-1" href="profile.html">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+Profile
+</a>
+</nav>
+<button class="text-primary hover:text-secondary transition-colors flex items-center justify-center p-2 rounded-full hover:bg-surface-container-highest">
+<span class="material-symbols-outlined">shopping_bag</span>
+</button>
+</header>
+
+<!-- Main Content Area -->
+<main class="w-full max-w-[1200px] flex-grow flex flex-col items-center px-5 md:px-16 pt-8 md:pt-16 pb-12 gap-8">
+<!-- Profile Header -->
+<section class="w-full flex flex-col items-center text-center gap-4">
+<div class="relative w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-secondary/20 p-1 bg-surface-container-low shadow-sm">
+<div class="w-full h-full rounded-full overflow-hidden">
+<img class="w-full h-full object-cover" alt="Profile Alex Johnson" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80">
+</div>
+</div>
+<div>
+<h2 class="font-headline text-3xl md:text-4xl font-bold text-primary tracking-tight mb-1">Alex Johnson</h2>
+<p class="font-body text-lg text-secondary font-medium">Senior Cashier</p>
+<p class="font-body text-sm text-on-surface-variant mt-2 flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-[16px]">location_on</span>Bee Coffee Shop - Kemang</p>
+</div>
+</section>
+
+<!-- Daily Statistics Bento Grid -->
+<section class="w-full max-w-4xl mt-6">
+<h3 class="font-headline text-xl font-semibold text-primary mb-4 border-b border-primary/10 pb-2">Daily Statistics</h3>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+<!-- Stat Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-outline-variant/30 flex flex-col justify-between items-start gap-4">
+<div class="p-3 bg-tertiary-fixed rounded-full text-on-tertiary-fixed">
+<span class="material-symbols-outlined text-2xl">schedule</span>
+</div>
+<div>
+<p class="font-label text-xs uppercase tracking-widest text-on-surface-variant mb-1">Shift Duration</p>
+<p class="font-headline text-3xl font-semibold text-primary">6h 45m</p>
+</div>
+</div>
+
+<!-- Stat Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-outline-variant/30 flex flex-col justify-between items-start gap-4">
+<div class="p-3 bg-secondary-container rounded-full text-on-secondary-container">
+<span class="material-symbols-outlined text-2xl">receipt_long</span>
+</div>
+<div>
+<p class="font-label text-xs uppercase tracking-widest text-on-surface-variant mb-1">Total Transactions</p>
+<p class="font-headline text-3xl font-semibold text-primary">142</p>
+</div>
+</div>
+
+<!-- Stat Card 3 -->
+<div class="bg-primary text-on-primary rounded-xl p-6 shadow-md flex flex-col justify-between items-start gap-4 transform transition-transform hover:-translate-y-1">
+<div class="p-3 bg-on-primary/20 rounded-full text-on-primary">
+<span class="material-symbols-outlined text-2xl">payments</span>
+</div>
+<div>
+<p class="font-label text-xs uppercase tracking-widest text-primary-fixed-dim mb-1">Total Sales</p>
+<p class="font-headline text-3xl font-bold">Rp 4.250.000</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+</body>
+</html>
