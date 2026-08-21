@@ -8,12 +8,16 @@ import 'package:google_fonts/google_fonts.dart';
 class CheckoutScreen extends StatefulWidget {
   final List<Map<String, dynamic>> cartItems;
   final String storeName;
+  final String customerName;
+  final String tableNumber;
   final VoidCallback? onOrderCompleted;
 
   const CheckoutScreen({
     super.key,
     required this.cartItems,
     this.storeName = 'Heritage Hearth',
+    this.customerName = 'Pelanggan Umum',
+    this.tableNumber = '-',
     this.onOrderCompleted,
   });
 
@@ -37,6 +41,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   // Dynamic Color Tokens
   Color get colorPrimary => AppTheme.instance.primaryColor;
   Color get colorSecondary => AppTheme.instance.secondaryColor;
+  Color get colorSecondaryContainer => AppTheme.instance.secondaryContainer;
   Color get colorBackground => AppTheme.instance.backgroundColor;
   Color get colorSurface => AppTheme.instance.backgroundColor;
   Color get colorSurfaceContainerLowest => AppTheme.instance.surfaceColor;
@@ -88,7 +93,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   void _onCompleteOrder() {
-    if (_selectedPaymentMethod == 'wallet' && _selectedWallet == 'qris') {
+    if (_selectedPaymentMethod == 'wallet') {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -155,6 +160,53 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
               child: Column(
                 children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Customer:',
+                        style: GoogleFonts.workSans(
+                          fontSize: 12,
+                          color: colorOnSurfaceVariant,
+                        ),
+                      ),
+                      Text(
+                        widget.customerName.trim().isEmpty
+                            ? 'Pelanggan Umum'
+                            : widget.customerName.trim(),
+                        style: GoogleFonts.workSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: colorPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (widget.tableNumber != '-' &&
+                      widget.tableNumber.trim().isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Table:',
+                          style: GoogleFonts.workSans(
+                            fontSize: 12,
+                            color: colorOnSurfaceVariant,
+                          ),
+                        ),
+                        Text(
+                          widget.tableNumber.trim(),
+                          style: GoogleFonts.workSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: colorSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -232,7 +284,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   if (widget.onOrderCompleted != null) {
                     widget.onOrderCompleted!();
                   }
-                  Navigator.pop(context);
+                  Navigator.popUntil(
+                    context,
+                    (route) =>
+                        route.settings.name == 'HomeScreen' ||
+                        route.settings.name == '/HomeScreen' ||
+                        route.isFirst,
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colorPrimary,
@@ -241,12 +299,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text(
-                  'RETURN TO SHOP',
-                  style: GoogleFonts.workSans(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.0,
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.receipt_long, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'LIHAT TRANSAKSI',
+                      style: GoogleFonts.workSans(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -290,6 +355,137 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Customer & Table Info Card
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colorSurfaceContainerLowest,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: colorPrimary.withValues(alpha: 0.1),
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color.fromRGBO(68, 42, 34, 0.06),
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: colorSecondaryContainer.withValues(
+                                    alpha: 0.45,
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  Icons.person_pin_rounded,
+                                  color: colorSecondary,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'CUSTOMER',
+                                      style: GoogleFonts.workSans(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: colorOnSurfaceVariant,
+                                        letterSpacing: 0.8,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      widget.customerName.trim().isEmpty
+                                          ? 'Pelanggan Umum'
+                                          : widget.customerName.trim(),
+                                      style: GoogleFonts.workSans(
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: colorPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (widget.tableNumber != '-' &&
+                              widget.tableNumber.trim().isNotEmpty) ...[
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 8.0,
+                              ),
+                              child: Divider(
+                                height: 1,
+                                thickness: 1,
+                                color: colorOutline.withValues(alpha: 0.12),
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: colorSecondaryContainer.withValues(
+                                      alpha: 0.45,
+                                    ),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(
+                                    Icons.table_restaurant_outlined,
+                                    color: colorSecondary,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'TABLE',
+                                        style: GoogleFonts.workSans(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: colorOnSurfaceVariant,
+                                          letterSpacing: 0.8,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        widget.tableNumber.trim(),
+                                        style: GoogleFonts.workSans(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: colorSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+
                     // Section 1: Your Order Summary
                     _buildSectionTitle('Your Order'),
                     _buildOrderItemsList(),

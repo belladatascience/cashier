@@ -60,30 +60,30 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
   final List<Map<String, dynamic>> _foodItems = [
     {
       'name': 'Sourdough Loaf',
-      'price': 'Rp 8.500',
+      'price': 'Rp 38.000',
       'desc':
-          'Classic artisanal loaf, naturally leavened with a dark, crackly crust and chewy crumb.',
+          'Roti artisan sourdough klasik berkulit renyah garing dengan bagian dalam yang empuk.',
       'image': 'assets/images/food_sourdough.jpg',
     },
     {
       'name': 'Butter Croissant',
-      'price': 'Rp 4.250',
+      'price': 'Rp 25.000',
       'desc':
-          'Traditional French pastry with shattered, buttery layers. Baked fresh daily.',
+          'Pastry croissant khas Prancis yang renyah berlayer dengan aroma mentega gurih.',
       'image': 'assets/images/food_croissant.jpg',
     },
     {
       'name': 'Berry Tart',
-      'price': 'Rp 12.000',
+      'price': 'Rp 35.000',
       'desc':
-          'Seasonal mixed berries on a bed of vanilla pastry cream in a sweet crust.',
+          'Kue tart manis dengan topping buah beri segar dan krim custard lembut.',
       'image': 'assets/images/food_tart.jpg',
     },
     {
       'name': 'Avocado Toast',
-      'price': 'Rp 9.500',
+      'price': 'Rp 45.000',
       'desc':
-          'Mashed Hass avocado with lemon, chili flakes, and sea salt on thick-cut toast.',
+          'Roti panggang dengan olesan alpukat segar, irisan buah, dan taburan bumbu halus.',
       'image': 'assets/images/food_avocado.jpg',
     },
     {
@@ -111,7 +111,7 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
       'name': 'Chicken Club Sandwich',
       'price': 'Rp 38.000',
       'desc':
-          'Sandwich lapis tiga isi daging ayam panggang, keju chedar, telur, dan french fries.',
+          'Sandwich lapis tiga isi daging ayam panggang, keju cheddar, telur, dan kentang goreng.',
       'image': 'assets/images/food_sandwich.jpg',
     },
     {
@@ -125,23 +125,66 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
 
   final List<Map<String, dynamic>> _drinkItems = [
     {
-      'name': 'Espresso Single',
-      'price': 'Rp 18.000',
-      'desc':
-          'Rich and bold shot extracted from dark roast house espresso blend.',
-      'image': 'assets/images/drink_latte.jpg',
-    },
-    {
-      'name': 'Iced Caffe Latte',
+      'name': 'Ice Latte',
       'price': 'Rp 28.000',
       'desc':
-          'Smooth espresso paired with fresh cold milk and subtle caramel notes.',
+          'Es kopi latte segar dengan perpaduan espresso kaya rasa dan susu UHT dingin yang creamy.',
+      'image': 'assets/images/ice latte.jpg',
+    },
+    {
+      'name': 'Ice Americano',
+      'price': 'Rp 24.000',
+      'desc':
+          'Sajian es kopi hitam espresso murni dingin yang segar dan mantap.',
       'image': 'assets/images/drink_latte.jpg',
     },
     {
-      'name': 'Matcha Latte',
+      'name': 'Ice Signature Chocolate',
+      'price': 'Rp 35.000',
+      'desc':
+          'Minuman es cokelat pekat premium dengan racikan susu segar manis lezat.',
+      'image': 'assets/images/Ice Chocolate.jpg',
+    },
+    {
+      'name': 'Ice Tuffenut Latte',
       'price': 'Rp 32.000',
-      'desc': 'Ceremonial grade Japanese Uji matcha steamed with creamy milk.',
+      'desc':
+          'Es latte aroma toffee nut manis gurih dengan topping foam susu yang lembut.',
+      'image': 'assets/images/drink_latte.jpg',
+    },
+    {
+      'name': 'Ice Thai Tea',
+      'price': 'Rp 22.000',
+      'desc':
+          'Teh segar disajikan dingin manis creamy khas sajian thai tea.',
+      'image': 'assets/images/drink_lemontea.jpg',
+    },
+    {
+      'name': 'Ice Caramel Machiato',
+      'price': 'Rp 32.000',
+      'desc':
+          'Kopi susu dingin dengan syrup vanilla, foam lembut, dan siraman saus karamel manis di atasnya.',
+      'image': 'assets/images/Ice Caramel Machiato.jpg',
+    },
+    {
+      'name': 'Ice Tea',
+      'price': 'Rp 15.000',
+      'desc':
+          'Es teh manis dingin segar perasan lemon pilihan untuk penyegar dahaga.',
+      'image': 'assets/images/drink_lemontea.jpg',
+    },
+    {
+      'name': 'Ice Creamy Machiato',
+      'price': 'Rp 30.000',
+      'desc':
+          'Kopi macchiato dingin ekstra creamy dengan lapisan espresso dan susu lezat.',
+      'image': 'assets/images/drink_latte.jpg',
+    },
+    {
+      'name': 'Ice Matcha',
+      'price': 'Rp 30.000',
+      'desc':
+          'Seduhan teh hijau matcha jepang asli warna hijau segar dipadukan susu creamy dingin.',
       'image': 'assets/images/drink_matcha.jpg',
     },
   ];
@@ -149,17 +192,73 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
   final List<Map<String, dynamic>> _snackItems = [
     {
       'name': 'Choco Chip Cookie',
-      'price': 'Rp 15.000',
+      'price': 'Rp 18.000',
       'desc':
-          'Soft-baked Belgian chocolate chunk cookie with a pinch of sea salt.',
+          'Kue kering cokelat choco chip panggang renyah manis dengan potongan cokelat belgia.',
       'image': 'assets/images/snack_cookie.jpg',
     },
     {
       'name': 'Almond Muffin',
+      'price': 'Rp 22.000',
+      'desc':
+          'Muffin lembut hangat berbahan keju/almond dengan topping taburan kacang renyah.',
+      'image': 'assets/images/snack_muffin.jpg',
+    },
+    {
+      'name': 'Pisang Goreng',
+      'price': 'Rp 15.000',
+      'desc':
+          'Camilan pisang goreng crispy warna keemasan hangat renyah di luar, manis lembut di dalam.',
+      'image': 'assets/images/snack_pisanggoreng.jpg',
+    },
+    {
+      'name': 'Kentang Goreng',
       'price': 'Rp 18.000',
       'desc':
-          'Fluffy golden muffin filled with almond paste and toasted flakes.',
-      'image': 'assets/images/snack_muffin.jpg',
+          'Kentang goreng french fries potongan memanjang renyah gurih hangat disajikan dengan saus cocolan.',
+      'image': 'assets/images/snack_kentang.jpg',
+    },
+    {
+      'name': 'Jamur Goreng',
+      'price': 'Rp 16.000',
+      'desc':
+          'Jamur tiram/kancing crispy goreng tepung roti bumbu gurih yang renyah dan nagih.',
+      'image': 'assets/images/snack_jamur.jpg',
+    },
+    {
+      'name': 'Kebab',
+      'price': 'Rp 22.000',
+      'desc':
+          'Kebab gulung tortilla isi olahan daging sapi cincang, sayuran segar, dan saus spesial.',
+      'image': 'assets/images/snack_kebab.jpg',
+    },
+    {
+      'name': 'Bakwan Goreng Udang',
+      'price': 'Rp 15.000',
+      'desc':
+          'Gorengan bakwan sayur gurih renyah dengan topping udang utuh segar dan rempah.',
+      'image': 'assets/images/snack_bakwan.jpg',
+    },
+    {
+      'name': 'Cimol Keju',
+      'price': 'Rp 14.000',
+      'desc':
+          'Bola-bola cimol tapioka kenyal renyah dengan isian keju lumer dan taburan bumbu pedas gurih.',
+      'image': 'assets/images/snack_cimol.png',
+    },
+    {
+      'name': 'Donat Kentang',
+      'price': 'Rp 12.000',
+      'desc':
+          'Donat kentang empuk berbentuk cincin manis lezat dengan taburan gula halus putih.',
+      'image': 'assets/images/snack_donatkentang.jpg',
+    },
+    {
+      'name': 'Tahu Cabe Garam',
+      'price': 'Rp 16.000',
+      'desc':
+          'Potongan tahu crispy goreng bumbu pedas gurih taburan cabai rawit dan bawang garam melimpah.',
+      'image': 'assets/images/snack_tahucabegaram.jpg',
     },
   ];
 
@@ -208,6 +307,17 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
       'Snack': _snackItems,
       'Dessert': _dessertItems,
     };
+  }
+
+  @override
+  void didUpdateWidget(EditMenuScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.categoryNames != null) {
+      _categoryNames = widget.categoryNames!;
+    }
+    if (widget.categoryDataMap != null) {
+      _categoryDataMap = widget.categoryDataMap!;
+    }
   }
 
   List<Map<String, dynamic>> get _currentItems {

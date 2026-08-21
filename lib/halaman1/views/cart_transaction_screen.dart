@@ -51,6 +51,8 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _cashInputController = TextEditingController();
+  final TextEditingController _customerNameController = TextEditingController();
+  final TextEditingController _tableNumberController = TextEditingController();
 
   String _selectedCategory = 'Semua';
   String _selectedPaymentMethod = 'Tunai';
@@ -59,8 +61,8 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
   final List<ProductItem> _products = [
     ProductItem(
       id: 'p1',
-      name: 'Caffe Latte (Hot)',
-      price: 24000,
+      name: 'Ice Latte',
+      price: 28000,
       category: 'Kopi',
       icon: Icons.local_cafe,
       imageUrl:
@@ -68,8 +70,8 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
     ),
     ProductItem(
       id: 'p2',
-      name: 'Iced Americano',
-      price: 22000,
+      name: 'Ice Americano',
+      price: 24000,
       category: 'Kopi',
       icon: Icons.coffee,
       imageUrl:
@@ -77,15 +79,69 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
     ),
     ProductItem(
       id: 'p3',
-      name: 'Cappuccino Warm',
-      price: 25000,
-      category: 'Kopi',
+      name: 'Ice Signature Chocolate',
+      price: 35000,
+      category: 'Non-Kopi',
       icon: Icons.coffee_maker,
       imageUrl:
           'https://images.unsplash.com/photo-1534778101976-62847782c213?auto=format&fit=crop&w=300&q=80',
     ),
     ProductItem(
       id: 'p4',
+      name: 'Ice Tuffenut Latte',
+      price: 32000,
+      category: 'Kopi',
+      icon: Icons.local_cafe,
+      imageUrl:
+          'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=300&q=80',
+    ),
+    ProductItem(
+      id: 'p5',
+      name: 'Ice Thai Tea',
+      price: 22000,
+      category: 'Non-Kopi',
+      icon: Icons.emoji_food_beverage,
+      imageUrl:
+          'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=300&q=80',
+    ),
+    ProductItem(
+      id: 'p6',
+      name: 'Ice Caramel Machiato',
+      price: 32000,
+      category: 'Kopi',
+      icon: Icons.local_cafe,
+      imageUrl:
+          'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=300&q=80',
+    ),
+    ProductItem(
+      id: 'p7',
+      name: 'Ice Tea',
+      price: 15000,
+      category: 'Non-Kopi',
+      icon: Icons.emoji_food_beverage,
+      imageUrl:
+          'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=300&q=80',
+    ),
+    ProductItem(
+      id: 'p8',
+      name: 'Ice Creamy Machiato',
+      price: 30000,
+      category: 'Kopi',
+      icon: Icons.local_cafe,
+      imageUrl:
+          'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=300&q=80',
+    ),
+    ProductItem(
+      id: 'p9',
+      name: 'Ice Matcha',
+      price: 30000,
+      category: 'Non-Kopi',
+      icon: Icons.emoji_food_beverage,
+      imageUrl:
+          'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=300&q=80',
+    ),
+    ProductItem(
+      id: 'p10',
       name: 'Butter Croissant',
       price: 16500,
       category: 'Makanan',
@@ -94,16 +150,7 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
           'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=300&q=80',
     ),
     ProductItem(
-      id: 'p5',
-      name: 'Matcha Latte (Ice)',
-      price: 28000,
-      category: 'Non-Kopi',
-      icon: Icons.emoji_food_beverage,
-      imageUrl:
-          'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=300&q=80',
-    ),
-    ProductItem(
-      id: 'p6',
+      id: 'p11',
       name: 'Chocolate Lava Cake',
       price: 32000,
       category: 'Makanan',
@@ -112,22 +159,85 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
           'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=300&q=80',
     ),
     ProductItem(
-      id: 'p7',
-      name: 'Earl Grey Milk Tea',
-      price: 26000,
-      category: 'Non-Kopi',
-      icon: Icons.wine_bar,
-      imageUrl:
-          'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=300&q=80',
-    ),
-    ProductItem(
-      id: 'p8',
+      id: 'p12',
       name: 'Sourdough Loaf',
       price: 18500,
       category: 'Makanan',
       icon: Icons.breakfast_dining,
       imageUrl:
           'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=300&q=80',
+    ),
+    ProductItem(
+      id: 'p13',
+      name: 'Pisang Goreng',
+      price: 15000,
+      category: 'Makanan',
+      icon: Icons.fastfood,
+      imageUrl:
+          'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=300&q=80',
+    ),
+    ProductItem(
+      id: 'p14',
+      name: 'Kentang Goreng',
+      price: 18000,
+      category: 'Makanan',
+      icon: Icons.lunch_dining,
+      imageUrl:
+          'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=300&q=80',
+    ),
+    ProductItem(
+      id: 'p15',
+      name: 'Jamur Goreng',
+      price: 16000,
+      category: 'Makanan',
+      icon: Icons.fastfood,
+      imageUrl:
+          'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=300&q=80',
+    ),
+    ProductItem(
+      id: 'p16',
+      name: 'Kebab',
+      price: 22000,
+      category: 'Makanan',
+      icon: Icons.takeout_dining,
+      imageUrl:
+          'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=300&q=80',
+    ),
+    ProductItem(
+      id: 'p17',
+      name: 'Bakwan Goreng Udang',
+      price: 15000,
+      category: 'Makanan',
+      icon: Icons.set_meal,
+      imageUrl:
+          'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=300&q=80',
+    ),
+    ProductItem(
+      id: 'p18',
+      name: 'Cimol Keju',
+      price: 14000,
+      category: 'Makanan',
+      icon: Icons.fastfood,
+      imageUrl:
+          'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=300&q=80',
+    ),
+    ProductItem(
+      id: 'p19',
+      name: 'Donat Kentang',
+      price: 12000,
+      category: 'Makanan',
+      icon: Icons.bakery_dining,
+      imageUrl:
+          'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=300&q=80',
+    ),
+    ProductItem(
+      id: 'p20',
+      name: 'Tahu Cabe Garam',
+      price: 16000,
+      category: 'Makanan',
+      icon: Icons.rice_bowl,
+      imageUrl:
+          'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=300&q=80',
     ),
   ];
 
@@ -170,6 +280,8 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
     _tabController.dispose();
     _searchController.dispose();
     _cashInputController.dispose();
+    _customerNameController.dispose();
+    _tableNumberController.dispose();
     super.dispose();
   }
 
@@ -264,6 +376,110 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
                       ],
                     ),
                     const Divider(height: 24),
+
+                    // Customer & Table Info Card
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: theme.dividerColor),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.person_pin_rounded,
+                                size: 20,
+                                color: theme.secondaryColor,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Customer',
+                                      style: GoogleFonts.workSans(
+                                        fontSize: 11,
+                                        color: theme.outlineColor,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    Text(
+                                      _customerNameController.text
+                                              .trim()
+                                              .isEmpty
+                                          ? 'Pelanggan Umum (Walk-in)'
+                                          : _customerNameController.text.trim(),
+                                      style: GoogleFonts.workSans(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: theme.primaryColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (_tableNumberController.text
+                              .trim()
+                              .isNotEmpty) ...[
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 6.0,
+                              ),
+                              child: Divider(
+                                height: 1,
+                                thickness: 1,
+                                color: theme.dividerColor,
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.table_restaurant_outlined,
+                                  size: 18,
+                                  color: theme.secondaryColor,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Table',
+                                        style: GoogleFonts.workSans(
+                                          fontSize: 11,
+                                          color: theme.outlineColor,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      Text(
+                                        _tableNumberController.text.trim(),
+                                        style: GoogleFonts.workSans(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: theme.secondaryColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
 
                     // Total Tagihan Card
                     Container(
@@ -644,6 +860,49 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
+                            'Customer:',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: theme.outlineColor,
+                            ),
+                          ),
+                          Text(
+                            _customerNameController.text.trim().isEmpty
+                                ? 'Pelanggan Umum'
+                                : _customerNameController.text.trim(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: theme.primaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_tableNumberController.text.trim().isNotEmpty)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Table:',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: theme.outlineColor,
+                              ),
+                            ),
+                            Text(
+                              _tableNumberController.text.trim(),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: theme.secondaryColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
                             'Metode:',
                             style: TextStyle(
                               fontSize: 12,
@@ -738,6 +997,8 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
                 Navigator.pop(dialogContext);
                 setState(() {
                   _cart.clear();
+                  _customerNameController.clear();
+                  _tableNumberController.clear();
                 });
               },
               style: ElevatedButton.styleFrom(
@@ -994,17 +1255,24 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
                                           CrossAxisAlignment.start,
                                       children: [
                                         ClipRRect(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                           child: Image.network(
                                             p.imageUrl,
                                             height: 70,
                                             width: double.infinity,
                                             fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) =>
-                                                Container(
+                                            errorBuilder:
+                                                (
+                                                  context,
+                                                  error,
+                                                  stackTrace,
+                                                ) => Container(
                                                   height: 70,
                                                   width: double.infinity,
-                                                  color: theme.secondaryContainer
+                                                  color: theme
+                                                      .secondaryContainer
                                                       .withValues(alpha: 0.2),
                                                   child: Icon(
                                                     p.icon,
@@ -1070,6 +1338,206 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
                     // TAB 2: Detail Keranjang Transaksi POS
                     Column(
                       children: [
+                        if (_cart.isNotEmpty)
+                          Container(
+                            margin: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+                            decoration: BoxDecoration(
+                              color: theme.surfaceColor,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: theme.dividerColor),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.03),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                // Field 1: Customer
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 8,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(7),
+                                        decoration: BoxDecoration(
+                                          color: theme.secondaryContainer
+                                              .withValues(alpha: 0.35),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          Icons.person_outline_rounded,
+                                          color: theme.secondaryColor,
+                                          size: 18,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'CUSTOMER',
+                                              style: GoogleFonts.workSans(
+                                                fontSize: 10.5,
+                                                fontWeight: FontWeight.bold,
+                                                color: theme.outlineColor,
+                                                letterSpacing: 0.8,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            TextField(
+                                              controller:
+                                                  _customerNameController,
+                                              style: GoogleFonts.workSans(
+                                                fontSize: 13.5,
+                                                fontWeight: FontWeight.w600,
+                                                color: theme.primaryColor,
+                                              ),
+                                              decoration: InputDecoration(
+                                                isDense: true,
+                                                contentPadding: EdgeInsets.zero,
+                                                border: InputBorder.none,
+                                                hintText:
+                                                    'Customer name (e.g. Kak Bella)...',
+                                                hintStyle: GoogleFonts.workSans(
+                                                  fontSize: 12.5,
+                                                  fontWeight: FontWeight.normal,
+                                                  color: theme.outlineColor
+                                                      .withValues(alpha: 0.6),
+                                                ),
+                                              ),
+                                              onChanged: (val) =>
+                                                  setState(() {}),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (_customerNameController
+                                          .text
+                                          .isNotEmpty)
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.close_rounded,
+                                            size: 16,
+                                          ),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                          color: theme.outlineColor,
+                                          onPressed: () {
+                                            setState(() {
+                                              _customerNameController.clear();
+                                            });
+                                          },
+                                        ),
+                                    ],
+                                  ),
+                                ),
+
+                                Divider(
+                                  height: 1,
+                                  thickness: 1,
+                                  color: theme.dividerColor,
+                                ),
+
+                                // Field 2: Table (dibawah Customer)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 8,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(7),
+                                        decoration: BoxDecoration(
+                                          color: theme.secondaryContainer
+                                              .withValues(alpha: 0.35),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          Icons.table_restaurant_outlined,
+                                          color: theme.secondaryColor,
+                                          size: 18,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'TABLE',
+                                              style: GoogleFonts.workSans(
+                                                fontSize: 10.5,
+                                                fontWeight: FontWeight.bold,
+                                                color: theme.outlineColor,
+                                                letterSpacing: 0.8,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            TextField(
+                                              controller:
+                                                  _tableNumberController,
+                                              style: GoogleFonts.workSans(
+                                                fontSize: 13.5,
+                                                fontWeight: FontWeight.w600,
+                                                color: theme.primaryColor,
+                                              ),
+                                              decoration: InputDecoration(
+                                                isDense: true,
+                                                contentPadding: EdgeInsets.zero,
+                                                border: InputBorder.none,
+                                                hintText:
+                                                    'Table / Meja (e.g. Table 04)...',
+                                                hintStyle: GoogleFonts.workSans(
+                                                  fontSize: 12.5,
+                                                  fontWeight: FontWeight.normal,
+                                                  color: theme.outlineColor
+                                                      .withValues(alpha: 0.6),
+                                                ),
+                                              ),
+                                              onChanged: (val) =>
+                                                  setState(() {}),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (_tableNumberController
+                                          .text
+                                          .isNotEmpty)
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.close_rounded,
+                                            size: 16,
+                                          ),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                          color: theme.outlineColor,
+                                          onPressed: () {
+                                            setState(() {
+                                              _tableNumberController.clear();
+                                            });
+                                          },
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
                         Expanded(
                           child: _cart.isEmpty
                               ? Center(
@@ -1121,14 +1589,20 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
                                       child: Row(
                                         children: [
                                           ClipRRect(
-                                            borderRadius: BorderRadius.circular(8),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                             child: Image.network(
                                               cartItem.product.imageUrl,
                                               width: 48,
                                               height: 48,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (context, error, stackTrace) =>
-                                                  Icon(
+                                              errorBuilder:
+                                                  (
+                                                    context,
+                                                    error,
+                                                    stackTrace,
+                                                  ) => Icon(
                                                     cartItem.product.icon,
                                                     color: theme.secondaryColor,
                                                     size: 28,

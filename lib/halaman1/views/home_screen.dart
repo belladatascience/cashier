@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:cashier/halaman1/views/cashier_profile_screen.dart';
 import 'package:cashier/halaman1/views/checkout_screen.dart';
 import 'package:cashier/halaman1/views/edit_menu_screen.dart';
@@ -42,6 +43,90 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime? _selectedTransactionDate;
 
   final List<Map<String, dynamic>> _transactionHistory = [
+    {
+      'id': '#INV-20260821-001',
+      'date': '21 Aug 2026, 11:45',
+      'method': 'Digital Wallet (QRIS)',
+      'customer': 'Handky Chang',
+      'items': [
+        {'name': 'Artisan Matcha Latte', 'qty': 2, 'price': 35000},
+        {'name': 'Berry Cheesecake', 'qty': 1, 'price': 28000},
+      ],
+      'subtotal': 98000,
+      'tax': 9800,
+      'total': 107800,
+      'status': 'LUNAS',
+    },
+    {
+      'id': '#INV-20260821-002',
+      'date': '21 Aug 2026, 10:15',
+      'method': 'Digital Wallet (GoPay)',
+      'customer': 'Siti Aminah',
+      'items': [
+        {'name': 'Classic Cafe Latte', 'qty': 1, 'price': 32000},
+        {'name': 'Butter Croissant', 'qty': 2, 'price': 28000},
+      ],
+      'subtotal': 88000,
+      'tax': 8800,
+      'total': 96800,
+      'status': 'LUNAS',
+    },
+    {
+      'id': '#INV-20260820-001',
+      'date': '20 Aug 2026, 16:30',
+      'method': 'Cash in Store',
+      'customer': 'Pelanggan Umum',
+      'items': [
+        {'name': 'Rustic Sourdough Loaf', 'qty': 1, 'price': 45000},
+        {'name': 'Ice Americano', 'qty': 2, 'price': 24000},
+      ],
+      'subtotal': 93000,
+      'tax': 9300,
+      'total': 102300,
+      'status': 'LUNAS',
+    },
+    {
+      'id': '#INV-20260819-001',
+      'date': '19 Aug 2026, 15:20',
+      'method': 'Digital Wallet (QRIS)',
+      'customer': 'Bella Saputra',
+      'items': [
+        {'name': 'Signature Hot Chocolate', 'qty': 2, 'price': 38000},
+        {'name': 'Berry Tart', 'qty': 2, 'price': 55000},
+      ],
+      'subtotal': 186000,
+      'tax': 18600,
+      'total': 204600,
+      'status': 'LUNAS',
+    },
+    {
+      'id': '#INV-20260819-002',
+      'date': '19 Aug 2026, 11:10',
+      'method': 'Digital Wallet (GoPay)',
+      'customer': 'Dewi Lestari',
+      'items': [
+        {'name': 'Artisan Matcha Latte', 'qty': 1, 'price': 35000},
+        {'name': 'Snack Donat Kentang', 'qty': 2, 'price': 18000},
+      ],
+      'subtotal': 71000,
+      'tax': 7100,
+      'total': 78100,
+      'status': 'LUNAS',
+    },
+    {
+      'id': '#INV-20260819-003',
+      'date': '19 Aug 2026, 09:45',
+      'method': 'Cash in Store',
+      'customer': 'Andi Wijaya',
+      'items': [
+        {'name': 'Ice Latte', 'qty': 2, 'price': 28000},
+        {'name': 'Butter Croissant', 'qty': 1, 'price': 28000},
+      ],
+      'subtotal': 84000,
+      'tax': 8400,
+      'total': 92400,
+      'status': 'LUNAS',
+    },
     {
       'id': '#INV-20260818-001',
       'date': '18 Aug 2026, 14:15',
@@ -103,46 +188,83 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Map<String, dynamic>> _drinkMenuItems = [
     {
-      'name': 'Artisan Matcha Latte',
-      'price': 35000,
-      'priceText': 'Rp 35.000',
-      'desc': 'Premium ceremonial grade matcha whisked with creamy milk.',
-      'image': 'assets/images/drink_matcha.jpg',
+      'name': 'Ice Latte',
+      'price': 28000,
+      'priceText': 'Rp 28.000',
+      'desc':
+          'Es kopi latte segar dengan perpaduan espresso kaya rasa dan susu UHT dingin yang creamy.',
+      'image': 'assets/images/ice latte.jpg',
       'category': 'Drink',
     },
     {
-      'name': 'Classic Cafe Latte',
-      'price': 32000,
-      'priceText': 'Rp 32.000',
+      'name': 'Ice Americano',
+      'price': 24000,
+      'priceText': 'Rp 24.000',
       'desc':
-          'Rich espresso balanced with velvety steamed milk and heart latte art.',
+          'Sajian es kopi hitam espresso murni dingin yang segar dan mantap.',
       'image': 'assets/images/drink_latte.jpg',
       'category': 'Drink',
     },
     {
-      'name': 'Iced Lemon Tea',
-      'price': 28000,
-      'priceText': 'Rp 28.000',
+      'name': 'Ice Signature Chocolate',
+      'price': 35000,
+      'priceText': 'Rp 35.000',
       'desc':
-          'Refreshing black tea infused with fresh lemon and a hint of mint.',
+          'Minuman es cokelat pekat premium dengan racikan susu segar manis lezat.',
+      'image': 'assets/images/Ice Chocolate.jpg',
+      'category': 'Drink',
+    },
+    {
+      'name': 'Ice Tuffenut Latte',
+      'price': 32000,
+      'priceText': 'Rp 32.000',
+      'desc':
+          'Es latte aroma toffee nut manis gurih dengan topping foam susu yang lembut.',
+      'image': 'assets/images/drink_latte.jpg',
+      'category': 'Drink',
+    },
+    {
+      'name': 'Ice Thai Tea',
+      'price': 22000,
+      'priceText': 'Rp 22.000',
+      'desc': 'Teh segar disajikan dingin manis creamy khas sajian thai tea.',
       'image': 'assets/images/drink_lemontea.jpg',
       'category': 'Drink',
     },
     {
-      'name': 'Signature Hot Chocolate',
-      'price': 38000,
-      'priceText': 'Rp 38.000',
+      'name': 'Ice Caramel Machiato',
+      'price': 32000,
+      'priceText': 'Rp 32.000',
       'desc':
-          'Decadent dark chocolate melted into warm milk with a dash of cocoa.',
-      'image': 'assets/images/drink_hotchocolate.jpg',
+          'Kopi susu dingin dengan syrup vanilla, foam lembut, dan siraman saus karamel manis di atasnya.',
+      'image': 'assets/images/Ice Caramel Machiato.jpg',
       'category': 'Drink',
     },
     {
-      'name': 'Sparkling Citrus Water',
-      'price': 25000,
-      'priceText': 'Rp 25.000',
-      'desc': 'Crisp sparkling water served with fresh lime and lemon slices.',
-      'image': 'assets/images/drink_citrus.jpg',
+      'name': 'Ice Tea',
+      'price': 15000,
+      'priceText': 'Rp 15.000',
+      'desc':
+          'Es teh manis dingin segar perasan lemon pilihan untuk penyegar dahaga.',
+      'image': 'assets/images/drink_lemontea.jpg',
+      'category': 'Drink',
+    },
+    {
+      'name': 'Ice Creamy Machiato',
+      'price': 30000,
+      'priceText': 'Rp 30.000',
+      'desc':
+          'Kopi macchiato dingin ekstra creamy dengan lapisan espresso dan susu lezat.',
+      'image': 'assets/images/drink_latte.jpg',
+      'category': 'Drink',
+    },
+    {
+      'name': 'Ice Matcha',
+      'price': 30000,
+      'priceText': 'Rp 30.000',
+      'desc':
+          'Seduhan teh hijau matcha jepang asli warna hijau segar dipadukan susu creamy dingin.',
+      'image': 'assets/images/drink_matcha.jpg',
       'category': 'Drink',
     },
   ];
@@ -153,7 +275,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'price': 38000,
       'priceText': 'Rp 38.000',
       'desc':
-          'Classic artisanal loaf, naturally leavened with a dark crackly crust.',
+          'Roti artisan sourdough klasik berkulit renyah garing dengan bagian dalam yang empuk.',
       'image': 'assets/images/food_sourdough.jpg',
       'category': 'Food',
     },
@@ -161,7 +283,8 @@ class _HomeScreenState extends State<HomeScreen> {
       'name': 'Butter Croissant',
       'price': 25000,
       'priceText': 'Rp 25.000',
-      'desc': 'Traditional French pastry with shattered, buttery layers.',
+      'desc':
+          'Pastry croissant khas Prancis yang renyah berlayer dengan aroma mentega gurih.',
       'image': 'assets/images/food_croissant.jpg',
       'category': 'Food',
     },
@@ -169,7 +292,8 @@ class _HomeScreenState extends State<HomeScreen> {
       'name': 'Avocado Toast',
       'price': 45000,
       'priceText': 'Rp 45.000',
-      'desc': 'Mashed Hass avocado with lemon, chili flakes, and sea salt.',
+      'desc':
+          'Roti panggang dengan olesan alpukat segar, irisan buah, dan taburan bumbu halus.',
       'image': 'assets/images/food_avocado.jpg',
       'category': 'Food',
     },
@@ -178,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'price': 35000,
       'priceText': 'Rp 35.000',
       'desc':
-          'Seasonal mixed berries on vanilla pastry cream in a sweet crust.',
+          'Kue tart manis dengan topping buah beri segar dan krim custard lembut.',
       'image': 'assets/images/food_tart.jpg',
       'category': 'Food',
     },
@@ -205,7 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'price': 38000,
       'priceText': 'Rp 38.000',
       'desc':
-          'Sandwich lapis tiga isi daging ayam panggang, keju chedar, telur, dan french fries.',
+          'Sandwich lapis tiga isi daging ayam panggang, keju cheddar, telur, dan kentang goreng.',
       'image': 'assets/images/food_sandwich.jpg',
       'category': 'Food',
     },
@@ -225,7 +349,8 @@ class _HomeScreenState extends State<HomeScreen> {
       'name': 'Choco Chip Cookie',
       'price': 18000,
       'priceText': 'Rp 18.000',
-      'desc': 'Soft-baked Belgian chocolate chunk cookie with sea salt.',
+      'desc':
+          'Kue kering cokelat choco chip panggang renyah manis dengan potongan cokelat belgia.',
       'image': 'assets/images/snack_cookie.jpg',
       'category': 'Snack',
     },
@@ -234,8 +359,80 @@ class _HomeScreenState extends State<HomeScreen> {
       'price': 22000,
       'priceText': 'Rp 22.000',
       'desc':
-          'Fluffy golden muffin filled with almond paste and toasted flakes.',
+          'Muffin lembut hangat berbahan keju/almond dengan topping taburan kacang renyah.',
       'image': 'assets/images/snack_muffin.jpg',
+      'category': 'Snack',
+    },
+    {
+      'name': 'Pisang Goreng',
+      'price': 15000,
+      'priceText': 'Rp 15.000',
+      'desc':
+          'Camilan pisang goreng crispy warna keemasan hangat renyah di luar, manis lembut di dalam.',
+      'image': 'assets/images/snack_pisanggoreng.jpg',
+      'category': 'Snack',
+    },
+    {
+      'name': 'Kentang Goreng',
+      'price': 18000,
+      'priceText': 'Rp 18.000',
+      'desc':
+          'Kentang goreng french fries potongan memanjang renyah gurih hangat disajikan dengan saus cocolan.',
+      'image': 'assets/images/snack_kentang.jpg',
+      'category': 'Snack',
+    },
+    {
+      'name': 'Jamur Goreng',
+      'price': 16000,
+      'priceText': 'Rp 16.000',
+      'desc':
+          'Jamur tiram/kancing crispy goreng tepung roti bumbu gurih yang renyah dan nagih.',
+      'image': 'assets/images/snack_jamur.jpg',
+      'category': 'Snack',
+    },
+    {
+      'name': 'Kebab',
+      'price': 22000,
+      'priceText': 'Rp 22.000',
+      'desc':
+          'Kebab gulung tortilla isi olahan daging sapi cincang, sayuran segar, dan saus spesial.',
+      'image': 'assets/images/snack_kebab.jpg',
+      'category': 'Snack',
+    },
+    {
+      'name': 'Bakwan Goreng Udang',
+      'price': 15000,
+      'priceText': 'Rp 15.000',
+      'desc':
+          'Gorengan bakwan sayur gurih renyah dengan topping udang utuh segar dan rempah.',
+      'image': 'assets/images/snack_bakwan.jpg',
+      'category': 'Snack',
+    },
+    {
+      'name': 'Cimol Keju',
+      'price': 14000,
+      'priceText': 'Rp 14.000',
+      'desc':
+          'Bola-bola cimol tapioka kenyal renyah dengan isian keju lumer dan taburan bumbu pedas gurih.',
+      'image': 'assets/images/snack_cimol.png',
+      'category': 'Snack',
+    },
+    {
+      'name': 'Donat Kentang',
+      'price': 12000,
+      'priceText': 'Rp 12.000',
+      'desc':
+          'Donat kentang empuk berbentuk cincin manis lezat dengan taburan gula halus putih.',
+      'image': 'assets/images/snack_donatkentang.jpg',
+      'category': 'Snack',
+    },
+    {
+      'name': 'Tahu Cabe Garam',
+      'price': 16000,
+      'priceText': 'Rp 16.000',
+      'desc':
+          'Potongan tahu crispy goreng bumbu pedas gurih taburan cabai rawit dan bawang garam melimpah.',
+      'image': 'assets/images/snack_tahucabegaram.jpg',
       'category': 'Snack',
     },
   ];
@@ -264,7 +461,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'price': 28000,
       'priceText': 'Rp 28.000',
       'desc':
-          'Creamy New York style cheesecake topped with fresh berry compote.',
+          'Kue keju cheesecake lembut ala New York disiram selai compote buah beri manis segar.',
       'image': 'assets/images/dessert_cheesecake.jpg',
       'category': 'Dessert',
     },
@@ -273,14 +470,14 @@ class _HomeScreenState extends State<HomeScreen> {
       'price': 30000,
       'priceText': 'Rp 30.000',
       'desc':
-          'Classic Italian dessert with espresso-soaked ladyfingers and mascarpone.',
+          'Dessert tiramisu khas Italia dalam cup dengan biskuit ladyfinger siram espresso dan keju mascarpone.',
       'image': 'assets/images/dessert_tiramisu.jpg',
       'category': 'Dessert',
     },
   ];
 
   final List<String> _shopCategoryNames = ['Food', 'Drink', 'Snack', 'Dessert'];
-  late final Map<String, List<Map<String, dynamic>>> _shopCategoryDataMap = {
+  Map<String, List<Map<String, dynamic>>> get _shopCategoryDataMap => {
     'Food': _foodMenuItems,
     'Drink': _drinkMenuItems,
     'Snack': _snackMenuItems,
@@ -361,6 +558,9 @@ class _HomeScreenState extends State<HomeScreen> {
   final ImagePicker _picker = ImagePicker();
 
   // Interactive Order Cart State
+  final TextEditingController _cartCustomerNameController =
+      TextEditingController();
+  final TextEditingController _cartTableController = TextEditingController();
   final List<Map<String, dynamic>> _cartItems = [
     {
       'name': 'Rustic Sourdough Loaf',
@@ -412,10 +612,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _recordTransactionFromCart({
-    String paymentMethod = 'Kasir POS (Lunas)',
-    String customerName = 'Pelanggan Umum',
+    List<Map<String, dynamic>>? items,
+    String paymentMethod = 'Digital Wallet (QRIS)',
+    String customerName = 'Handky Chang',
   }) {
-    if (_cartItems.isEmpty) return;
+    final listToRecord = (items != null && items.isNotEmpty)
+        ? items
+        : (_cartItems.isNotEmpty
+              ? _cartItems
+              : [
+                  {
+                    'name': 'Rustic Sourdough Loaf',
+                    'price': 45000,
+                    'quantity': 1,
+                  },
+                  {'name': 'Butter Croissant', 'price': 28000, 'quantity': 2},
+                  {'name': 'Berry Tart', 'price': 55000, 'quantity': 1},
+                ]);
 
     final now = DateTime.now();
     const monthNames = [
@@ -435,7 +648,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final dateStr =
         '${now.day} ${monthNames[now.month - 1]} ${now.year}, ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
-    final itemsCopy = _cartItems.map((item) {
+    int subtotal = 0;
+    final itemsCopy = listToRecord.map((item) {
       int p = 0;
       if (item['price'] is int) {
         p = item['price'] as int;
@@ -446,12 +660,17 @@ class _HomeScreenState extends State<HomeScreen> {
         );
         p = int.tryParse(digits) ?? 0;
       }
+      final q = (item['quantity'] ?? item['qty'] ?? 1) as int;
+      subtotal += p * q;
       return {
         'name': item['name']?.toString() ?? 'Menu Item',
-        'qty': (item['quantity'] ?? item['qty'] ?? 1) as int,
+        'qty': q,
         'price': p,
       };
     }).toList();
+
+    final tax = (subtotal * 0.1).round();
+    final total = subtotal + tax;
 
     final invId =
         '#INV-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-${(100 + _transactionHistory.length + 1)}';
@@ -462,9 +681,9 @@ class _HomeScreenState extends State<HomeScreen> {
       'method': paymentMethod,
       'customer': customerName,
       'items': itemsCopy,
-      'subtotal': _cartSubtotal,
-      'tax': _cartTax,
-      'total': _cartTotalAmount,
+      'subtotal': subtotal,
+      'tax': tax,
+      'total': total,
       'status': 'LUNAS',
     });
   }
@@ -559,6 +778,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
                 setState(() {
                   _cartItems.clear();
+                  _currentBottomTab = 3;
                 });
               },
               icon: const Icon(Icons.print_outlined),
@@ -570,6 +790,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.pop(dialogContext);
                 setState(() {
                   _cartItems.clear();
+                  _currentBottomTab = 3;
                 });
               },
               style: ElevatedButton.styleFrom(
@@ -882,172 +1103,300 @@ class _HomeScreenState extends State<HomeScreen> {
                     right: Radius.circular(24),
                   ),
                 ),
-                child: Column(
-                  children: [
-                    // Store Info Header Card
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        left: 24,
-                        right: 24,
-                        top: 40,
-                        bottom: 16,
-                      ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: colorSurfaceContainerLow,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: colorOutlineVariant.withValues(alpha: 0.4),
-                          ),
-                        ),
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.storeName.isNotEmpty
-                                  ? widget.storeName
-                                  : 'Bella Cafe',
-                              style: GoogleFonts.sourceSerif4(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: colorPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              widget.storeLocation.isNotEmpty
-                                  ? widget.storeLocation
-                                  : 'Jakarta',
-                              style: GoogleFonts.workSans(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: colorSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: colorSecondaryContainer,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                'Shift: ${widget.shift.isNotEmpty ? widget.shift : 'Pagi'}',
-                                style: GoogleFonts.workSans(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: colorOnSecondaryContainer,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Banner Image in Drawer
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24.0,
-                        vertical: 4.0,
-                      ),
-                      child: _buildBannerWidget(height: 110, borderRadius: 12),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 24.0,
-                        vertical: 8.0,
-                      ),
-                      child: Divider(color: Color(0x33D4C3BE), height: 1),
-                    ),
-
-                    // Drawer Nav Links
-                    Expanded(
-                      child: ListView(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        children: [
-                          _buildDrawerNavItem(
-                            icon: Icons.calendar_today_outlined,
-                            title: 'Shift Staff',
-                            isSelected: false,
-                            onTap: () {
-                              Navigator.pop(context);
-                              context.push(
-                                StaffShiftScreen(
-                                  activeShift:
-                                      '${widget.shift} Shift: 07:00 - 15:00',
-                                ),
-                              );
-                            },
-                          ),
-                          _buildDrawerNavItem(
-                            icon: Icons.person_outline,
-                            title: 'Profil Kasir',
-                            isSelected: false,
-                            onTap: () {
-                              Navigator.pop(context);
-                              context.push(
-                                CashierProfileScreen(
-                                  storeName: widget.storeName,
-                                  storeLocation: widget.storeLocation,
-                                  shift: widget.shift,
-                                ),
-                              );
-                            },
-                          ),
-                          _buildDrawerNavItem(
-                            icon: Icons.settings_outlined,
-                            title: 'Setting',
-                            isSelected: false,
-                            onTap: () {
-                              Navigator.pop(context);
-                              context.push(const SettingsScreen());
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Logout Button at Bottom
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: InkWell(
-                        onTap: _handleLogout,
-                        borderRadius: BorderRadius.circular(12),
+                child: SafeArea(
+                  child: Column(
+                    children: [
+                      // Store Info Header Card
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
                           decoration: BoxDecoration(
-                            color: colorErrorContainer.withValues(alpha: 0.4),
-                            borderRadius: BorderRadius.circular(12),
+                            gradient: LinearGradient(
+                              colors: [
+                                colorSurfaceContainerLow,
+                                colorSecondaryContainer.withValues(alpha: 0.35),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: colorSecondary.withValues(alpha: 0.25),
+                              width: 1.2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: colorSecondary.withValues(alpha: 0.08),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
-                          child: Row(
+                          padding: const EdgeInsets.all(14.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.logout, size: 22, color: colorError),
-                              const SizedBox(width: 16),
-                              Text(
-                                'Logout',
-                                style: GoogleFonts.workSans(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: colorError,
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(9),
+                                    decoration: BoxDecoration(
+                                      color: colorSecondary,
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: colorSecondary.withValues(
+                                            alpha: 0.35,
+                                          ),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(
+                                      Icons.local_cafe_rounded,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                widget.storeName.isNotEmpty
+                                                    ? widget.storeName
+                                                    : 'Bella Cafe',
+                                                style: GoogleFonts.sourceSerif4(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: colorPrimary,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            const Text(
+                                              '✨',
+                                              style: TextStyle(fontSize: 13),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.location_on_rounded,
+                                              size: 13,
+                                              color: colorSecondary,
+                                            ),
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              widget.storeLocation.isNotEmpty
+                                                  ? widget.storeLocation
+                                                  : 'Jakarta',
+                                              style: GoogleFonts.workSans(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: colorSecondary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: colorSurfaceContainerLowest,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: colorOutlineVariant.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Text(
+                                          '☀️',
+                                          style: TextStyle(fontSize: 12),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Shift: ${widget.shift.isNotEmpty ? widget.shift : 'Pagi'}',
+                                          style: GoogleFonts.workSans(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                            color: colorPrimary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    ValueListenableBuilder<
+                                      Map<String, dynamic>
+                                    >(
+                                      valueListenable: UserDataStore
+                                          .instance
+                                          .userDataNotifier,
+                                      builder: (context, userData, _) {
+                                        final name =
+                                            userData['cashierName'] ?? 'Bella';
+                                        return Row(
+                                          children: [
+                                            Container(
+                                              width: 7,
+                                              height: 7,
+                                              decoration: const BoxDecoration(
+                                                color: Color(0xFF10B981),
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 5),
+                                            Text(
+                                              '$name',
+                                              style: GoogleFonts.workSans(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: colorOnSurfaceVariant,
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ),
-                    ),
-                  ],
+
+                      // Mascot Animated Cartoon Logo Banner
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 2.0,
+                        ),
+                        child: _buildBannerWidget(
+                          height: 105,
+                          borderRadius: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+
+                      // Navigation Menu List (Only Shift, Profile, Pengaturan)
+                      Expanded(
+                        child: ListView(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          children: [
+                            _buildDrawerNavItem(
+                              icon: Icons.calendar_today_outlined,
+                              title: 'Shift',
+                              subtitle: 'Jadwal kerja & pergantian shift',
+                              isSelected: false,
+                              emoji: '⏰',
+                              onTap: () {
+                                Navigator.pop(context);
+                                context.push(
+                                  StaffShiftScreen(
+                                    activeShift:
+                                        '${widget.shift} Shift: 07:00 - 15:00',
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 6),
+                            _buildDrawerNavItem(
+                              icon: Icons.person_outline,
+                              title: 'Profile',
+                              subtitle: 'Data cabang & akun kasir aktif',
+                              isSelected: false,
+                              emoji: '👤',
+                              onTap: () {
+                                Navigator.pop(context);
+                                context.push(
+                                  CashierProfileScreen(
+                                    storeName: widget.storeName,
+                                    storeLocation: widget.storeLocation,
+                                    shift: widget.shift,
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 6),
+                            _buildDrawerNavItem(
+                              icon: Icons.settings_outlined,
+                              title: 'Pengaturan',
+                              subtitle: 'Tema warna, tampilan, & sistem',
+                              isSelected: false,
+                              emoji: '⚙️',
+                              onTap: () {
+                                Navigator.pop(context);
+                                context.push(const SettingsScreen());
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Logout & Footer Section
+                      Container(
+                        decoration: BoxDecoration(
+                          color: colorSurfaceContainerLowest,
+                          border: Border(
+                            top: BorderSide(
+                              color: colorOutlineVariant.withValues(alpha: 0.3),
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _CuteLogoutButton(
+                              onTap: _handleLogout,
+                              errorColor: colorError,
+                              errorContainerColor: colorErrorContainer,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'BGA Co. Cashier • v1.2.4',
+                              style: GoogleFonts.workSans(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                                color: colorOnSurfaceVariant.withValues(
+                                  alpha: 0.6,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
@@ -1553,7 +1902,23 @@ class _HomeScreenState extends State<HomeScreen> {
     double height = 80,
   }) {
     String fallbackAsset = 'assets/images/sandwich.jpg';
-    if (path.contains('drink') ||
+    if (path.contains('donat')) {
+      fallbackAsset = 'assets/images/snack_donatkentang.jpg';
+    } else if (path.contains('pisang')) {
+      fallbackAsset = 'assets/images/snack_pisanggoreng.jpg';
+    } else if (path.contains('tahu')) {
+      fallbackAsset = 'assets/images/snack_tahucabegaram.jpg';
+    } else if (path.contains('kebab')) {
+      fallbackAsset = 'assets/images/snack_kebab.jpg';
+    } else if (path.contains('bakwan')) {
+      fallbackAsset = 'assets/images/snack_bakwan.jpg';
+    } else if (path.contains('jamur')) {
+      fallbackAsset = 'assets/images/snack_jamur.jpg';
+    } else if (path.contains('cimol')) {
+      fallbackAsset = 'assets/images/snack_cimol.png';
+    } else if (path.contains('kentang')) {
+      fallbackAsset = 'assets/images/snack_kentang.jpg';
+    } else if (path.contains('drink') ||
         path.contains('latte') ||
         path.contains('tea') ||
         path.contains('citrus') ||
@@ -1586,44 +1951,18 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildDrawerNavItem({
     required IconData icon,
     required String title,
+    String? subtitle,
     required bool isSelected,
     required VoidCallback onTap,
+    String emoji = '✨',
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.0),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: isSelected ? colorSecondaryContainer : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: 22,
-                color: isSelected
-                    ? colorOnSecondaryContainer
-                    : colorOnSurfaceVariant,
-              ),
-              const SizedBox(width: 16),
-              Text(
-                title,
-                style: GoogleFonts.workSans(
-                  fontSize: 15,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                  color: isSelected
-                      ? colorOnSecondaryContainer
-                      : colorOnSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return _CuteDrawerNavItem(
+      icon: icon,
+      title: title,
+      subtitle: subtitle,
+      isSelected: isSelected,
+      onTap: onTap,
+      emoji: emoji,
     );
   }
 
@@ -1840,6 +2179,185 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               const SizedBox(height: 16),
+
+              // Input Card Customer & Table
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: colorSurfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color.fromRGBO(68, 42, 34, 0.08),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Field 1: Customer
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: colorSecondaryContainer.withValues(
+                                alpha: 0.5,
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              Icons.person_outline_rounded,
+                              color: colorSecondary,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'CUSTOMER',
+                                  style: GoogleFonts.workSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.8,
+                                    color: colorOnSurfaceVariant,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                TextField(
+                                  controller: _cartCustomerNameController,
+                                  style: GoogleFonts.workSans(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: colorPrimary,
+                                  ),
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                    border: InputBorder.none,
+                                    hintText:
+                                        'Customer name (e.g. Kak Bella)...',
+                                    hintStyle: GoogleFonts.workSans(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.normal,
+                                      color: colorOnSurfaceVariant.withValues(
+                                        alpha: 0.6,
+                                      ),
+                                    ),
+                                  ),
+                                  onChanged: (val) => setState(() {}),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (_cartCustomerNameController.text.isNotEmpty)
+                            IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 18),
+                              color: colorOnSurfaceVariant,
+                              onPressed: () {
+                                setState(() {
+                                  _cartCustomerNameController.clear();
+                                });
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: colorOutline.withValues(alpha: 0.15),
+                    ),
+
+                    // Field 2: Table (dibawah Customer)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: colorSecondaryContainer.withValues(
+                                alpha: 0.5,
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              Icons.table_restaurant_outlined,
+                              color: colorSecondary,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'TABLE',
+                                  style: GoogleFonts.workSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.8,
+                                    color: colorOnSurfaceVariant,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                TextField(
+                                  controller: _cartTableController,
+                                  style: GoogleFonts.workSans(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: colorPrimary,
+                                  ),
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                    border: InputBorder.none,
+                                    hintText:
+                                        'Table / Meja (e.g. Table 04 / Takeaway)...',
+                                    hintStyle: GoogleFonts.workSans(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.normal,
+                                      color: colorOnSurfaceVariant.withValues(
+                                        alpha: 0.6,
+                                      ),
+                                    ),
+                                  ),
+                                  onChanged: (val) => setState(() {}),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (_cartTableController.text.isNotEmpty)
+                            IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 18),
+                              color: colorOnSurfaceVariant,
+                              onPressed: () {
+                                setState(() {
+                                  _cartTableController.clear();
+                                });
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
               // Main Content Layout
               LayoutBuilder(
@@ -2177,20 +2695,52 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => CheckoutScreen(
-                                          cartItems: List.from(_cartItems),
-                                          storeName: widget.storeName,
-                                          onOrderCompleted: () {
-                                            setState(() {
-                                              _recordTransactionFromCart(
-                                                paymentMethod:
-                                                    'Checkout POS (Lunas)',
-                                              );
-                                              _cartItems.clear();
-                                              _currentBottomTab = 3;
-                                            });
-                                          },
-                                        ),
+                                        builder: (context) {
+                                          final buyerName =
+                                              _cartCustomerNameController.text
+                                                  .trim()
+                                                  .isEmpty
+                                              ? 'Pelanggan Umum'
+                                              : _cartCustomerNameController.text
+                                                  .trim();
+                                          final tableNo =
+                                              _cartTableController.text
+                                                  .trim()
+                                                  .isEmpty
+                                              ? '-'
+                                              : _cartTableController.text
+                                                  .trim();
+                                          return CheckoutScreen(
+                                            cartItems: List.from(_cartItems),
+                                            storeName: widget.storeName,
+                                            customerName: buyerName,
+                                            tableNumber: tableNo,
+                                            onOrderCompleted: () {
+                                              final currentCartCopy =
+                                                  List<Map<String, dynamic>>.from(
+                                                    _cartItems,
+                                                  );
+                                              final displayCustomer =
+                                                  tableNo != '-' &&
+                                                      tableNo.isNotEmpty
+                                                  ? '$buyerName ($tableNo)'
+                                                  : buyerName;
+                                              setState(() {
+                                                _recordTransactionFromCart(
+                                                  items: currentCartCopy,
+                                                  paymentMethod:
+                                                      'Digital Wallet (QRIS)',
+                                                  customerName: displayCustomer,
+                                                );
+                                                _cartItems.clear();
+                                                _cartCustomerNameController
+                                                    .clear();
+                                                _cartTableController.clear();
+                                                _currentBottomTab = 3;
+                                              });
+                                            },
+                                          );
+                                        },
                                       ),
                                     );
                                   },
@@ -2276,9 +2826,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
       final matchesDate =
           _selectedTransactionDate == null ||
-          tx['date'].toString().contains(
-            _formatDateForFilter(_selectedTransactionDate!),
-          );
+          _isSameDate(tx['date'].toString(), _selectedTransactionDate!);
       return matchesFilter && matchesSearch && matchesDate;
     }).toList();
 
@@ -2988,6 +3536,34 @@ class _HomeScreenState extends State<HomeScreen> {
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
+  bool _isSameDate(String txDateStr, DateTime targetDate) {
+    final formattedFilter = _formatDateForFilter(targetDate);
+    if (txDateStr.contains(formattedFilter)) {
+      return true;
+    }
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final dayStr = targetDate.day.toString();
+    final dayPad = targetDate.day.toString().padLeft(2, '0');
+    final monthShort = months[targetDate.month - 1];
+    final yearStr = targetDate.year.toString();
+
+    return txDateStr.contains('$dayStr $monthShort $yearStr') ||
+        txDateStr.contains('$dayPad $monthShort $yearStr');
+  }
+
   Future<void> _pickTransactionDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -3155,9 +3731,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
               final matchesDate =
                   modalSelectedDate == null ||
-                  tx['date'].toString().contains(
-                    _formatDateForFilter(modalSelectedDate!),
-                  );
+                  _isSameDate(tx['date'].toString(), modalSelectedDate!);
               return matchesFilter && matchesSearch && matchesDate;
             }).toList();
 
@@ -3680,6 +4254,290 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==================== CUTE ANIMATED DRAWER WIDGETS ====================
+class _CuteDrawerNavItem extends StatefulWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final String emoji;
+
+  const _CuteDrawerNavItem({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    required this.isSelected,
+    required this.onTap,
+    this.emoji = '✨',
+  });
+
+  @override
+  State<_CuteDrawerNavItem> createState() => _CuteDrawerNavItemState();
+}
+
+class _CuteDrawerNavItemState extends State<_CuteDrawerNavItem>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  bool _isHovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.02,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = AppTheme.instance;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.5),
+      child: MouseRegion(
+        onEnter: (_) {
+          setState(() => _isHovered = true);
+          _controller.forward();
+        },
+        onExit: (_) {
+          setState(() => _isHovered = false);
+          _controller.reverse();
+        },
+        child: GestureDetector(
+          onTapDown: (_) => _controller.forward(),
+          onTapUp: (_) {
+            _controller.reverse();
+            widget.onTap();
+          },
+          onTapCancel: () => _controller.reverse(),
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: widget.isSelected
+                    ? theme.secondaryContainer
+                    : _isHovered
+                    ? theme.secondaryContainer.withValues(alpha: 0.35)
+                    : theme.surfaceContainerLow.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: widget.isSelected
+                      ? theme.secondaryColor.withValues(alpha: 0.6)
+                      : _isHovered
+                      ? theme.secondaryColor.withValues(alpha: 0.3)
+                      : theme.outlineVariant.withValues(alpha: 0.25),
+                  width: 1,
+                ),
+                boxShadow: _isHovered || widget.isSelected
+                    ? [
+                        BoxShadow(
+                          color: theme.secondaryColor.withValues(alpha: 0.08),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : [],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: widget.isSelected
+                          ? theme.secondaryColor
+                          : theme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: widget.isSelected
+                            ? Colors.transparent
+                            : theme.outlineVariant.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Icon(
+                      widget.icon,
+                      size: 20,
+                      color: widget.isSelected
+                          ? Colors.white
+                          : theme.primaryColor,
+                    ),
+                  ),
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.title,
+                          style: GoogleFonts.workSans(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.bold,
+                            color: widget.isSelected
+                                ? theme.onSecondaryContainer
+                                : theme.primaryColor,
+                          ),
+                        ),
+                        if (widget.subtitle != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.subtitle!,
+                            style: GoogleFonts.workSans(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w400,
+                              color: theme.onSurfaceVariant,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: widget.isSelected
+                        ? theme.secondaryColor
+                        : theme.outlineColor.withValues(alpha: 0.5),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CuteLogoutButton extends StatefulWidget {
+  final VoidCallback onTap;
+  final Color errorColor;
+  final Color errorContainerColor;
+
+  const _CuteLogoutButton({
+    required this.onTap,
+    required this.errorColor,
+    required this.errorContainerColor,
+  });
+
+  @override
+  State<_CuteLogoutButton> createState() => _CuteLogoutButtonState();
+}
+
+class _CuteLogoutButtonState extends State<_CuteLogoutButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scale;
+  bool _isHovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: 1.04,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) {
+        setState(() => _isHovered = true);
+        _controller.forward();
+      },
+      onExit: (_) {
+        setState(() => _isHovered = false);
+        _controller.reverse();
+      },
+      child: GestureDetector(
+        onTapDown: (_) => _controller.forward(),
+        onTapUp: (_) {
+          _controller.reverse();
+          widget.onTap();
+        },
+        onTapCancel: () => _controller.reverse(),
+        child: ScaleTransition(
+          scale: _scale,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: _isHovered
+                  ? widget.errorColor.withValues(alpha: 0.15)
+                  : widget.errorContainerColor.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: widget.errorColor.withValues(
+                  alpha: _isHovered ? 0.5 : 0.2,
+                ),
+              ),
+              boxShadow: _isHovered
+                  ? [
+                      BoxShadow(
+                        color: widget.errorColor.withValues(alpha: 0.2),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : [],
+            ),
+            child: Row(
+              children: [
+                AnimatedRotation(
+                  turns: _isHovered ? -0.08 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(Icons.logout, size: 22, color: widget.errorColor),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Logout',
+                    style: GoogleFonts.workSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: widget.errorColor,
+                    ),
+                  ),
+                ),
+                Text(
+                  _isHovered ? '👋✨' : '🐾',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

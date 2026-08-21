@@ -1,11 +1,17 @@
+import 'dart:io';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
-import 'package:cashier/halaman1/views/login.dart';
+import 'package:cashier/halaman1/views/splash_screen.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:video_player_win/video_player_win.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (!kIsWeb && Platform.isWindows) {
+    WindowsVideoPlayer.registerWith();
+  }
   await initializeDateFormatting("id_ID", null);
   runApp(const MyApp());
 }
@@ -94,7 +100,7 @@ class MyApp extends StatelessWidget {
                           child: childWidget!,
                         );
                       },
-                      home: const cashierlogin1(),
+                      home: const SplashScreen(),
                     );
                   },
                 );

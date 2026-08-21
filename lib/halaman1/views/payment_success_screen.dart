@@ -81,8 +81,14 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
     if (widget.onOrderCompleted != null) {
       widget.onOrderCompleted!();
     }
-    // Return to main home screen
-    Navigator.popUntil(context, (route) => route.isFirst);
+    // Return to main app screen (HomeScreen)
+    Navigator.popUntil(
+      context,
+      (route) =>
+          route.settings.name == 'HomeScreen' ||
+          route.settings.name == '/HomeScreen' ||
+          route.isFirst,
+    );
   }
 
   @override
@@ -308,10 +314,10 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.home, size: 20),
+                              const Icon(Icons.receipt_long, size: 20),
                               const SizedBox(width: 8),
                               Text(
-                                'KEMBALI KE BERANDA',
+                                'LIHAT TRANSAKSI',
                                 style: GoogleFonts.workSans(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,

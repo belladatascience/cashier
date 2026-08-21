@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:cashier/halaman1/utils/user_data_store.dart';
+
 class EditPersonalInfoScreen extends StatefulWidget {
   const EditPersonalInfoScreen({super.key});
 
@@ -46,10 +48,22 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
   @override
   void initState() {
     super.initState();
-    fullNameC = TextEditingController(text: 'Bella Saputra');
-    emailC = TextEditingController(text: 'bella.saputra@bgaco.com');
-    cashierIdC = TextEditingController(text: 'CSH-88214');
-    phoneC = TextEditingController(text: '+62 812 3456 7890');
+    final data = UserDataStore.instance.userDataNotifier.value;
+    fullNameC = TextEditingController(
+      text: data['accountName'] ?? 'Bella Gita Asmara',
+    );
+    emailC = TextEditingController(
+      text: data['email'] ?? 'bella.gita@bgaco.com',
+    );
+    cashierIdC = TextEditingController(
+      text: data['cashierId'] ?? 'BG188889',
+    );
+    phoneC = TextEditingController(text: data['phone'] ?? '087888848000');
+    selectedPosition = data['accountRole'] ?? 'Senior Barista';
+    selectedLocation = data['location'] ?? 'BGA Co. - Central Perk';
+    if (data['avatarBytes'] != null) {
+      _avatarBytes = data['avatarBytes'];
+    }
   }
 
   @override
@@ -132,6 +146,19 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
   void _saveChanges() {
     if (_formKey.currentState!.validate()) {
       final theme = AppTheme.instance;
+
+      final updatedData = {
+        'accountName': fullNameC.text.trim(),
+        'email': emailC.text.trim(),
+        'cashierId': cashierIdC.text.trim(),
+        'phone': phoneC.text.trim(),
+        'accountRole': selectedPosition,
+        'location': selectedLocation,
+        if (_avatarBytes != null) 'avatarBytes': _avatarBytes,
+      };
+
+      UserDataStore.instance.updateUserData(updatedData);
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -142,7 +169,7 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
-      context.pop();
+      context.pop(updatedData);
     }
   }
 

@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/user_data_store.dart';
+import 'package:cashier/halaman1/views/edit_personal_info_screen.dart';
 import 'package:cashier/halaman1/views/staff_shift_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -36,7 +38,8 @@ class CashierProfileScreen extends StatefulWidget {
   State<CashierProfileScreen> createState() => _CashierProfileScreenState();
 }
 
-class _CashierProfileScreenState extends State<CashierProfileScreen> {
+class _CashierProfileScreenState extends State<CashierProfileScreen>
+    with SingleTickerProviderStateMixin {
   // Dynamic Color Tokens linked to AppTheme
   Color get colorPrimary => AppTheme.instance.primaryColor;
   Color get colorSecondary => AppTheme.instance.secondaryColor;
@@ -57,10 +60,412 @@ class _CashierProfileScreenState extends State<CashierProfileScreen> {
       ? const Color(0xFF3B3835)
       : const Color(0xFFE7BDB1);
 
-  // State for interactive avatar editing
+  // State for interactive profile editing
+  late String _cashierName;
+  late String _cashierRole;
+  late String _storeName;
+  late String _storeLocation;
+  late String _shift;
+  late DateTime _startDate;
+
+  // Account Profile State
+  late String _accountName;
+  late String _email;
+  late String _phone;
+  late String _nik;
+  late String _statusAkun;
+  late String _lastLogin;
+  late TabController _tabController;
+
   Uint8List? _imageBytes;
   String? _customAvatarUrl;
   final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _loadFromUserDataStore();
+    UserDataStore.instance.userDataNotifier.addListener(_loadFromUserDataStore);
+  }
+
+  void _loadFromUserDataStore() {
+    final data = UserDataStore.instance.userDataNotifier.value;
+    if (mounted) {
+      setState(() {
+        _cashierName = data['cashierName'] ?? data['name'] ?? widget.name;
+        _cashierRole = data['cashierRole'] ?? data['role'] ?? widget.role;
+        _storeName = data['storeName'] ?? widget.storeName;
+        _storeLocation = data['location'] ?? widget.storeLocation;
+        _shift = data['shift'] ?? widget.shift;
+        _startDate = data['startDate'] ?? DateTime(2024, 1, 15);
+        _accountName = data['accountName'] ?? 'Bella Gita Asmara';
+        _email = data['email'] ?? 'bella.gita@bgaco.com';
+        _phone = data['phone'] ?? '087888848000';
+        _nik = data['cashierId'] ?? 'BG188889';
+        _statusAkun = 'Aktif (Verified)';
+        _lastLogin = 'Hari ini, 06:45 WIB';
+        if (data['avatarBytes'] != null) {
+          _imageBytes = data['avatarBytes'];
+        }
+      });
+    }
+  }
+
+  Future<void> _openEditPersonalInfoScreen() async {
+    final result = await context.push(const EditPersonalInfoScreen());
+    if (result != null && result is Map<String, dynamic>) {
+      _loadFromUserDataStore();
+    }
+  }
+
+  @override
+  void dispose() {
+    UserDataStore.instance.userDataNotifier.removeListener(
+      _loadFromUserDataStore,
+    );
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+    return months[month - 1];
+  }
+
+  // ignore: unused_element
+  String get _formattedStartDate {
+    return '${_startDate.day} ${_getMonthName(_startDate.month)} ${_startDate.year}';
+  }
+
+  // ignore: unused_element
+  String get _tenureString {
+    final now = DateTime.now();
+    int years = now.year - _startDate.year;
+    int months = now.month - _startDate.month;
+    if (now.day < _startDate.day) {
+      months--;
+    }
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+    if (years > 0 && months > 0) {
+      return '$years Tahun $months Bulan';
+    } else if (years > 0) {
+      return '$years Tahun';
+    } else if (months > 0) {
+      return '$months Bulan';
+    }
+    return 'Kurang dari 1 Bulan';
+  }
+
+  String get _shiftHours {
+    final s = _shift.toLowerCase();
+    if (s.contains('siang') || s.contains('sore')) {
+      return '15:00 - 23:00 WIB';
+    } else if (s.contains('malam')) {
+      return '23:00 - 07:00 WIB';
+    }
+    return '07:00 - 15:00 WIB';
+  }
+
+  void _showEditProfileModal() {
+    final nameController = TextEditingController(text: _cashierName);
+    final roleController = TextEditingController(text: _cashierRole);
+    final storeController = TextEditingController(text: _storeName);
+    final locationController = TextEditingController(text: _storeLocation);
+    String tempShift = _shift;
+    DateTime tempStartDate = _startDate;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: colorSurfaceContainerLowest,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                top: 20,
+                left: 20,
+                right: 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: colorOutlineVariant,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Edit Profil Kasir',
+                          style: GoogleFonts.sourceSerif4(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: colorPrimary,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Nama Kasir
+                    Text(
+                      'NAMA KASIR',
+                      style: GoogleFonts.workSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                        color: colorOnSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.person_outline),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Jabatan / Role
+                    Text(
+                      'JABATAN / ROLE',
+                      style: GoogleFonts.workSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                        color: colorOnSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: roleController,
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.badge_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Store Name & Location Row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'NAMA TOKO',
+                                style: GoogleFonts.workSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.0,
+                                  color: colorOnSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: storeController,
+                                decoration: InputDecoration(
+                                  prefixIcon: const Icon(Icons.storefront),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'LOKASI TOKO',
+                                style: GoogleFonts.workSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.0,
+                                  color: colorOnSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: locationController,
+                                decoration: InputDecoration(
+                                  prefixIcon: const Icon(
+                                    Icons.location_on_outlined,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Shift Kerja Row
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'SHIFT KERJA',
+                          style: GoogleFonts.workSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.0,
+                            color: colorOnSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        DropdownButtonFormField<String>(
+                          initialValue: tempShift,
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.access_time),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                          ),
+                          items: ['Pagi', 'Sore', 'Malam']
+                              .map(
+                                (s) => DropdownMenuItem(
+                                  value: s,
+                                  child: Text(s),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setModalState(() => tempShift = val);
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Save Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _cashierName = nameController.text.trim();
+                            _cashierRole = roleController.text.trim();
+                            _storeName = storeController.text.trim();
+                            _storeLocation = locationController.text.trim();
+                            _shift = tempShift;
+                            _startDate = tempStartDate;
+                          });
+                          UserDataStore.instance.updateUserData({
+                            'cashierName': _cashierName,
+                            'cashierRole': _cashierRole,
+                            'storeName': _storeName,
+                            'location': _storeLocation,
+                            'shift': _shift,
+                          });
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'Profil kasir berhasil diperbarui!',
+                              ),
+                              backgroundColor: colorSecondary,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: colorPrimary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'SIMPAN PERUBAHAN',
+                          style: GoogleFonts.workSans(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   // Data Daftar Karyawan Cafe (Kerja, Shift Sore, & Libur)
   final List<Map<String, dynamic>> _cafeStaffList = [
@@ -415,7 +820,7 @@ class _CashierProfileScreenState extends State<CashierProfileScreen> {
         return Scaffold(
           backgroundColor: colorBackground,
 
-          // AppBar with Back Button to return to Home/Dashboard
+          // AppBar with Back Button
           appBar: AppBar(
             backgroundColor: colorBackground,
             elevation: 0,
@@ -424,7 +829,7 @@ class _CashierProfileScreenState extends State<CashierProfileScreen> {
               onPressed: () => Navigator.pop(context),
             ),
             title: Text(
-              'Profile Kasir',
+              'Profile',
               style: GoogleFonts.sourceSerif4(
                 color: colorPrimary,
                 fontWeight: FontWeight.bold,
@@ -434,100 +839,914 @@ class _CashierProfileScreenState extends State<CashierProfileScreen> {
             centerTitle: true,
             actions: [
               IconButton(
-                icon: Icon(Icons.shopping_bag_outlined, color: colorPrimary),
-                onPressed: () {},
+                icon: Icon(Icons.edit_note_outlined, color: colorPrimary),
+                tooltip: 'Edit Profil',
+                onPressed: _openEditPersonalInfoScreen,
               ),
               const SizedBox(width: 8),
             ],
           ),
 
           body: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20.0,
-                vertical: 16.0,
-              ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 800),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Interactive Profile Header Avatar
-                      _buildAvatarWidget(),
-                      const SizedBox(height: 16),
-
-                      Text(
-                        widget.name,
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.sourceSerif4(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: colorPrimary,
-                          letterSpacing: -0.5,
-                        ),
+            child: Column(
+              children: [
+                // Top Tab Bar Selection (Profile Kasir & Profile Akun)
+                Container(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colorSurfaceContainerLow,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    indicator: BoxDecoration(
+                      color: colorPrimary,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: colorOnSurfaceVariant,
+                    labelStyle: GoogleFonts.workSans(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                    unselectedLabelStyle: GoogleFonts.workSans(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                    tabs: const [
+                      Tab(
+                        icon: Icon(Icons.badge_outlined, size: 18),
+                        text: 'Profile Kasir',
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        widget.role,
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.workSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: colorSecondary,
-                        ),
+                      Tab(
+                        icon: Icon(Icons.manage_accounts_outlined, size: 18),
+                        text: 'Profile Akun',
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.location_on,
-                            size: 16,
-                            color: colorOnSurfaceVariant,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${widget.storeName} - ${widget.storeLocation}',
-                            style: GoogleFonts.workSans(
-                              fontSize: 14,
-                              color: colorOnSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colorSecondaryContainer,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          'Shift: ${widget.shift}',
-                          style: GoogleFonts.workSans(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: colorOnSecondaryContainer,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Section: Daftar Staff / Karyawan Bertugas
-                      _buildOnDutyStaffSection(),
-                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
-              ),
+                const SizedBox(height: 8),
+
+                // Tab Content View
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildCashierProfileTab(),
+                      _buildAccountProfileTab(),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         );
       },
+    );
+  }
+
+  // ==================== TAB 1: PROFILE KASIR ====================
+  Widget _buildCashierProfileTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Interactive Profile Header Avatar
+              _buildAvatarWidget(),
+              const SizedBox(height: 16),
+
+              Text(
+                _cashierName,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.sourceSerif4(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: colorPrimary,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _cashierRole,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.workSans(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: colorSecondary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.location_on,
+                    size: 16,
+                    color: colorOnSurfaceVariant,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$_storeName - $_storeLocation',
+                    style: GoogleFonts.workSans(
+                      fontSize: 14,
+                      color: colorOnSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Edit Profile Button
+              OutlinedButton.icon(
+                onPressed: _showEditProfileModal,
+                icon: const Icon(Icons.edit_note, size: 18),
+                label: Text(
+                  'Edit Profil Kasir',
+                  style: GoogleFonts.workSans(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: colorPrimary,
+                  side: BorderSide(color: colorPrimary.withValues(alpha: 0.3)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Work Start & Tenure Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: colorSurfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: colorOutlineVariant.withValues(alpha: 0.5),
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x0A000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: colorSecondaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.access_time_filled,
+                        color: colorOnSecondaryContainer,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Informasi Shift & Jam Kerja',
+                            style: GoogleFonts.workSans(
+                              fontSize: 12,
+                              color: colorOnSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Shift: $_shift',
+                            style: GoogleFonts.sourceSerif4(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: colorPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Jam: $_shiftHours',
+                            style: GoogleFonts.workSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: colorSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colorTertiaryFixed,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Aktif',
+                        style: GoogleFonts.workSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: colorOnTertiaryFixed,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Section: Daftar Staff / Karyawan Bertugas
+              _buildOnDutyStaffSection(),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ==================== TAB 2: PROFILE AKUN ====================
+  Widget _buildAccountProfileTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            children: [
+              // Account Header Banner Card
+              _buildAccountHeaderCard(),
+              const SizedBox(height: 20),
+
+              // Account Details List Card
+              _buildAccountDetailsCard(),
+              const SizedBox(height: 20),
+
+              // POS Authorizations Card
+              _buildPosAuthorizationCard(),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountHeaderCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colorSurfaceContainerLowest,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colorOutlineVariant.withValues(alpha: 0.5)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: colorPrimary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.manage_accounts, color: colorPrimary, size: 30),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      _accountName,
+                      style: GoogleFonts.sourceSerif4(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: colorPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDCFCE7),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        'Verified',
+                        style: GoogleFonts.workSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF166534),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'ID Kasir: $_nik',
+                  style: GoogleFonts.workSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: colorSecondary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Login Terakhir: $_lastLogin',
+                  style: GoogleFonts.workSans(
+                    fontSize: 12,
+                    color: colorOnSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountDetailsCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colorSurfaceContainerLowest,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colorOutlineVariant.withValues(alpha: 0.5)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Informasi Akun',
+            style: GoogleFonts.sourceSerif4(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: colorPrimary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildAccountRow(
+            icon: Icons.email_outlined,
+            label: 'Email Terdaftar',
+            value: _email,
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Divider(height: 1),
+          ),
+          _buildAccountRow(
+            icon: Icons.phone_android_outlined,
+            label: 'No. Telepon / WhatsApp',
+            value: _phone,
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Divider(height: 1),
+          ),
+          _buildAccountRow(
+            icon: Icons.badge_outlined,
+            label: 'ID Anggota / NIK Karyawan',
+            value: _nik,
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Divider(height: 1),
+          ),
+          _buildAccountRow(
+            icon: Icons.verified_user_outlined,
+            label: 'Status Otorisasi Akun',
+            value: _statusAkun,
+            valueColor: const Color(0xFF166534),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    Color? valueColor,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: colorSurfaceContainerLow,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 20, color: colorPrimary),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.workSans(
+                  fontSize: 12,
+                  color: colorOnSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: GoogleFonts.workSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: valueColor ?? colorPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ignore: unused_element
+  Widget _buildAccountSecurityCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colorSurfaceContainerLowest,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colorOutlineVariant.withValues(alpha: 0.5)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Keamanan Akun',
+            style: GoogleFonts.sourceSerif4(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: colorPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: colorSecondaryContainer,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.lock_reset_outlined,
+                color: colorOnSecondaryContainer,
+                size: 20,
+              ),
+            ),
+            title: Text(
+              'Ubah Kata Sandi',
+              style: GoogleFonts.workSans(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+            subtitle: Text(
+              'Diperbarui 30 hari yang lalu',
+              style: GoogleFonts.workSans(
+                fontSize: 12,
+                color: colorOnSurfaceVariant,
+              ),
+            ),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+            onTap: _showChangePasswordModal,
+          ),
+          const Divider(height: 1),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDCFCE7),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.security_outlined,
+                color: Color(0xFF166534),
+                size: 20,
+              ),
+            ),
+            title: Text(
+              'Verifikasi 2-Langkah (2FA)',
+              style: GoogleFonts.workSans(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+            subtitle: Text(
+              'Aktif via WhatsApp / SMS',
+              style: GoogleFonts.workSans(
+                fontSize: 12,
+                color: const Color(0xFF166534),
+              ),
+            ),
+            trailing: Switch(
+              value: true,
+              onChanged: (val) {},
+              activeThumbColor: colorSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPosAuthorizationCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colorSurfaceContainerLowest,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colorOutlineVariant.withValues(alpha: 0.5)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Hak Akses POS Kasir',
+            style: GoogleFonts.sourceSerif4(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: colorPrimary,
+            ),
+          ),
+          const SizedBox(height: 14),
+          _buildAuthItem('Akses Buka Laci Kasir (Cash Drawer)', true),
+          _buildAuthItem(
+            'Proses Void / Batal Transaksi',
+            false,
+            note: 'Butuh PIN Supervisor',
+          ),
+          _buildAuthItem('Pemberian Diskon Manual', true),
+          _buildAuthItem('Cetak Laporan Penjualan Shift', true),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuthItem(String title, bool isAllowed, {String? note}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.workSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: colorPrimary,
+                  ),
+                ),
+                if (note != null)
+                  Text(
+                    note,
+                    style: GoogleFonts.workSans(
+                      fontSize: 11,
+                      color: colorSecondary,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Icon(
+            isAllowed ? Icons.check_circle : Icons.lock_outline,
+            color: isAllowed ? const Color(0xFF166534) : Colors.orange.shade800,
+            size: 20,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ignore: unused_element
+  void _showEditAccountModal() {
+    final emailController = TextEditingController(text: _email);
+    final phoneController = TextEditingController(text: _phone);
+    final nikController = TextEditingController(text: _nik);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: colorSurfaceContainerLowest,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            top: 20,
+            left: 20,
+            right: 20,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: colorOutlineVariant,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Edit Informasi Akun',
+                      style: GoogleFonts.sourceSerif4(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: colorPrimary,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Email
+                Text(
+                  'EMAIL TERDAFTAR',
+                  style: GoogleFonts.workSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                    color: colorOnSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: emailController,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.email_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Phone
+                Text(
+                  'NO. TELEPON / WHATSAPP',
+                  style: GoogleFonts.workSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                    color: colorOnSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: phoneController,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.phone_android_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // NIK / ID Anggota
+                Text(
+                  'ID ANGGOTA / NIK KARYAWAN',
+                  style: GoogleFonts.workSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                    color: colorOnSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: nikController,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.badge_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Save Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _email = emailController.text.trim();
+                        _phone = phoneController.text.trim();
+                        _nik = nikController.text.trim();
+                      });
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text(
+                            'Informasi akun berhasil diperbarui!',
+                          ),
+                          backgroundColor: colorSecondary,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colorPrimary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'SIMPAN PERUBAHAN AKUN',
+                      style: GoogleFonts.workSans(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showChangePasswordModal() {
+    final oldPasswordC = TextEditingController();
+    final newPasswordC = TextEditingController();
+    final confirmPasswordC = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colorSurfaceContainerLowest,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Ubah Kata Sandi',
+          style: GoogleFonts.sourceSerif4(
+            fontWeight: FontWeight.bold,
+            color: colorPrimary,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: oldPasswordC,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Kata Sandi Lama',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: newPasswordC,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Kata Sandi Baru',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: confirmPasswordC,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Konfirmasi Kata Sandi Baru',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Batal',
+              style: GoogleFonts.workSans(color: colorOnSurfaceVariant),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Kata sandi berhasil diubah!'),
+                  backgroundColor: colorSecondary,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorPrimary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
     );
   }
 

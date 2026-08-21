@@ -1,5 +1,6 @@
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:cashier/halaman1/views/add_staff_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -165,6 +166,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
     {
       'name': 'Siti Aminah',
       'role': 'Head Barista',
+      'shiftTime': '07:00 - 15:00',
       'status': 'Hadir',
       'time': 'In: 06:45',
       'imageUrl':
@@ -174,6 +176,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
     {
       'name': 'Budi Santoso',
       'role': 'Pâtissier',
+      'shiftTime': '07:00 - 15:00',
       'status': 'Hadir',
       'time': 'In: 06:50',
       'imageUrl':
@@ -183,6 +186,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
     {
       'name': 'Rizky Pratama',
       'role': 'Kasir',
+      'shiftTime': '07:00 - 15:00',
       'status': 'Istirahat',
       'time': '12:00 - 13:00',
       'imageUrl':
@@ -192,6 +196,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
     {
       'name': 'Dewi Lestari',
       'role': 'Pelayan',
+      'shiftTime': '07:00 - 15:00',
       'status': 'Hadir',
       'time': 'In: 06:55',
       'imageUrl': null,
@@ -200,6 +205,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
     {
       'name': 'Ahmad Fadil',
       'role': 'Pelayan',
+      'shiftTime': '07:00 - 15:00',
       'status': 'Belum Hadir',
       'time': '-',
       'imageUrl':
@@ -212,6 +218,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
     {
       'name': 'Andi Wijaya',
       'role': 'Kasir Utama',
+      'shiftTime': '15:00 - 23:00',
       'status': 'Hadir',
       'time': 'In: 14:50',
       'imageUrl': null,
@@ -220,6 +227,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
     {
       'name': 'Maya Indah',
       'role': 'Runner',
+      'shiftTime': '15:00 - 23:00',
       'status': 'Hadir',
       'time': 'In: 14:55',
       'imageUrl': null,
@@ -228,12 +236,409 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
     {
       'name': 'Doni Setiawan',
       'role': 'Barista',
+      'shiftTime': '15:00 - 23:00',
       'status': 'Belum Hadir',
       'time': '-',
       'imageUrl': null,
       'initials': 'DS',
     },
   ];
+
+  String _formatStaffShiftTime(dynamic shiftVal, int tabIndex) {
+    if (shiftVal == null || shiftVal.toString().isEmpty) {
+      return tabIndex == 0 ? '07:00 - 15:00 WIB' : '15:00 - 23:00 WIB';
+    }
+    final s = shiftVal.toString().toLowerCase();
+    if (s == 'pagi') return '07:00 - 15:00 WIB';
+    if (s == 'sore') return '14:30 - 22:30 WIB';
+    if (s == 'middle') return '11:00 - 19:00 WIB';
+    if (!s.contains('wib')) return '$shiftVal WIB';
+    return shiftVal.toString();
+  }
+
+  Future<void> _showAddStoreDialog() async {
+    final nameC = TextEditingController();
+    final locationC = TextEditingController();
+    String selectedConcept = 'Coffee Shop & Cafe';
+    final formKey = GlobalKey<FormState>();
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              decoration: BoxDecoration(
+                color: colorSurfaceContainerLowest,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 20,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Drag handle
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: colorOutlineVariant.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Title Header
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: colorSecondaryContainer,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.storefront_rounded,
+                              color: colorSecondary,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Tambah Toko / Cabang',
+                                  style: GoogleFonts.sourceSerif4(
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.bold,
+                                    color: colorPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Daftarkan cabang atau outlet baru ke kasir',
+                                  style: GoogleFonts.workSans(
+                                    fontSize: 12,
+                                    color: colorOnSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Nama Toko Field
+                      Text(
+                        'Nama Toko / Outlet',
+                        style: GoogleFonts.workSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: colorPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: nameC,
+                        style: GoogleFonts.workSans(
+                          fontSize: 14,
+                          color: colorPrimary,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Contoh: Kingkong Cafe - Branch 2',
+                          hintStyle: GoogleFonts.workSans(
+                            fontSize: 13,
+                            color: colorOnSurfaceVariant.withValues(alpha: 0.6),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.store_rounded,
+                            size: 20,
+                            color: colorSecondary,
+                          ),
+                          filled: true,
+                          fillColor: colorSurfaceContainerLow,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: colorOutlineVariant.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: colorOutlineVariant.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: colorSecondary,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Nama toko wajib diisi'
+                            : null,
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Lokasi Kota Field
+                      Text(
+                        'Lokasi / Kota Cabang',
+                        style: GoogleFonts.workSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: colorPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: locationC,
+                        style: GoogleFonts.workSans(
+                          fontSize: 14,
+                          color: colorPrimary,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Contoh: Jakarta Selatan / Bandung',
+                          hintStyle: GoogleFonts.workSans(
+                            fontSize: 13,
+                            color: colorOnSurfaceVariant.withValues(alpha: 0.6),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.location_on_rounded,
+                            size: 20,
+                            color: colorSecondary,
+                          ),
+                          filled: true,
+                          fillColor: colorSurfaceContainerLow,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: colorOutlineVariant.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: colorOutlineVariant.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: colorSecondary,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Lokasi cabang wajib diisi'
+                            : null,
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Konsep Toko Dropdown
+                      Text(
+                        'Konsep / Tipe Outlet',
+                        style: GoogleFonts.workSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: colorPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedConcept,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: colorSurfaceContainerLow,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: colorOutlineVariant.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: colorOutlineVariant.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: colorSecondary,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                        items:
+                            [
+                              'Coffee Shop & Cafe',
+                              'Artisan Roastery',
+                              'Express Kiosk',
+                              'Bakery & Pastry',
+                              'Resto & Eatery',
+                            ].map((c) {
+                              return DropdownMenuItem(
+                                value: c,
+                                child: Text(
+                                  c,
+                                  style: GoogleFonts.workSans(
+                                    fontSize: 13,
+                                    color: colorPrimary,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setModalState(() => selectedConcept = val);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Action Buttons (Batal & Simpan)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                side: BorderSide(color: colorOutline),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                'Batal',
+                                style: GoogleFonts.workSans(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorPrimary,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                if (formKey.currentState!.validate()) {
+                                  final storeName = nameC.text.trim();
+                                  final location = locationC.text.trim();
+
+                                  UserDataStore.instance.updateUserData({
+                                    'storeName': storeName,
+                                    'location': location,
+                                  });
+
+                                  Navigator.pop(context);
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.check_circle_rounded,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              'Toko "$storeName" ($location) berhasil ditambahkan & diaktifkan!',
+                                              style: GoogleFonts.workSans(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      backgroundColor: colorSecondary,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      duration: const Duration(seconds: 3),
+                                    ),
+                                  );
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: colorSecondary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                'Simpan Toko',
+                                style: GoogleFonts.workSans(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   Future<void> _showAddStaffDialog() async {
     final newStaff =
@@ -298,10 +703,12 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
             ],
           ),
           body: SafeArea(
-            child: Center(
+            child: Align(
+              alignment: Alignment.topCenter,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 600),
                 child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20.0,
                     vertical: 16.0,
@@ -767,427 +1174,476 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                         ),
                       ] else ...[
                         // TAB 2: MANAJEMEN SHIFT VIEW
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Header Title & Description
-                            Text(
-                              'Manajemen Shift',
-                              style: GoogleFonts.sourceSerif4(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: colorPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Jadwal tugas harian dan status kehadiran staf toko.',
-                              style: GoogleFonts.workSans(
-                                fontSize: 14,
-                                color: colorOnSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
+                        // Header Title & Description
+                        Text(
+                          'Manajemen Shift',
+                          style: GoogleFonts.sourceSerif4(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: colorPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Jadwal tugas harian dan status kehadiran staf toko.',
+                          style: GoogleFonts.workSans(
+                            fontSize: 14,
+                            color: colorOnSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
 
-                            // Sub-Tabs (Shift Pagi vs Shift Sore)
-                            Container(
-                              decoration: BoxDecoration(
-                                border: const Border(
-                                  bottom: BorderSide(width: 1),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: InkWell(
-                                      onTap: () =>
-                                          setState(() => _selectedShiftTab = 0),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 12,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          border: _selectedShiftTab == 0
-                                              ? Border(
-                                                  bottom: BorderSide(
-                                                    color: colorSecondary,
-                                                    width: 2,
-                                                  ),
-                                                )
-                                              : null,
-                                        ),
-                                        child: Text(
-                                          'SHIFT PAGI',
-                                          textAlign: TextAlign.center,
-                                          style: GoogleFonts.workSans(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 1.0,
-                                            color: _selectedShiftTab == 0
-                                                ? colorSecondary
-                                                : colorOnSurfaceVariant,
-                                          ),
-                                        ),
+                        // Sub-Tabs (Shift Pagi vs Shift Sore)
+                        Container(
+                          decoration: BoxDecoration(
+                            border: const Border(bottom: BorderSide(width: 1)),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () =>
+                                      setState(() => _selectedShiftTab = 0),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      border: _selectedShiftTab == 0
+                                          ? Border(
+                                              bottom: BorderSide(
+                                                color: colorSecondary,
+                                                width: 2,
+                                              ),
+                                            )
+                                          : null,
+                                    ),
+                                    child: Text(
+                                      'SHIFT PAGI',
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.workSans(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.0,
+                                        color: _selectedShiftTab == 0
+                                            ? colorSecondary
+                                            : colorOnSurfaceVariant,
                                       ),
                                     ),
                                   ),
-                                  Expanded(
-                                    child: InkWell(
-                                      onTap: () =>
-                                          setState(() => _selectedShiftTab = 1),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 12,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          border: _selectedShiftTab == 1
-                                              ? Border(
-                                                  bottom: BorderSide(
-                                                    color: colorSecondary,
-                                                    width: 2,
-                                                  ),
-                                                )
-                                              : null,
-                                        ),
-                                        child: Text(
-                                          'SHIFT SORE',
-                                          textAlign: TextAlign.center,
-                                          style: GoogleFonts.workSans(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 1.0,
-                                            color: _selectedShiftTab == 1
-                                                ? colorSecondary
-                                                : colorOnSurfaceVariant,
-                                          ),
-                                        ),
+                                ),
+                              ),
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () =>
+                                      setState(() => _selectedShiftTab = 1),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      border: _selectedShiftTab == 1
+                                          ? Border(
+                                              bottom: BorderSide(
+                                                color: colorSecondary,
+                                                width: 2,
+                                              ),
+                                            )
+                                          : null,
+                                    ),
+                                    child: Text(
+                                      'SHIFT SORE',
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.workSans(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.0,
+                                        color: _selectedShiftTab == 1
+                                            ? colorSecondary
+                                            : colorOnSurfaceVariant,
                                       ),
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-
-                            // Shift Summary Card
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: colorBackground,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border(
-                                  left: BorderSide(
-                                    color: colorSecondary,
-                                    width: 5,
-                                  ),
                                 ),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color.fromRGBO(68, 42, 34, 0.08),
-                                    blurRadius: 16,
-                                    offset: Offset(0, 4),
-                                  ),
-                                ],
                               ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Shift Summary Card
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: colorSurfaceContainerLowest,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border(
+                              left: BorderSide(color: colorSecondary, width: 5),
+                            ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color.fromRGBO(68, 42, 34, 0.08),
+                                blurRadius: 16,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                  Text(
+                                    _selectedShiftTab == 0
+                                        ? 'Jadwal Pagi'
+                                        : 'Jadwal Sore',
+                                    style: GoogleFonts.sourceSerif4(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: colorPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
                                     children: [
+                                      Icon(
+                                        Icons.schedule,
+                                        size: 18,
+                                        color: colorOnSurfaceVariant,
+                                      ),
+                                      const SizedBox(width: 6),
                                       Text(
                                         _selectedShiftTab == 0
-                                            ? 'Jadwal Pagi'
-                                            : 'Jadwal Sore',
-                                        style: GoogleFonts.sourceSerif4(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: colorPrimary,
+                                            ? '07:00 - 15:00 WIB'
+                                            : '15:00 - 23:00 WIB',
+                                        style: GoogleFonts.workSans(
+                                          fontSize: 14,
+                                          color: colorOnSurfaceVariant,
                                         ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.schedule,
-                                            size: 18,
-                                            color: colorOnSurfaceVariant,
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            _selectedShiftTab == 0
-                                                ? '07:00 - 15:00 WIB'
-                                                : '15:00 - 23:00 WIB',
-                                            style: GoogleFonts.workSans(
-                                              fontSize: 14,
-                                              color: colorOnSurfaceVariant,
-                                            ),
-                                          ),
-                                        ],
                                       ),
                                     ],
                                   ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: colorPrimaryContainer.withValues(
-                                        alpha: 0.15,
-                                      ),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                        color: colorPrimaryContainer.withValues(
-                                          alpha: 0.3,
-                                        ),
-                                      ),
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        Text(
-                                          'STAF HADIR',
-                                          style: GoogleFonts.workSans(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 0.8,
-                                            color: colorOnSurfaceVariant,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          _selectedShiftTab == 0
-                                              ? '4/5'
-                                              : '2/3',
-                                          style: GoogleFonts.sourceSerif4(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: colorPrimary,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
                                 ],
                               ),
-                            ),
-                            const SizedBox(height: 28),
-
-                            // Staff Roster Header & Add Button
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Daftar Staf Bertugas',
-                                  style: GoogleFonts.sourceSerif4(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: colorPrimary,
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: colorPrimaryContainer.withValues(
+                                    alpha: 0.15,
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: colorPrimaryContainer.withValues(
+                                      alpha: 0.3,
+                                    ),
                                   ),
                                 ),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      'STAF HADIR',
+                                      style: GoogleFonts.workSans(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.8,
+                                        color: colorOnSurfaceVariant,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      _selectedShiftTab == 0 ? '4/5' : '2/3',
+                                      style: GoogleFonts.sourceSerif4(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: colorPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+
+                        // Staff Roster Header & Action Buttons (+ Toko & + Staff)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Daftar Staf Bertugas',
+                                style: GoogleFonts.sourceSerif4(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Button Toko
                                 TextButton.icon(
-                                  onPressed: _showAddStaffDialog,
+                                  onPressed: _showAddStoreDialog,
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    foregroundColor: colorSecondary,
+                                  ),
                                   icon: Icon(
-                                    Icons.add,
-                                    size: 18,
+                                    Icons.add_business_rounded,
+                                    size: 16,
                                     color: colorSecondary,
                                   ),
                                   label: Text(
-                                    'TAMBAH STAF',
+                                    'TOKO',
                                     style: GoogleFonts.workSans(
-                                      fontSize: 12,
+                                      fontSize: 11.5,
                                       fontWeight: FontWeight.bold,
-                                      letterSpacing: 0.8,
+                                      letterSpacing: 0.6,
+                                      color: colorSecondary,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                // Button Staf
+                                TextButton.icon(
+                                  onPressed: _showAddStaffDialog,
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    foregroundColor: colorSecondary,
+                                  ),
+                                  icon: Icon(
+                                    Icons.add,
+                                    size: 16,
+                                    color: colorSecondary,
+                                  ),
+                                  label: Text(
+                                    'STAF',
+                                    style: GoogleFonts.workSans(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.6,
                                       color: colorSecondary,
                                     ),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
 
-                            // Staff Member Cards
-                            Builder(
-                              builder: (context) {
-                                final currentList = _selectedShiftTab == 0
-                                    ? _shiftRosterPagi
-                                    : _shiftRosterSore;
+                        // Staff Member Cards
+                        ...(_selectedShiftTab == 0
+                                ? _shiftRosterPagi
+                                : _shiftRosterSore)
+                            .map((staff) {
+                              final isRest = staff['status'] == 'Istirahat';
+                              final isAbsent = staff['status'] == 'Belum Hadir';
 
-                                return Column(
-                                  children: currentList.map((staff) {
-                                    final isRest =
-                                        staff['status'] == 'Istirahat';
-                                    final isAbsent =
-                                        staff['status'] == 'Belum Hadir';
+                              Color badgeBgColor = colorGreenBg;
+                              Color badgeTextColor = colorGreenText;
 
-                                    Color badgeBgColor = colorGreenBg;
-                                    Color badgeTextColor = colorGreenText;
+                              if (isRest) {
+                                badgeBgColor = colorSecondaryContainer
+                                    .withValues(alpha: 0.5);
+                                badgeTextColor = colorSecondary;
+                              } else if (isAbsent) {
+                                badgeBgColor = colorErrorContainer;
+                                badgeTextColor = colorOnErrorContainer;
+                              }
 
-                                    if (isRest) {
-                                      badgeBgColor = colorSecondaryContainer
-                                          .withValues(alpha: 0.5);
-                                      badgeTextColor = colorSecondary;
-                                    } else if (isAbsent) {
-                                      badgeBgColor = colorErrorContainer;
-                                      badgeTextColor = colorOnErrorContainer;
-                                    }
-
-                                    return Opacity(
-                                      opacity: isAbsent ? 0.75 : 1.0,
-                                      child: Container(
-                                        margin: const EdgeInsets.only(
-                                          bottom: 12,
-                                        ),
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: colorSurfaceContainerLowest,
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
-                                          border: Border.all(
-                                            color: colorPrimary.withValues(
-                                              alpha: 0.08,
+                              return Opacity(
+                                opacity: isAbsent ? 0.75 : 1.0,
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: colorSurfaceContainerLowest,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: colorPrimary.withValues(
+                                        alpha: 0.08,
+                                      ),
+                                    ),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Colors.black12,
+                                        blurRadius: 4,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          // Staff Avatar Image / Fallback Initials
+                                          Container(
+                                            width: 48,
+                                            height: 48,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: colorOutlineVariant
+                                                    .withValues(alpha: 0.4),
+                                              ),
                                             ),
-                                          ),
-                                          boxShadow: const [
-                                            BoxShadow(
-                                              color: Colors.black12,
-                                              blurRadius: 4,
-                                              offset: Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                // Staff Avatar Image / Fallback Initials
-                                                Container(
-                                                  width: 48,
-                                                  height: 48,
-                                                  decoration: BoxDecoration(
-                                                    shape: BoxShape.circle,
-                                                    border: Border.all(
-                                                      color: colorOutlineVariant
-                                                          .withValues(
-                                                            alpha: 0.4,
-                                                          ),
-                                                    ),
-                                                  ),
-                                                  child: ClipOval(
-                                                    child:
-                                                        staff['imageUrl'] !=
-                                                            null
-                                                        ? Image.network(
-                                                            staff['imageUrl']
-                                                                as String,
-                                                            fit: BoxFit.cover,
-                                                            errorBuilder:
-                                                                (
-                                                                  context,
-                                                                  error,
-                                                                  stackTrace,
-                                                                ) => _buildInitialsAvatar(
-                                                                  staff['initials']
-                                                                      as String,
-                                                                ),
-                                                          )
-                                                        : _buildInitialsAvatar(
+                                            child: ClipOval(
+                                              child: staff['imageUrl'] != null
+                                                  ? Image.network(
+                                                      staff['imageUrl']
+                                                          as String,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder:
+                                                          (
+                                                            context,
+                                                            error,
+                                                            stackTrace,
+                                                          ) => _buildInitialsAvatar(
                                                             staff['initials']
                                                                 as String,
                                                           ),
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 14),
-
-                                                // Staff Name & Role
-                                                Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      staff['name'] as String,
-                                                      style: GoogleFonts.workSans(
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color: isAbsent
-                                                            ? colorOnSurfaceVariant
-                                                            : colorPrimary,
-                                                      ),
+                                                    )
+                                                  : _buildInitialsAvatar(
+                                                      staff['initials']
+                                                          as String,
                                                     ),
-                                                    const SizedBox(height: 2),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 14),
+
+                                          // Staff Name, Role & Jam Shift
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                staff['name'] as String,
+                                                style: GoogleFonts.workSans(
+                                                  fontSize: 15.5,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: isAbsent
+                                                      ? colorOnSurfaceVariant
+                                                      : colorPrimary,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                staff['role'] as String,
+                                                style: GoogleFonts.workSans(
+                                                  fontSize: 12.5,
+                                                  color: colorOnSurfaceVariant,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 5),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 7,
+                                                      vertical: 2.5,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: colorSecondaryContainer
+                                                      .withValues(alpha: 0.45),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.access_time_rounded,
+                                                      size: 12,
+                                                      color: colorSecondary,
+                                                    ),
+                                                    const SizedBox(width: 4),
                                                     Text(
-                                                      staff['role'] as String,
-                                                      style: GoogleFonts.workSans(
-                                                        fontSize: 13,
-                                                        color:
-                                                            colorOnSurfaceVariant,
+                                                      _formatStaffShiftTime(
+                                                        staff['shiftTime'],
+                                                        _selectedShiftTab,
                                                       ),
+                                                      style:
+                                                          GoogleFonts.workSans(
+                                                            fontSize: 11,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            color:
+                                                                colorSecondary,
+                                                          ),
                                                     ),
                                                   ],
                                                 ),
-                                              ],
-                                            ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
 
-                                            // Status Badge & In Time
-                                            Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.end,
-                                              children: [
-                                                Container(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 10,
-                                                        vertical: 4,
-                                                      ),
-                                                  decoration: BoxDecoration(
-                                                    color: badgeBgColor,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          4,
-                                                        ),
-                                                  ),
-                                                  child: Text(
-                                                    (staff['status'] as String)
-                                                        .toUpperCase(),
-                                                    style: GoogleFonts.workSans(
-                                                      fontSize: 11,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      letterSpacing: 0.6,
-                                                      color: badgeTextColor,
-                                                    ),
-                                                  ),
-                                                ),
-                                                if (staff['time'] != '-') ...[
-                                                  const SizedBox(height: 4),
-                                                  Text(
-                                                    staff['time'] as String,
-                                                    style: GoogleFonts.workSans(
-                                                      fontSize: 12,
-                                                      color:
-                                                          colorOnSurfaceVariant,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ],
+                                      // Status Badge & In Time
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: badgeBgColor,
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              (staff['status'] as String)
+                                                  .toUpperCase(),
+                                              style: GoogleFonts.workSans(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 0.6,
+                                                color: badgeTextColor,
+                                              ),
+                                            ),
+                                          ),
+                                          if (staff['time'] != '-') ...[
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              staff['time'] as String,
+                                              style: GoogleFonts.workSans(
+                                                fontSize: 12,
+                                                color: colorOnSurfaceVariant,
+                                              ),
                                             ),
                                           ],
-                                        ),
+                                        ],
                                       ),
-                                    );
-                                  }).toList(),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }),
                       ],
                     ],
                   ),

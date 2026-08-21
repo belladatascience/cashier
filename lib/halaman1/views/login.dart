@@ -307,7 +307,7 @@ class _cashierLogin1State extends State<cashierlogin1> {
                           ),
                           const SizedBox(height: 24),
 
-                          // Lottie Animation Container
+                          // Cashier Logo Container
                           Center(
                             child: Container(
                               width: 180,
@@ -317,9 +317,9 @@ class _cashierLogin1State extends State<cashierlogin1> {
                                 color: colorPrimary.withValues(alpha: 0.05),
                               ),
                               child: ClipOval(
-                                child: Lottie.asset(
-                                  "assets/animation/cat_mascot.json",
-                                  fit: BoxFit.contain,
+                                child: Image.asset(
+                                  "assets/images/cashier_logo.png",
+                                  fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) {
                                     return Center(
                                       child: Icon(
