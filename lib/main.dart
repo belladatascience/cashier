@@ -19,46 +19,84 @@ class MyApp extends StatelessWidget {
       valueListenable: AppTheme.instance.themeModeNotifier,
       builder: (context, themeModeStr, child) {
         return ValueListenableBuilder<String>(
-          valueListenable: AppLocalization.instance.currentLanguageNotifier,
-          builder: (context, langCode, child) {
-            return ValueListenableBuilder<double>(
-              valueListenable: AppTheme.instance.textScaleNotifier,
-              builder: (context, textScale, child) {
-                final isDark = AppTheme.instance.isDarkMode;
+          valueListenable: AppTheme.instance.themePaletteNotifier,
+          builder: (context, paletteStr, child) {
+            return ValueListenableBuilder<String>(
+              valueListenable: AppLocalization.instance.currentLanguageNotifier,
+              builder: (context, langCode, child) {
+                return ValueListenableBuilder<double>(
+                  valueListenable: AppTheme.instance.textScaleNotifier,
+                  builder: (context, textScale, child) {
+                    final theme = AppTheme.instance;
+                    final isDark = theme.isDarkMode;
 
-                return MaterialApp(
-                  debugShowCheckedModeBanner: false,
-                  title: 'BGA Co. Cashier',
-                  themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
-                  theme: ThemeData(
-                    useMaterial3: true,
-                    brightness: Brightness.light,
-                    scaffoldBackgroundColor: const Color(0xFFFAFAF5),
-                    colorScheme: ColorScheme.fromSeed(
-                      seedColor: const Color(0xFF7D562D),
-                      brightness: Brightness.light,
-                      surface: const Color(0xFFFAFAF5),
-                    ),
-                  ),
-                  darkTheme: ThemeData(
-                    useMaterial3: true,
-                    brightness: Brightness.dark,
-                    scaffoldBackgroundColor: const Color(0xFF1C1B1A),
-                    colorScheme: ColorScheme.fromSeed(
-                      seedColor: const Color(0xFFF0BD8B),
-                      brightness: Brightness.dark,
-                      surface: const Color(0xFF2A2826),
-                    ),
-                  ),
-                  builder: (context, childWidget) {
-                    return MediaQuery(
-                      data: MediaQuery.of(context).copyWith(
-                        textScaler: TextScaler.linear(textScale),
+                    return MaterialApp(
+                      debugShowCheckedModeBanner: false,
+                      title: 'BGA Co. Cashier',
+                      themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+                      theme: ThemeData(
+                        useMaterial3: true,
+                        brightness: Brightness.light,
+                        scaffoldBackgroundColor: theme.backgroundColor,
+                        colorScheme: ColorScheme.fromSeed(
+                          seedColor: theme.secondaryColor,
+                          primary: theme.primaryColor,
+                          secondary: theme.secondaryColor,
+                          surface: theme.surfaceColor,
+                          brightness: Brightness.light,
+                        ),
+                        cardTheme: CardThemeData(
+                          color: theme.surfaceColor,
+                          elevation: 2,
+                          shadowColor: Colors.black.withValues(alpha: 0.06),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        appBarTheme: AppBarTheme(
+                          backgroundColor: theme.backgroundColor,
+                          foregroundColor: theme.primaryColor,
+                          elevation: 0,
+                          scrolledUnderElevation: 0.5,
+                        ),
                       ),
-                      child: childWidget!,
+                      darkTheme: ThemeData(
+                        useMaterial3: true,
+                        brightness: Brightness.dark,
+                        scaffoldBackgroundColor: theme.backgroundColor,
+                        colorScheme: ColorScheme.fromSeed(
+                          seedColor: theme.secondaryColor,
+                          primary: theme.primaryColor,
+                          secondary: theme.secondaryColor,
+                          surface: theme.surfaceColor,
+                          brightness: Brightness.dark,
+                        ),
+                        cardTheme: CardThemeData(
+                          color: theme.surfaceColor,
+                          elevation: 2,
+                          shadowColor: Colors.black.withValues(alpha: 0.2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        appBarTheme: AppBarTheme(
+                          backgroundColor: theme.backgroundColor,
+                          foregroundColor: theme.primaryColor,
+                          elevation: 0,
+                          scrolledUnderElevation: 0.5,
+                        ),
+                      ),
+                      builder: (context, childWidget) {
+                        return MediaQuery(
+                          data: MediaQuery.of(context).copyWith(
+                            textScaler: TextScaler.linear(textScale),
+                          ),
+                          child: childWidget!,
+                        );
+                      },
+                      home: const cashierlogin1(),
                     );
                   },
-                  home: const cashierlogin1(),
                 );
               },
             );

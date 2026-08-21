@@ -1,4 +1,6 @@
 import 'package:cashier/extension/navigator.dart';
+import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/widgets/animated_cartoon_logo.dart';
 import 'package:cashier/halaman1/views/cashier_profile_screen.dart';
 import 'package:cashier/halaman1/views/login.dart';
 import 'package:flutter/material.dart';
@@ -11,7 +13,7 @@ class NavigationDrawerScreen extends StatefulWidget {
 
   const NavigationDrawerScreen({
     super.key,
-    this.storeName = 'Bella Caffee',
+    this.storeName = 'Bella Cafe',
     this.storeLocation = 'Jakarta',
     this.shift = 'Pagi',
   });
@@ -23,18 +25,22 @@ class NavigationDrawerScreen extends StatefulWidget {
 class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Custom Color Tokens from Tailwind Config
-  static const Color colorPrimary = Color(0xFF303030);
-  static const Color colorBackground = Color(0xFFFAFAF5);
-  static const Color colorSurfaceContainerLowest = Color(0xFFFFFFFF);
-  static const Color colorSurfaceContainerLow = Color(0xFFF4F4EF);
-  static const Color colorSurfaceContainerHighest = Color(0xFFE2E3DE);
-  static const Color colorOutlineVariant = Color(0xFFD4C3BE);
-  static const Color colorOutline = Color(0xFF827470);
-  static const Color colorOnSurfaceVariant = Color(0xFF504441);
-  static const Color colorOnSurface = Color(0xFF1A1C19);
-  static const Color colorError = Color(0xFFBA1A1A);
-  static const Color colorErrorContainer = Color(0xFFFFDAD6);
+  // Dynamic Color Tokens from AppTheme
+  Color get colorPrimary => AppTheme.instance.primaryColor;
+  Color get colorBackground => AppTheme.instance.backgroundColor;
+  Color get colorSurfaceContainerLowest => AppTheme.instance.surfaceColor;
+  Color get colorSurfaceContainerLow => AppTheme.instance.surfaceContainerLow;
+  Color get colorSurfaceContainerHighest => AppTheme.instance.surfaceVariant;
+  Color get colorOutlineVariant => AppTheme.instance.outlineVariant;
+  Color get colorOutline => AppTheme.instance.outlineColor;
+  Color get colorOnSurfaceVariant => AppTheme.instance.onSurfaceVariant;
+  Color get colorOnSurface => AppTheme.instance.onSurfaceColor;
+  Color get colorError => AppTheme.instance.isDarkMode
+      ? const Color(0xFFFFB4AB)
+      : const Color(0xFFBA1A1A);
+  Color get colorErrorContainer => AppTheme.instance.isDarkMode
+      ? const Color(0xFF93000A)
+      : const Color(0xFFFFDAD6);
 
   @override
   void initState() {
@@ -94,13 +100,19 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: colorBackground,
+    return ValueListenableBuilder<String>(
+      valueListenable: AppTheme.instance.themeModeNotifier,
+      builder: (context, themeMode, child) {
+        return ValueListenableBuilder<String>(
+          valueListenable: AppTheme.instance.themePaletteNotifier,
+          builder: (context, palette, child) {
+            return Scaffold(
+              key: _scaffoldKey,
+              backgroundColor: colorBackground,
 
-      // Left Navigation Drawer Component
-      drawer: Drawer(
-        width: 320,
+              // Left Navigation Drawer Component
+              drawer: Drawer(
+                width: 320,
         backgroundColor: colorSurfaceContainerLowest,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.horizontal(right: Radius.circular(24)),
@@ -133,7 +145,7 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
                         Text(
                           widget.storeName.isNotEmpty
                               ? widget.storeName
-                              : 'Bella Caffee',
+                              : 'Bella Cafe',
                           style: GoogleFonts.sourceSerif4(
                             fontSize: 22,
                             fontWeight: FontWeight.w600,
@@ -168,8 +180,8 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
                       child: InkWell(
                         onTap: () {},
                         borderRadius: BorderRadius.circular(20),
-                        child: const Padding(
-                          padding: EdgeInsets.all(4.0),
+                        child: Padding(
+                          padding: const EdgeInsets.all(4.0),
                           child: Icon(
                             Icons.edit_outlined,
                             size: 20,
@@ -183,34 +195,16 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
               ),
             ),
 
-            // Decorative Image Section
+            // Animated Cartoon Logo Banner Section
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 24.0,
-                vertical: 8.0,
+                vertical: 4.0,
               ),
-              child: Container(
-                height: 144,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: colorOutlineVariant.withValues(alpha: 0.2),
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                  image: const DecorationImage(
-                    image: NetworkImage(
-                      'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=600&q=80',
-                    ),
-                    fit: BoxFit.cover,
-                  ),
-                ),
+              child: const AnimatedCartoonLogo(
+                height: 120,
+                borderRadius: 12,
+                showEditButton: false,
               ),
             ),
 
@@ -266,7 +260,7 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.logout, size: 22, color: colorError),
+                      Icon(Icons.logout, size: 22, color: colorError),
                       const SizedBox(width: 16),
                       Text(
                         'Logout',
@@ -291,7 +285,7 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
         backgroundColor: colorBackground,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.menu, color: colorPrimary, size: 28),
+          icon: Icon(Icons.menu, color: colorPrimary, size: 28),
           onPressed: () {
             _scaffoldKey.currentState?.openDrawer();
           },
@@ -306,11 +300,11 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search, color: colorOnSurfaceVariant),
+            icon: Icon(Icons.search, color: colorOnSurfaceVariant),
             onPressed: () {},
           ),
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.notifications_none,
               color: colorOnSurfaceVariant,
             ),
@@ -347,7 +341,7 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Toko: ${widget.storeName.isNotEmpty ? widget.storeName : 'Bella Caffee'} (${widget.storeLocation.isNotEmpty ? widget.storeLocation : 'Jakarta'})',
+                    'Toko: ${widget.storeName.isNotEmpty ? widget.storeName : 'Bella Cafe'} (${widget.storeLocation.isNotEmpty ? widget.storeLocation : 'Jakarta'})',
                     style: GoogleFonts.oswald(
                       fontSize: 16,
                       color: colorOnSurfaceVariant,
@@ -409,6 +403,10 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
         ),
       ),
     );
+  },
+);
+  },
+);
   }
 
   Widget _buildDrawerNavItem({

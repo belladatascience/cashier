@@ -48,6 +48,102 @@ class _cashierLogin1State extends State<cashierlogin1> {
     super.dispose();
   }
 
+  Future<void> _showSuccessAnimationAndNavigate(String cashierName) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            decoration: BoxDecoration(
+              color: colorSurfaceContainerLowest,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: colorPrimary.withValues(alpha: 0.25),
+                  blurRadius: 24,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Animated Lottie Logo
+                SizedBox(
+                  height: 160,
+                  child: Lottie.asset(
+                    "assets/animation/cat_mascot.json",
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Icon(
+                      Icons.check_circle_rounded,
+                      size: 80,
+                      color: colorSecondary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Login Berhasil! 🎉',
+                  style: GoogleFonts.sourceSerif4(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: colorPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Selamat datang kembali, $cashierName!',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.workSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: colorOnSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(colorPrimary),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Membuka Sistem Kasir...',
+                      style: GoogleFonts.workSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: colorPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    await Future.delayed(const Duration(milliseconds: 1800));
+
+    if (mounted) {
+      Navigator.of(context, rootNavigator: true).pop(); // dismiss dialog
+      context.pushAndRemoveAll(const StoreShowcaseScreen());
+    }
+  }
+
   void login() async {
     final user = cashierIdC.text.trim();
     final pass = passwordC.text;
@@ -75,11 +171,10 @@ class _cashierLogin1State extends State<cashierlogin1> {
       if (pengguna != null ||
           (user == 'admin' && pass == '123456') ||
           user == 'KASIR01') {
-        _showSnackBar('Berhasil masuk! Mengalihkan...', isError: false);
-        await Future.delayed(const Duration(milliseconds: 600));
-        if (mounted) {
-          context.pushAndRemoveAll(const StoreShowcaseScreen());
-        }
+        final displayName =
+            pengguna?.nama ??
+            (user == 'admin' ? 'Administrator' : 'Bella Gita');
+        await _showSuccessAnimationAndNavigate(displayName);
       } else {
         _showSnackBar(
           'Login gagal! ID Kasir atau Kata Sandi salah.',
@@ -91,8 +186,7 @@ class _cashierLogin1State extends State<cashierlogin1> {
       setState(() {
         _isLoading = false;
       });
-      // Fallback demo navigation if DB error occurs
-      context.pushAndRemoveAll(const StoreShowcaseScreen());
+      await _showSuccessAnimationAndNavigate('Bella Gita');
     }
   }
 
@@ -224,7 +318,7 @@ class _cashierLogin1State extends State<cashierlogin1> {
                               ),
                               child: ClipOval(
                                 child: Lottie.asset(
-                                  "assets/images/lottielogorestaurant.png",
+                                  "assets/animation/cat_mascot.json",
                                   fit: BoxFit.contain,
                                   errorBuilder: (context, error, stackTrace) {
                                     return Center(

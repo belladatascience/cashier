@@ -1,10 +1,9 @@
-import 'dart:math';
-
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/views/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lottie/lottie.dart';
 
 class StoreShowcaseScreen extends StatefulWidget {
   const StoreShowcaseScreen({super.key});
@@ -18,10 +17,6 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
   final TextEditingController storeNameC = TextEditingController();
   final TextEditingController storeLocationC = TextEditingController();
   String? selectedShift;
-
-  late AnimationController _particleController;
-  final List<_Particle> _particles = [];
-  final Random _random = Random();
 
   // Dynamic Color Tokens linked to AppTheme
   Color get colorPrimary => AppTheme.instance.primaryColor;
@@ -43,33 +38,170 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
   Color get colorOnSurfaceVariant => AppTheme.instance.onSurfaceVariant;
 
   @override
-  void initState() {
-    super.initState();
-    _particleController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 15),
-    )..repeat();
-
-    // Generate random particles
-    for (int i = 0; i < 40; i++) {
-      _particles.add(
-        _Particle(
-          x: _random.nextDouble(),
-          y: _random.nextDouble(),
-          size: _random.nextDouble() * 4 + 2, // 2px to 6px
-          speed: _random.nextDouble() * 0.002 + 0.0005,
-          opacity: _random.nextDouble() * 0.5 + 0.3,
-        ),
-      );
-    }
-  }
-
-  @override
   void dispose() {
-    _particleController.dispose();
     storeNameC.dispose();
     storeLocationC.dispose();
     super.dispose();
+  }
+
+  Future<void> _showAppLogoSplashAndNavigate({
+    required String name,
+    required String location,
+    required String shift,
+  }) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withValues(alpha: 0.8),
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 32,
+                ),
+                decoration: BoxDecoration(
+                  color: colorSurfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorPrimary.withValues(alpha: 0.35),
+                      blurRadius: 32,
+                      spreadRadius: 6,
+                      offset: const Offset(0, 12),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // App Cartoon Logo Image (Kasir Vintage Frame)
+                    Container(
+                      width: 150,
+                      height: 150,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: colorSecondary.withValues(alpha: 0.4),
+                            blurRadius: 20,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                        border: Border.all(color: colorSecondary, width: 4),
+                      ),
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/images/cartoon_logo.jpg',
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Image.asset(
+                                'assets/images/logobellacashier.png',
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    CircleAvatar(
+                                      backgroundColor: colorPrimary,
+                                      child: const Icon(
+                                        Icons.storefront,
+                                        size: 60,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                              ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    Text(
+                      'BGA Co. / Bee Cafe',
+                      style: GoogleFonts.sourceSerif4(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: colorPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '$name • $location\nShift $shift',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.workSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: colorSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // 3-Second Loading Animation & Progress Bar
+                    TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0.0, end: 1.0),
+                      duration: const Duration(seconds: 3),
+                      builder: (context, value, child) {
+                        final remainingSeconds = (3 * (1.0 - value)).ceil();
+                        return Column(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: LinearProgressIndicator(
+                                value: value,
+                                minHeight: 8,
+                                backgroundColor: colorSurfaceContainerLow,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  colorPrimary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      colorSecondary,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Memuat Aplikasi... (${remainingSeconds > 0 ? remainingSeconds : 1}s)',
+                                  style: GoogleFonts.workSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: colorPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    await Future.delayed(const Duration(seconds: 3));
+
+    if (mounted) {
+      Navigator.of(context, rootNavigator: true).pop(); // dismiss logo splash
+      context.push(
+        HomeScreen(storeName: name, storeLocation: location, shift: shift),
+      );
+    }
   }
 
   void _handleSubmit() {
@@ -91,25 +223,11 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Data Toko $name ($location - Shift $shift) berhasil dikirim!',
-          style: GoogleFonts.workSans(color: colorPrimary),
-        ),
-        backgroundColor: colorSecondaryContainer,
-        behavior: SnackBarBehavior.floating,
-      ),
+    _showAppLogoSplashAndNavigate(
+      name: name,
+      location: location,
+      shift: shift,
     );
-
-    // Navigate directly to HomeScreen after submitting
-    Future.delayed(const Duration(milliseconds: 400), () {
-      if (mounted) {
-        context.push(
-          HomeScreen(storeName: name, storeLocation: location, shift: shift),
-        );
-      }
-    });
   }
 
   @override
@@ -159,65 +277,56 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
             ),
           ),
 
-          // Main Body Canvas with Warm Particles Background
-          body: Stack(
-            children: [
-              // Warm Gradient Background
-              Positioned.fill(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF3E2723), Color(0xFF5D4037)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
+          // Main Body Canvas with Clean White Background & Pizza Ingredients Animation
+          body: Container(
+            color: Colors.white,
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20.0,
+                  vertical: 24.0,
                 ),
-              ),
-
-              // Particle Animation Layer
-              Positioned.fill(
-                child: AnimatedBuilder(
-                  animation: _particleController,
-                  builder: (context, child) {
-                    return CustomPaint(
-                      painter: _ParticlePainter(
-                        _particles,
-                        colorSecondaryFixedDim,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: colorOutlineVariant.withValues(alpha: 0.5),
+                        width: 1,
                       ),
-                    );
-                  },
-                ),
-              ),
-
-              // Centered Form Canvas
-              Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20.0,
-                    vertical: 24.0,
-                  ),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 400),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: colorSurfaceContainerLowest.withValues(
-                          alpha: 0.92,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
                         ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color.fromRGBO(68, 42, 34, 0.25),
-                            blurRadius: 16,
-                            offset: Offset(0, 6),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Form Header Lottie Animated Banner (Pizza Ingredients)
+                        Center(
+                          child: SizedBox(
+                            height: 130,
+                            child: Lottie.asset(
+                              'assets/animation/pizza_ingredients.json',
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Lottie.asset(
+                                  'assets/animation/cafe.json',
+                                  fit: BoxFit.contain,
+                                );
+                              },
+                            ),
                           ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                        ),
+                        const SizedBox(height: 16),
+
                           // Nama Toko Field
                           Text(
                             'Nama Toko',
@@ -236,7 +345,7 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
                               color: colorOnSurface,
                             ),
                             decoration: InputDecoration(
-                              hintText: 'Caffee',
+                              hintText: 'Cafe',
                               hintStyle: GoogleFonts.workSans(
                                 color: colorOutlineVariant,
                                 fontSize: 16,
@@ -412,58 +521,9 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
                   ),
                 ),
               ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-// Particle Data Model
-class _Particle {
-  double x;
-  double y;
-  double size;
-  double speed;
-  double opacity;
-
-  _Particle({
-    required this.x,
-    required this.y,
-    required this.size,
-    required this.speed,
-    required this.opacity,
-  });
-}
-
-// Custom Painter for Animated Warm Floating Particles
-class _ParticlePainter extends CustomPainter {
-  final List<_Particle> particles;
-  final Color color;
-
-  _ParticlePainter(this.particles, this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (var particle in particles) {
-      particle.y -= particle.speed;
-      if (particle.y < 0) {
-        particle.y = 1.0;
-        particle.x = Random().nextDouble();
-      }
-
-      final paint = Paint()
-        ..color = color.withValues(alpha: particle.opacity)
-        ..style = PaintingStyle.fill;
-
-      final dx = particle.x * size.width;
-      final dy = particle.y * size.height;
-
-      canvas.drawCircle(Offset(dx, dy), particle.size, paint);
+            ),
+          );
+        },
+      );
     }
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}

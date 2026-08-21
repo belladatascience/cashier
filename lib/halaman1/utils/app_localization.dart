@@ -612,6 +612,51 @@ class AppLocalization {
       'id': 'Besar',
       'zh': '大',
     },
+    'sec_color_palette': {
+      'en': 'COLOR PALETTE PRESET',
+      'id': 'PALET WARNA TEMA',
+      'zh': '主题调色板预设',
+    },
+    'palette_coffee_title': {
+      'en': 'Warm Caramel & Latte',
+      'id': 'Caramel Warm & Latte',
+      'zh': '暖焦糖与拿铁',
+    },
+    'palette_coffee_desc': {
+      'en': 'Rich roasted coffee, warm amber & creamy gold',
+      'id': 'Espresso cokelat kaya, amber hangat & krem emas',
+      'zh': '浓郁烘焙咖啡、暖琥珀与奶香金',
+    },
+    'palette_emerald_title': {
+      'en': 'Matcha Botanica & Mint',
+      'id': 'Matcha Botanica & Mint',
+      'zh': '抹茶植物与薄荷',
+    },
+    'palette_emerald_desc': {
+      'en': 'Deep forest emerald, fresh mint & pearl white',
+      'id': 'Hijau emerald deep forest & mint segar',
+      'zh': '深林翡翠、新鲜薄荷与珍珠白',
+    },
+    'palette_berry_title': {
+      'en': 'Berry Velvet & Ruby',
+      'id': 'Berry Velvet & Ruby Mocha',
+      'zh': '浆果丝绒与红宝石',
+    },
+    'palette_berry_desc': {
+      'en': 'Imperial velvet burgundy & coral rose',
+      'id': 'Burgundy beludru mewah & coral rose',
+      'zh': '帝国丝绒酒红与珊瑚玫瑰',
+    },
+    'palette_obsidian_title': {
+      'en': 'Midnight Obsidian Luxury',
+      'id': 'Midnight Obsidian Luxury',
+      'zh': '深夜黑曜石奢华',
+    },
+    'palette_obsidian_desc': {
+      'en': 'Midnight onyx, electric indigo & warm gold',
+      'id': 'Onyx gelap malam, indigo elektrik & emas hangat',
+      'zh': '深夜黑曜石、电光靛蓝与暖金',
+    },
     'preview_quote': {
       'en': '"The hearth is the heart of the home, warming both hands and spirit."',
       'id': '"Tungku adalah jantung rumah, menghangatkan tangan dan jiwa."',

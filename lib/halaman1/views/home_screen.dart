@@ -8,6 +8,7 @@ import 'package:cashier/halaman1/views/edit_menu_screen.dart';
 import 'package:cashier/halaman1/views/login.dart';
 import 'package:cashier/halaman1/views/settings_screen.dart';
 import 'package:cashier/halaman1/views/staff_shift_screen.dart';
+import 'package:cashier/halaman1/widgets/animated_cartoon_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -19,7 +20,7 @@ class HomeScreen extends StatefulWidget {
 
   const HomeScreen({
     super.key,
-    this.storeName = 'Bella Caffee',
+    this.storeName = 'Bella Cafe',
     this.storeLocation = 'Jakarta',
     this.shift = 'Pagi',
   });
@@ -106,8 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'price': 35000,
       'priceText': 'Rp 35.000',
       'desc': 'Premium ceremonial grade matcha whisked with creamy milk.',
-      'image':
-          'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/drink_matcha.jpg',
       'category': 'Drink',
     },
     {
@@ -116,8 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'priceText': 'Rp 32.000',
       'desc':
           'Rich espresso balanced with velvety steamed milk and heart latte art.',
-      'image':
-          'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/drink_latte.jpg',
       'category': 'Drink',
     },
     {
@@ -126,8 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'priceText': 'Rp 28.000',
       'desc':
           'Refreshing black tea infused with fresh lemon and a hint of mint.',
-      'image':
-          'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/drink_lemontea.jpg',
       'category': 'Drink',
     },
     {
@@ -136,8 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'priceText': 'Rp 38.000',
       'desc':
           'Decadent dark chocolate melted into warm milk with a dash of cocoa.',
-      'image':
-          'https://images.unsplash.com/photo-1542990253-0d0f5be5f0ed?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/drink_hotchocolate.jpg',
       'category': 'Drink',
     },
     {
@@ -145,8 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'price': 25000,
       'priceText': 'Rp 25.000',
       'desc': 'Crisp sparkling water served with fresh lime and lemon slices.',
-      'image':
-          'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/drink_citrus.jpg',
       'category': 'Drink',
     },
   ];
@@ -158,8 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'priceText': 'Rp 38.000',
       'desc':
           'Classic artisanal loaf, naturally leavened with a dark crackly crust.',
-      'image':
-          'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/food_sourdough.jpg',
       'category': 'Food',
     },
     {
@@ -167,8 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'price': 25000,
       'priceText': 'Rp 25.000',
       'desc': 'Traditional French pastry with shattered, buttery layers.',
-      'image':
-          'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/food_croissant.jpg',
       'category': 'Food',
     },
     {
@@ -176,8 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'price': 45000,
       'priceText': 'Rp 45.000',
       'desc': 'Mashed Hass avocado with lemon, chili flakes, and sea salt.',
-      'image':
-          'https://images.unsplash.com/photo-1588137378633-dea1336ce1e2?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/food_avocado.jpg',
       'category': 'Food',
     },
     {
@@ -186,8 +179,43 @@ class _HomeScreenState extends State<HomeScreen> {
       'priceText': 'Rp 35.000',
       'desc':
           'Seasonal mixed berries on vanilla pastry cream in a sweet crust.',
-      'image':
-          'https://images.unsplash.com/photo-1519869325930-281384150729?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/food_tart.jpg',
+      'category': 'Food',
+    },
+    {
+      'name': 'Nasi Goreng Special',
+      'price': 35000,
+      'priceText': 'Rp 35.000',
+      'desc':
+          'Nasi goreng rempah khas cafe disajikan dengan telur ceplok, sate ayam, dan kerupuk.',
+      'image': 'assets/images/food_nasigoreng.jpg',
+      'category': 'Food',
+    },
+    {
+      'name': 'Spaghetti Carbonara',
+      'price': 42000,
+      'priceText': 'Rp 42.000',
+      'desc':
+          'Pasta spaghetti al dente dengan saus keju creamy, smoked beef, dan taburan keju parmesan.',
+      'image': 'assets/images/food_carbonara.jpg',
+      'category': 'Food',
+    },
+    {
+      'name': 'Chicken Club Sandwich',
+      'price': 38000,
+      'priceText': 'Rp 38.000',
+      'desc':
+          'Sandwich lapis tiga isi daging ayam panggang, keju chedar, telur, dan french fries.',
+      'image': 'assets/images/food_sandwich.jpg',
+      'category': 'Food',
+    },
+    {
+      'name': 'Beef Burger Deluxe',
+      'price': 48000,
+      'priceText': 'Rp 48.000',
+      'desc':
+          'Burger patty sapi juicy dengan keju leleh, caramelized onion, dan saus BBQ spesial.',
+      'image': 'assets/images/food_burger.jpg',
       'category': 'Food',
     },
   ];
@@ -198,8 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'price': 18000,
       'priceText': 'Rp 18.000',
       'desc': 'Soft-baked Belgian chocolate chunk cookie with sea salt.',
-      'image':
-          'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/snack_cookie.jpg',
       'category': 'Snack',
     },
     {
@@ -208,8 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'priceText': 'Rp 22.000',
       'desc':
           'Fluffy golden muffin filled with almond paste and toasted flakes.',
-      'image':
-          'https://images.unsplash.com/photo-1607958996333-41aef7caefaa?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/snack_muffin.jpg',
       'category': 'Snack',
     },
   ];
@@ -220,8 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'price': 25000,
       'priceText': 'Rp 25.000',
       'desc': 'Crisp sparkling water served with fresh lime and lemon slices.',
-      'image':
-          'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/drink_citrus.jpg',
       'category': 'New',
     },
     {
@@ -229,8 +254,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'price': 35000,
       'priceText': 'Rp 35.000',
       'desc': 'Premium ceremonial grade matcha whisked with creamy milk.',
-      'image':
-          'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/drink_matcha.jpg',
     },
   ];
 
@@ -241,8 +265,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'priceText': 'Rp 28.000',
       'desc':
           'Creamy New York style cheesecake topped with fresh berry compote.',
-      'image':
-          'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/dessert_cheesecake.jpg',
       'category': 'Dessert',
     },
     {
@@ -251,8 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'priceText': 'Rp 30.000',
       'desc':
           'Classic Italian dessert with espresso-soaked ladyfingers and mascarpone.',
-      'image':
-          'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/dessert_tiramisu.jpg',
       'category': 'Dessert',
     },
   ];
@@ -266,6 +288,14 @@ class _HomeScreenState extends State<HomeScreen> {
   };
 
   void _addToCart(Map<String, dynamic> item) {
+    int pVal = 0;
+    if (item['price'] is int) {
+      pVal = item['price'] as int;
+    } else if (item['price'] is String) {
+      final digits = (item['price'] as String).replaceAll(RegExp(r'[^\d]'), '');
+      pVal = int.tryParse(digits) ?? 25000;
+    }
+
     setState(() {
       final index = _cartItems.indexWhere(
         (element) => element['name'] == item['name'],
@@ -276,9 +306,11 @@ class _HomeScreenState extends State<HomeScreen> {
       } else {
         _cartItems.add({
           'name': item['name'],
-          'price': item['price'],
+          'price': pVal,
           'quantity': 1,
           'category': item['category'] ?? 'Menu',
+          'image': item['image'],
+          'desc': item['desc'] ?? '',
           'icon': Icons.restaurant,
         });
       }
@@ -335,16 +367,14 @@ class _HomeScreenState extends State<HomeScreen> {
       'price': 45000,
       'quantity': 1,
       'desc': 'Freshly baked, crusty exterior with a soft, airy crumb.',
-      'image':
-          'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/food_sourdough.jpg',
     },
     {
       'name': 'Butter Croissant',
       'price': 28000,
       'quantity': 2,
       'desc': 'Classic French pastry, flaky and rich with French butter.',
-      'image':
-          'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/food_croissant.jpg',
     },
     {
       'name': 'Berry Tart',
@@ -352,8 +382,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'quantity': 1,
       'desc':
           'Seasonal mixed berries on a vanilla custard base in a crisp shell.',
-      'image':
-          'https://images.unsplash.com/photo-1519869325930-281384150729?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/food_tart.jpg',
     },
   ];
 
@@ -382,8 +411,67 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _recordTransactionFromCart({
+    String paymentMethod = 'Kasir POS (Lunas)',
+    String customerName = 'Pelanggan Umum',
+  }) {
+    if (_cartItems.isEmpty) return;
+
+    final now = DateTime.now();
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final dateStr =
+        '${now.day} ${monthNames[now.month - 1]} ${now.year}, ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+    final itemsCopy = _cartItems.map((item) {
+      int p = 0;
+      if (item['price'] is int) {
+        p = item['price'] as int;
+      } else if (item['price'] is String) {
+        final digits = (item['price'] as String).replaceAll(
+          RegExp(r'[^\d]'),
+          '',
+        );
+        p = int.tryParse(digits) ?? 0;
+      }
+      return {
+        'name': item['name']?.toString() ?? 'Menu Item',
+        'qty': (item['quantity'] ?? item['qty'] ?? 1) as int,
+        'price': p,
+      };
+    }).toList();
+
+    final invId =
+        '#INV-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-${(100 + _transactionHistory.length + 1)}';
+
+    _transactionHistory.insert(0, {
+      'id': invId,
+      'date': dateStr,
+      'method': paymentMethod,
+      'customer': customerName,
+      'items': itemsCopy,
+      'subtotal': _cartSubtotal,
+      'tax': _cartTax,
+      'total': _cartTotalAmount,
+      'status': 'LUNAS',
+    });
+  }
+
   void _processCartPayment() {
     final paidAmount = _cartTotalAmount;
+    _recordTransactionFromCart();
     showDialog(
       context: context,
       builder: (dialogContext) {
@@ -700,77 +788,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBannerWidget({double height = 140, double borderRadius = 16}) {
-    Widget imageContent;
-    if (_bannerImageBytes != null) {
-      imageContent = Image.memory(
-        _bannerImageBytes!,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
-      );
-    } else if (_customBannerUrl != null) {
-      imageContent = Image.network(
-        _customBannerUrl!,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
-        errorBuilder: (context, error, stackTrace) => _buildBannerFallback(),
-      );
-    } else {
-      imageContent = Image.network(
-        _defaultBannerUrl,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
-        errorBuilder: (context, error, stackTrace) => _buildBannerFallback(),
-      );
-    }
-
-    return Stack(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(borderRadius),
-          child: SizedBox(
-            height: height,
-            width: double.infinity,
-            child: imageContent,
-          ),
-        ),
-        Positioned(
-          top: 8,
-          right: 8,
-          child: InkWell(
-            onTap: _showChangeBannerOptions,
-            borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.65),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.4),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.camera_alt, color: Colors.white, size: 14),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Ubah Gambar',
-                    style: GoogleFonts.workSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
+    return AnimatedCartoonLogo(
+      height: height,
+      borderRadius: borderRadius,
+      imageBytes: _bannerImageBytes,
+      customUrl: _customBannerUrl,
+      defaultAssetPath: 'assets/animation/cafe.json',
+      onChangeRequested: _showChangeBannerOptions,
+      showEditButton: true,
     );
   }
 
@@ -841,390 +866,410 @@ class _HomeScreenState extends State<HomeScreen> {
     return ValueListenableBuilder<String>(
       valueListenable: theme.themeModeNotifier,
       builder: (context, themeMode, child) {
-        return Scaffold(
-          key: _scaffoldKey,
-          backgroundColor: theme.backgroundColor,
+        return ValueListenableBuilder<String>(
+          valueListenable: theme.themePaletteNotifier,
+          builder: (context, palette, child) {
+            return Scaffold(
+              key: _scaffoldKey,
+              backgroundColor: theme.backgroundColor,
 
-          // Navigation Drawer
-          drawer: Drawer(
-            width: 320,
-            backgroundColor: colorSurfaceContainerLowest,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.horizontal(right: Radius.circular(24)),
-            ),
-            child: Column(
-              children: [
-                // Store Info Header Card
-                Padding(
-                  padding: const EdgeInsets.only(
-                    left: 24,
-                    right: 24,
-                    top: 40,
-                    bottom: 16,
+              // Navigation Drawer
+              drawer: Drawer(
+                width: 320,
+                backgroundColor: colorSurfaceContainerLowest,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.horizontal(
+                    right: Radius.circular(24),
                   ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: colorSurfaceContainerLow,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: colorOutlineVariant.withValues(alpha: 0.4),
+                ),
+                child: Column(
+                  children: [
+                    // Store Info Header Card
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        left: 24,
+                        right: 24,
+                        top: 40,
+                        bottom: 16,
                       ),
-                    ),
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.storeName.isNotEmpty
-                              ? widget.storeName
-                              : 'Bella Caffee',
-                          style: GoogleFonts.sourceSerif4(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: colorPrimary,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: colorSurfaceContainerLow,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: colorOutlineVariant.withValues(alpha: 0.4),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.storeLocation.isNotEmpty
-                              ? widget.storeLocation
-                              : 'Jakarta',
-                          style: GoogleFonts.workSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: colorSecondary,
-                          ),
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.storeName.isNotEmpty
+                                  ? widget.storeName
+                                  : 'Bella Cafe',
+                              style: GoogleFonts.sourceSerif4(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: colorPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              widget.storeLocation.isNotEmpty
+                                  ? widget.storeLocation
+                                  : 'Jakarta',
+                              style: GoogleFonts.workSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: colorSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colorSecondaryContainer,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                'Shift: ${widget.shift.isNotEmpty ? widget.shift : 'Pagi'}',
+                                style: GoogleFonts.workSans(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorOnSecondaryContainer,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colorSecondaryContainer,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'Shift: ${widget.shift.isNotEmpty ? widget.shift : 'Pagi'}',
-                            style: GoogleFonts.workSans(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: colorOnSecondaryContainer,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
 
-                // Banner Image in Drawer
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24.0,
-                    vertical: 4.0,
-                  ),
-                  child: _buildBannerWidget(height: 110, borderRadius: 12),
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 24.0,
-                    vertical: 8.0,
-                  ),
-                  child: Divider(color: Color(0x33D4C3BE), height: 1),
-                ),
-
-                // Drawer Nav Links
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    children: [
-                      _buildDrawerNavItem(
-                        icon: Icons.calendar_today_outlined,
-                        title: 'Shift Staff',
-                        isSelected: false,
-                        onTap: () {
-                          Navigator.pop(context);
-                          context.push(
-                            StaffShiftScreen(
-                              activeShift:
-                                  '${widget.shift} Shift: 07:00 - 15:00',
-                            ),
-                          );
-                        },
-                      ),
-                      _buildDrawerNavItem(
-                        icon: Icons.person_outline,
-                        title: 'Profil Kasir',
-                        isSelected: false,
-                        onTap: () {
-                          Navigator.pop(context);
-                          context.push(
-                            CashierProfileScreen(
-                              storeName: widget.storeName,
-                              storeLocation: widget.storeLocation,
-                              shift: widget.shift,
-                            ),
-                          );
-                        },
-                      ),
-                      _buildDrawerNavItem(
-                        icon: Icons.settings_outlined,
-                        title: 'Setting',
-                        isSelected: false,
-                        onTap: () {
-                          Navigator.pop(context);
-                          context.push(const SettingsScreen());
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Logout Button at Bottom
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: InkWell(
-                    onTap: _handleLogout,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
+                    // Banner Image in Drawer
+                    Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
+                        horizontal: 24.0,
+                        vertical: 4.0,
                       ),
-                      decoration: BoxDecoration(
-                        color: colorErrorContainer.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(12),
+                      child: _buildBannerWidget(height: 110, borderRadius: 12),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 24.0,
+                        vertical: 8.0,
                       ),
-                      child: Row(
+                      child: Divider(color: Color(0x33D4C3BE), height: 1),
+                    ),
+
+                    // Drawer Nav Links
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         children: [
-                          Icon(Icons.logout, size: 22, color: colorError),
-                          const SizedBox(width: 16),
-                          Text(
-                            'Logout',
-                            style: GoogleFonts.workSans(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: colorError,
-                            ),
+                          _buildDrawerNavItem(
+                            icon: Icons.calendar_today_outlined,
+                            title: 'Shift Staff',
+                            isSelected: false,
+                            onTap: () {
+                              Navigator.pop(context);
+                              context.push(
+                                StaffShiftScreen(
+                                  activeShift:
+                                      '${widget.shift} Shift: 07:00 - 15:00',
+                                ),
+                              );
+                            },
+                          ),
+                          _buildDrawerNavItem(
+                            icon: Icons.person_outline,
+                            title: 'Profil Kasir',
+                            isSelected: false,
+                            onTap: () {
+                              Navigator.pop(context);
+                              context.push(
+                                CashierProfileScreen(
+                                  storeName: widget.storeName,
+                                  storeLocation: widget.storeLocation,
+                                  shift: widget.shift,
+                                ),
+                              );
+                            },
+                          ),
+                          _buildDrawerNavItem(
+                            icon: Icons.settings_outlined,
+                            title: 'Setting',
+                            isSelected: false,
+                            onTap: () {
+                              Navigator.pop(context);
+                              context.push(const SettingsScreen());
+                            },
                           ),
                         ],
                       ),
                     ),
-                  ),
-                ),
-              ],
-            ),
-          ),
 
-          // App Bar
-          appBar: AppBar(
-            backgroundColor: colorSurface,
-            elevation: 0,
-            leading: IconButton(
-              icon: Icon(Icons.menu, color: colorPrimary, size: 28),
-              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-            ),
-            title: Text(
-              widget.storeName.isNotEmpty ? widget.storeName : 'BGA Co.',
-              style: GoogleFonts.sourceSerif4(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: colorPrimary,
-              ),
-            ),
-            centerTitle: true,
-            actions: [
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.shopping_cart_outlined,
-                      color: colorPrimary,
-                    ),
-                    onPressed: _showCartBottomSheet,
-                  ),
-                  if (_cartTotalItems > 0)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: colorSecondary,
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          '$_cartTotalItems',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                    // Logout Button at Bottom
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: InkWell(
+                        onTap: _handleLogout,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
                           ),
-                          textAlign: TextAlign.center,
+                          decoration: BoxDecoration(
+                            color: colorErrorContainer.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.logout, size: 22, color: colorError),
+                              const SizedBox(width: 16),
+                              Text(
+                                'Logout',
+                                style: GoogleFonts.workSans(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorError,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
+                  ],
+                ),
+              ),
+
+              // App Bar
+              appBar: AppBar(
+                backgroundColor: colorSurface,
+                elevation: 0,
+                leading: IconButton(
+                  icon: Icon(Icons.menu, color: colorPrimary, size: 28),
+                  onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                ),
+                title: Text(
+                  widget.storeName.isNotEmpty ? widget.storeName : 'BGA Co.',
+                  style: GoogleFonts.sourceSerif4(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: colorPrimary,
+                  ),
+                ),
+                centerTitle: true,
+                actions: [
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.shopping_cart_outlined,
+                          color: colorPrimary,
+                        ),
+                        onPressed: _showCartBottomSheet,
+                      ),
+                      if (_cartTotalItems > 0)
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: colorSecondary,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
+                            child: Text(
+                              '$_cartTotalItems',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.notifications_outlined,
+                      color: colorPrimary,
+                    ),
+                    onPressed: () {},
+                  ),
+                  const SizedBox(width: 8),
                 ],
               ),
-              IconButton(
-                icon: Icon(Icons.notifications_outlined, color: colorPrimary),
-                onPressed: () {},
-              ),
-              const SizedBox(width: 8),
-            ],
-          ),
 
-          floatingActionButton: _currentBottomTab == 1
-              ? FloatingActionButton.extended(
-                  onPressed: _showCartBottomSheet,
-                  backgroundColor: colorPrimary,
-                  elevation: 4,
-                  icon: const Icon(Icons.shopping_cart, color: Colors.white),
-                  label: Text(
-                    'View Cart (${_cartTotalItems})',
-                    style: GoogleFonts.workSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
+              floatingActionButton: _currentBottomTab == 1
+                  ? FloatingActionButton.extended(
+                      onPressed: _showCartBottomSheet,
+                      backgroundColor: colorPrimary,
+                      elevation: 4,
+                      icon: const Icon(
+                        Icons.shopping_cart,
+                        color: Colors.white,
+                      ),
+                      label: Text(
+                        'View Cart (${_cartTotalItems})',
+                        style: GoogleFonts.workSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    )
+                  : null,
+              body: SafeArea(
+                child: _currentBottomTab == 0
+                    ? EditMenuScreen(
+                        isTab: true,
+                        categoryNames: _shopCategoryNames,
+                        categoryDataMap: _shopCategoryDataMap,
+                        onMenuUpdated: () {
+                          setState(() {});
+                        },
+                      )
+                    : _currentBottomTab == 1
+                    ? _buildShopView()
+                    : _currentBottomTab == 2
+                    ? _buildCartView()
+                    : _buildTransactionHistoryView(),
+              ),
+
+              // Bottom Navigation Bar (Shop, Discover, Cart)
+              bottomNavigationBar: Container(
+                decoration: BoxDecoration(
+                  color: colorSurfaceContainerLowest,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, -4),
                     ),
+                  ],
+                ),
+                child: BottomNavigationBar(
+                  currentIndex: _currentBottomTab,
+                  onTap: (index) {
+                    setState(() {
+                      _currentBottomTab = index;
+                    });
+                  },
+                  backgroundColor: colorSurfaceContainerLowest,
+                  selectedItemColor: colorPrimary,
+                  unselectedItemColor: colorOnSurfaceVariant,
+                  selectedLabelStyle: GoogleFonts.workSans(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
                   ),
-                )
-              : null,
-          body: SafeArea(
-            child: _currentBottomTab == 0
-                ? const EditMenuScreen(isTab: true)
-                : _currentBottomTab == 1
-                ? _buildShopView()
-                : _currentBottomTab == 2
-                ? _buildCartView()
-                : _buildTransactionHistoryView(),
-          ),
-
-          // Bottom Navigation Bar (Shop, Discover, Cart)
-          bottomNavigationBar: Container(
-            decoration: BoxDecoration(
-              color: colorSurfaceContainerLowest,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -4),
-                ),
-              ],
-            ),
-            child: BottomNavigationBar(
-              currentIndex: _currentBottomTab,
-              onTap: (index) {
-                setState(() {
-                  _currentBottomTab = index;
-                });
-              },
-              backgroundColor: colorSurfaceContainerLowest,
-              selectedItemColor: colorPrimary,
-              unselectedItemColor: colorOnSurfaceVariant,
-              selectedLabelStyle: GoogleFonts.workSans(
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-              unselectedLabelStyle: GoogleFonts.workSans(
-                fontWeight: FontWeight.w500,
-                fontSize: 12,
-              ),
-              type: BottomNavigationBarType.fixed,
-              elevation: 0,
-              items: [
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.explore_outlined),
-                  activeIcon: Icon(Icons.explore),
-                  label: 'Discover',
-                ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.storefront_outlined),
-                  activeIcon: Icon(Icons.storefront),
-                  label: 'Shop',
-                ),
-                BottomNavigationBarItem(
-                  icon: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      const Icon(Icons.shopping_cart_outlined),
-                      if (_cartTotalItems > 0)
-                        Positioned(
-                          right: -6,
-                          top: -4,
-                          child: Container(
-                            padding: const EdgeInsets.all(3),
-                            decoration: BoxDecoration(
-                              color: colorSecondary,
-                              shape: BoxShape.circle,
-                            ),
-                            constraints: const BoxConstraints(
-                              minWidth: 14,
-                              minHeight: 14,
-                            ),
-                            child: Text(
-                              '$_cartTotalItems',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
+                  unselectedLabelStyle: GoogleFonts.workSans(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                  type: BottomNavigationBarType.fixed,
+                  elevation: 0,
+                  items: [
+                    const BottomNavigationBarItem(
+                      icon: Icon(Icons.explore_outlined),
+                      activeIcon: Icon(Icons.explore),
+                      label: 'Discover',
+                    ),
+                    const BottomNavigationBarItem(
+                      icon: Icon(Icons.storefront_outlined),
+                      activeIcon: Icon(Icons.storefront),
+                      label: 'Shop',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          const Icon(Icons.shopping_cart_outlined),
+                          if (_cartTotalItems > 0)
+                            Positioned(
+                              right: -6,
+                              top: -4,
+                              child: Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: BoxDecoration(
+                                  color: colorSecondary,
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 14,
+                                  minHeight: 14,
+                                ),
+                                child: Text(
+                                  '$_cartTotalItems',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
                               ),
-                              textAlign: TextAlign.center,
                             ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  activeIcon: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      const Icon(Icons.shopping_cart),
-                      if (_cartTotalItems > 0)
-                        Positioned(
-                          right: -6,
-                          top: -4,
-                          child: Container(
-                            padding: const EdgeInsets.all(3),
-                            decoration: BoxDecoration(
-                              color: colorSecondary,
-                              shape: BoxShape.circle,
-                            ),
-                            constraints: const BoxConstraints(
-                              minWidth: 14,
-                              minHeight: 14,
-                            ),
-                            child: Text(
-                              '$_cartTotalItems',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
+                        ],
+                      ),
+                      activeIcon: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          const Icon(Icons.shopping_cart),
+                          if (_cartTotalItems > 0)
+                            Positioned(
+                              right: -6,
+                              top: -4,
+                              child: Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: BoxDecoration(
+                                  color: colorSecondary,
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 14,
+                                  minHeight: 14,
+                                ),
+                                child: Text(
+                                  '$_cartTotalItems',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
                               ),
-                              textAlign: TextAlign.center,
                             ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  label: 'Cart',
+                        ],
+                      ),
+                      label: 'Cart',
+                    ),
+                    const BottomNavigationBarItem(
+                      icon: Icon(Icons.receipt_long_outlined),
+                      activeIcon: Icon(Icons.receipt_long),
+                      label: 'Transaction',
+                    ),
+                  ],
                 ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.receipt_long_outlined),
-                  activeIcon: Icon(Icons.receipt_long),
-                  label: 'Transaction',
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -1268,7 +1313,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Category Tabs (Food, Drink, Snack, Dessert)
+                    // Category Tabs (Food, Drink, Snack, Dessert, & new dynamic tabs)
                     Container(
                       decoration: BoxDecoration(
                         border: Border(
@@ -1278,25 +1323,43 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          for (int i = 0; i < _shopCategoryNames.length; i++)
-                            _buildShopCategoryTab(_shopCategoryNames[i], i),
-                        ],
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            for (int i = 0; i < _shopCategoryNames.length; i++)
+                              _buildShopCategoryTab(_shopCategoryNames[i], i),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
 
                     // Menu Items List
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: currentList.length,
-                      itemBuilder: (context, index) {
-                        final item = currentList[index];
-                        return _buildShopMenuItemCard(item);
-                      },
-                    ),
+                    if (currentList.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Center(
+                          child: Text(
+                            'Belum ada menu di kategori ini.\nSilakan tambahkan menu melalui tab Discover.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.workSans(
+                              color: colorOnSurfaceVariant,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: currentList.length,
+                        itemBuilder: (context, index) {
+                          final item = currentList[index];
+                          return _buildShopMenuItemCard(item);
+                        },
+                      ),
                   ],
                 ),
               ),
@@ -1309,29 +1372,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildShopCategoryTab(String label, int index) {
     final isSelected = _selectedShopCategoryTab == index;
-    return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedShopCategoryTab = index;
-          });
-        },
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            border: isSelected
-                ? Border(bottom: BorderSide(color: colorPrimary, width: 2))
-                : null,
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.workSans(
-              fontSize: 14,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-              color: isSelected ? colorPrimary : colorOnSurfaceVariant,
-            ),
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedShopCategoryTab = index;
+        });
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          border: isSelected
+              ? Border(bottom: BorderSide(color: colorPrimary, width: 2))
+              : null,
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.workSans(
+            fontSize: 14,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            color: isSelected ? colorPrimary : colorOnSurfaceVariant,
           ),
         ),
       ),
@@ -1365,13 +1426,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(11),
-              child: Image.network(
-                item['image'] as String,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: colorSurfaceContainerLow,
-                  child: Icon(Icons.restaurant, color: colorPrimary),
-                ),
+              child: _buildProductThumbnail(
+                item['image'],
+                width: 80,
+                height: 80,
               ),
             ),
           ),
@@ -1452,6 +1510,76 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildProductThumbnail(
+    dynamic imageSource, {
+    double width = 80,
+    double height = 80,
+  }) {
+    if (imageSource is Uint8List) {
+      return Image.memory(
+        imageSource,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+      );
+    } else if (imageSource is String && imageSource.startsWith('http')) {
+      return Image.network(
+        imageSource,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildAssetWithFallback(imageSource, width: width, height: height),
+      );
+    } else if (imageSource is String && imageSource.isNotEmpty) {
+      return Image.asset(
+        imageSource,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildAssetWithFallback(imageSource, width: width, height: height),
+      );
+    }
+    return _buildProductFallback(width: width, height: height);
+  }
+
+  Widget _buildAssetWithFallback(
+    String path, {
+    double width = 80,
+    double height = 80,
+  }) {
+    String fallbackAsset = 'assets/images/sandwich.jpg';
+    if (path.contains('drink') ||
+        path.contains('latte') ||
+        path.contains('tea') ||
+        path.contains('citrus') ||
+        path.contains('chocolate')) {
+      fallbackAsset = 'assets/images/ice latte.jpg';
+    } else if (path.contains('dessert') ||
+        path.contains('cheesecake') ||
+        path.contains('tiramisu')) {
+      fallbackAsset = 'assets/images/caffee1.webp';
+    }
+    return Image.asset(
+      fallbackAsset,
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) =>
+          _buildProductFallback(width: width, height: height),
+    );
+  }
+
+  Widget _buildProductFallback({double width = 80, double height = 80}) {
+    return Container(
+      width: width,
+      height: height,
+      color: colorSurfaceContainerLow,
+      child: Icon(Icons.restaurant, size: width * 0.45, color: colorPrimary),
     );
   }
 
@@ -1783,27 +1911,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(12),
-                                      child:
-                                          item['image'] != null &&
-                                              (item['image'] as String)
-                                                  .isNotEmpty
-                                          ? Image.network(
-                                              item['image'],
-                                              fit: BoxFit.cover,
-                                              errorBuilder:
-                                                  (
-                                                    context,
-                                                    error,
-                                                    stackTrace,
-                                                  ) => Icon(
-                                                    Icons.restaurant,
-                                                    color: colorOutline,
-                                                  ),
-                                            )
-                                          : Icon(
-                                              Icons.restaurant,
-                                              color: colorOutline,
-                                            ),
+                                      child: _buildProductThumbnail(
+                                        item['image'],
+                                        width: 80,
+                                        height: 80,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 14),
@@ -2070,8 +2182,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                           storeName: widget.storeName,
                                           onOrderCompleted: () {
                                             setState(() {
+                                              _recordTransactionFromCart(
+                                                paymentMethod:
+                                                    'Checkout POS (Lunas)',
+                                              );
                                               _cartItems.clear();
-                                              _currentBottomTab = 1;
+                                              _currentBottomTab = 3;
                                             });
                                           },
                                         ),
@@ -2603,7 +2719,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Icon(Icons.receipt, size: 40, color: colorPrimary),
               const SizedBox(height: 8),
               Text(
-                widget.storeName.isNotEmpty ? widget.storeName : 'Bella Caffee',
+                widget.storeName.isNotEmpty ? widget.storeName : 'Bella Cafe',
                 style: GoogleFonts.sourceSerif4(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -2809,23 +2925,37 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => Navigator.pop(dContext),
-                      icon: const Icon(Icons.print, size: 16),
-                      label: const Text('Cetak'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: colorPrimary,
-                        side: BorderSide(color: colorPrimary),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(dContext);
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Struk ${tx['id']} berhasil dicetak ke printer POS!',
+                              style: GoogleFonts.workSans(color: Colors.white),
+                            ),
+                            backgroundColor: colorSecondary,
+                            behavior: SnackBarBehavior.floating,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.print_outlined, size: 16),
+                      label: const Text('Cetak Struk'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorPrimary,
+                        foregroundColor: Colors.white,
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: ElevatedButton(
+                    child: OutlinedButton(
                       onPressed: () => Navigator.pop(dContext),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: colorPrimary,
-                        foregroundColor: Colors.white,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: colorOutline,
+                        side: BorderSide(color: colorOutlineVariant),
                       ),
                       child: const Text('Tutup'),
                     ),
@@ -2992,7 +3122,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _exportTransactionsToExcel(List<Map<String, dynamic>> list) {
     final TextEditingController emailController = TextEditingController(
-      text: 'owner.bellacaffee@gmail.com',
+      text: 'owner.bellacafe@gmail.com',
     );
     bool sendToEmail = true;
     bool saveToGoogleDocs = true;
@@ -3083,7 +3213,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                                 Text(
-                                  'Laporan Transaksi Bella Caffee',
+                                  'Laporan Transaksi Bella Cafe',
                                   style: GoogleFonts.workSans(
                                     fontSize: 12,
                                     color: colorOnSurfaceVariant,

@@ -1,6 +1,8 @@
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/views/contact_support_screen.dart';
+import 'package:cashier/halaman1/views/live_chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -376,8 +378,8 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                                   width: double.infinity,
                                   height: 52,
                                   child: ElevatedButton.icon(
-                                    onPressed: () => _showSnackBar(
-                                      loc.getText('contact_support'),
+                                    onPressed: () => context.push(
+                                      const ContactSupportScreen(),
                                     ),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: theme.primaryColor,
@@ -407,7 +409,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                                   height: 52,
                                   child: OutlinedButton.icon(
                                     onPressed: () =>
-                                        _showSnackBar(loc.getText('live_chat')),
+                                        context.push(const LiveChatScreen()),
                                     style: OutlinedButton.styleFrom(
                                       backgroundColor:
                                           theme.surfaceContainerLow,

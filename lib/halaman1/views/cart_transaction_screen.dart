@@ -10,6 +10,7 @@ class ProductItem {
   final int price;
   final String category;
   final IconData icon;
+  final String imageUrl;
 
   ProductItem({
     required this.id,
@@ -17,6 +18,8 @@ class ProductItem {
     required this.price,
     required this.category,
     required this.icon,
+    this.imageUrl =
+        'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=300&q=80',
   });
 }
 
@@ -35,7 +38,7 @@ class CartTransactionScreen extends StatefulWidget {
 
   const CartTransactionScreen({
     super.key,
-    this.storeName = 'BGA Co. / Bella Caffee',
+    this.storeName = 'BGA Co. / Bella Cafe',
     this.cashierName = 'Kasir Utama',
   });
 
@@ -60,6 +63,8 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
       price: 24000,
       category: 'Kopi',
       icon: Icons.local_cafe,
+      imageUrl:
+          'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=300&q=80',
     ),
     ProductItem(
       id: 'p2',
@@ -67,6 +72,8 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
       price: 22000,
       category: 'Kopi',
       icon: Icons.coffee,
+      imageUrl:
+          'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=300&q=80',
     ),
     ProductItem(
       id: 'p3',
@@ -74,6 +81,8 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
       price: 25000,
       category: 'Kopi',
       icon: Icons.coffee_maker,
+      imageUrl:
+          'https://images.unsplash.com/photo-1534778101976-62847782c213?auto=format&fit=crop&w=300&q=80',
     ),
     ProductItem(
       id: 'p4',
@@ -81,6 +90,8 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
       price: 16500,
       category: 'Makanan',
       icon: Icons.bakery_dining,
+      imageUrl:
+          'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=300&q=80',
     ),
     ProductItem(
       id: 'p5',
@@ -88,6 +99,8 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
       price: 28000,
       category: 'Non-Kopi',
       icon: Icons.emoji_food_beverage,
+      imageUrl:
+          'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=300&q=80',
     ),
     ProductItem(
       id: 'p6',
@@ -95,6 +108,8 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
       price: 32000,
       category: 'Makanan',
       icon: Icons.cake,
+      imageUrl:
+          'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=300&q=80',
     ),
     ProductItem(
       id: 'p7',
@@ -102,6 +117,8 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
       price: 26000,
       category: 'Non-Kopi',
       icon: Icons.wine_bar,
+      imageUrl:
+          'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=300&q=80',
     ),
     ProductItem(
       id: 'p8',
@@ -109,6 +126,8 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
       price: 18500,
       category: 'Makanan',
       icon: Icons.breakfast_dining,
+      imageUrl:
+          'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=300&q=80',
     ),
   ];
 
@@ -121,6 +140,8 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
         price: 24000,
         category: 'Kopi',
         icon: Icons.local_cafe,
+        imageUrl:
+            'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=300&q=80',
       ),
       quantity: 2,
     ),
@@ -131,6 +152,8 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
         price: 16500,
         category: 'Makanan',
         icon: Icons.bakery_dining,
+        imageUrl:
+            'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=300&q=80',
       ),
       quantity: 1,
     ),
@@ -970,20 +993,25 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Container(
-                                          height: 70,
-                                          width: double.infinity,
-                                          decoration: BoxDecoration(
-                                            color: theme.secondaryContainer
-                                                .withValues(alpha: 0.2),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                          child: Icon(
-                                            p.icon,
-                                            size: 36,
-                                            color: theme.secondaryColor,
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Image.network(
+                                            p.imageUrl,
+                                            height: 70,
+                                            width: double.infinity,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stackTrace) =>
+                                                Container(
+                                                  height: 70,
+                                                  width: double.infinity,
+                                                  color: theme.secondaryContainer
+                                                      .withValues(alpha: 0.2),
+                                                  child: Icon(
+                                                    p.icon,
+                                                    size: 36,
+                                                    color: theme.secondaryColor,
+                                                  ),
+                                                ),
                                           ),
                                         ),
                                         const SizedBox(height: 8),
@@ -1092,9 +1120,20 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
                                       ),
                                       child: Row(
                                         children: [
-                                          Icon(
-                                            cartItem.product.icon,
-                                            color: theme.secondaryColor,
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(8),
+                                            child: Image.network(
+                                              cartItem.product.imageUrl,
+                                              width: 48,
+                                              height: 48,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) =>
+                                                  Icon(
+                                                    cartItem.product.icon,
+                                                    color: theme.secondaryColor,
+                                                    size: 28,
+                                                  ),
+                                            ),
                                           ),
                                           const SizedBox(width: 12),
                                           Expanded(

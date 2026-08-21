@@ -161,6 +161,113 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
     }
   }
 
+  Widget _buildPaletteCard({
+    required String paletteKey,
+    required String title,
+    required String description,
+    required List<Color> swatchColors,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final theme = AppTheme.instance;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: theme.surfaceColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? theme.secondaryColor
+                : theme.primaryColor.withValues(alpha: 0.1),
+            width: isSelected ? 2.5 : 1.0,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: theme.surfaceContainerLow,
+                shape: BoxShape.circle,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: swatchColors
+                    .map(
+                      (c) => Container(
+                        width: 14,
+                        height: 14,
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        decoration: BoxDecoration(
+                          color: c,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 2,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.workSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: theme.primaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    description,
+                    style: GoogleFonts.workSans(
+                      fontSize: 12,
+                      color: theme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(
+                Icons.check_circle,
+                size: 22,
+                color: theme.secondaryColor,
+              )
+            else
+              Icon(
+                Icons.radio_button_unchecked,
+                size: 22,
+                color: theme.outlineColor,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalization.instance;
@@ -170,86 +277,162 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
       valueListenable: theme.themeModeNotifier,
       builder: (context, activeThemeMode, child) {
         return ValueListenableBuilder<String>(
-          valueListenable: loc.currentLanguageNotifier,
-          builder: (context, langCode, child) {
-            return Scaffold(
-              backgroundColor: theme.backgroundColor,
+          valueListenable: theme.themePaletteNotifier,
+          builder: (context, activePalette, child) {
+            return ValueListenableBuilder<String>(
+              valueListenable: loc.currentLanguageNotifier,
+              builder: (context, langCode, child) {
+                return Scaffold(
+                  backgroundColor: theme.backgroundColor,
 
-              // Top Header Sticky AppBar
-              appBar: AppBar(
-                backgroundColor: theme.backgroundColor,
-                elevation: 0,
-                scrolledUnderElevation: 0.5,
-                leading: IconButton(
-                  icon: Icon(Icons.arrow_back, color: theme.primaryColor),
-                  onPressed: () => context.pop(activeThemeMode),
-                ),
-                title: Text(
-                  loc.getText('appearance_title'),
-                  style: GoogleFonts.sourceSerif4(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: theme.primaryColor,
+                  // Top Header Sticky AppBar
+                  appBar: AppBar(
+                    backgroundColor: theme.backgroundColor,
+                    elevation: 0,
+                    scrolledUnderElevation: 0.5,
+                    leading: IconButton(
+                      icon: Icon(Icons.arrow_back, color: theme.primaryColor),
+                      onPressed: () => context.pop(activeThemeMode),
+                    ),
+                    title: Text(
+                      loc.getText('appearance_title'),
+                      style: GoogleFonts.sourceSerif4(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: theme.primaryColor,
+                      ),
+                    ),
+                    bottom: PreferredSize(
+                      preferredSize: const Size.fromHeight(1.0),
+                      child: Container(color: theme.dividerColor, height: 1.0),
+                    ),
                   ),
-                ),
-                bottom: PreferredSize(
-                  preferredSize: const Size.fromHeight(1.0),
-                  child: Container(color: theme.dividerColor, height: 1.0),
-                ),
-              ),
 
-              body: SafeArea(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20.0,
-                    vertical: 24.0,
-                  ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 600),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Section 1: THEME MODE
-                          _buildSectionHeader(loc.getText('sec_theme_mode')),
-                          Row(
+                  body: SafeArea(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20.0,
+                        vertical: 24.0,
+                      ),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 600),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildThemeCard(
-                                themeKey: 'light',
-                                icon: Icons.light_mode_outlined,
-                                title: loc.getText('theme_light'),
-                                isSelected: activeThemeMode == 'light',
-                                onTap: () async {
-                                  await theme.setThemeMode('light');
-                                  _showSnackBar(loc.getText('theme_light'));
-                                },
+                              // Section 1: THEME MODE
+                              _buildSectionHeader(loc.getText('sec_theme_mode')),
+                              Row(
+                                children: [
+                                  _buildThemeCard(
+                                    themeKey: 'light',
+                                    icon: Icons.light_mode_outlined,
+                                    title: loc.getText('theme_light'),
+                                    isSelected: activeThemeMode == 'light',
+                                    onTap: () async {
+                                      await theme.setThemeMode('light');
+                                      _showSnackBar(loc.getText('theme_light'));
+                                    },
+                                  ),
+                                  const SizedBox(width: 12),
+                                  _buildThemeCard(
+                                    themeKey: 'dark',
+                                    icon: Icons.dark_mode_outlined,
+                                    title: loc.getText('theme_dark'),
+                                    isSelected: activeThemeMode == 'dark',
+                                    onTap: () async {
+                                      await theme.setThemeMode('dark');
+                                      _showSnackBar(loc.getText('theme_dark'));
+                                    },
+                                  ),
+                                  const SizedBox(width: 12),
+                                  _buildThemeCard(
+                                    themeKey: 'system',
+                                    icon: Icons.settings_brightness_outlined,
+                                    title: loc.getText('theme_system'),
+                                    subtitle: loc.getText('follow_device'),
+                                    isSelected: activeThemeMode == 'system',
+                                    onTap: () async {
+                                      await theme.setThemeMode('system');
+                                      _showSnackBar(loc.getText('theme_system'));
+                                    },
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 12),
-                              _buildThemeCard(
-                                themeKey: 'dark',
-                                icon: Icons.dark_mode_outlined,
-                                title: loc.getText('theme_dark'),
-                                isSelected: activeThemeMode == 'dark',
-                                onTap: () async {
-                                  await theme.setThemeMode('dark');
-                                  _showSnackBar(loc.getText('theme_dark'));
-                                },
+                              const SizedBox(height: 32),
+
+                              // Section 1.5: PALET WARNA TEMA (Theme Color Palette)
+                              _buildSectionHeader(
+                                loc.getText('sec_color_palette'),
                               ),
-                              const SizedBox(width: 12),
-                              _buildThemeCard(
-                                themeKey: 'system',
-                                icon: Icons.settings_brightness_outlined,
-                                title: loc.getText('theme_system'),
-                                subtitle: loc.getText('follow_device'),
-                                isSelected: activeThemeMode == 'system',
-                                onTap: () async {
-                                  await theme.setThemeMode('system');
-                                  _showSnackBar(loc.getText('theme_system'));
-                                },
+                              Column(
+                                children: [
+                                  _buildPaletteCard(
+                                    paletteKey: 'coffee',
+                                    title: loc.getText('palette_coffee_title'),
+                                    description: loc.getText('palette_coffee_desc'),
+                                    swatchColors: const [
+                                      Color(0xFF2C1A11),
+                                      Color(0xFFD97706),
+                                      Color(0xFFFEF3C7),
+                                    ],
+                                    isSelected: activePalette == 'coffee',
+                                    onTap: () async {
+                                      await theme.setThemePalette('coffee');
+                                      _showSnackBar(loc.getText('palette_coffee_title'));
+                                    },
+                                  ),
+                                  const SizedBox(height: 10),
+                                  _buildPaletteCard(
+                                    paletteKey: 'emerald',
+                                    title: loc.getText('palette_emerald_title'),
+                                    description: loc.getText('palette_emerald_desc'),
+                                    swatchColors: const [
+                                      Color(0xFF064E3B),
+                                      Color(0xFF10B981),
+                                      Color(0xFFD1FAE5),
+                                    ],
+                                    isSelected: activePalette == 'emerald',
+                                    onTap: () async {
+                                      await theme.setThemePalette('emerald');
+                                      _showSnackBar(loc.getText('palette_emerald_title'));
+                                    },
+                                  ),
+                                  const SizedBox(height: 10),
+                                  _buildPaletteCard(
+                                    paletteKey: 'berry',
+                                    title: loc.getText('palette_berry_title'),
+                                    description: loc.getText('palette_berry_desc'),
+                                    swatchColors: const [
+                                      Color(0xFF4C1D95),
+                                      Color(0xFFE11D48),
+                                      Color(0xFFFFE4E6),
+                                    ],
+                                    isSelected: activePalette == 'berry',
+                                    onTap: () async {
+                                      await theme.setThemePalette('berry');
+                                      _showSnackBar(loc.getText('palette_berry_title'));
+                                    },
+                                  ),
+                                  const SizedBox(height: 10),
+                                  _buildPaletteCard(
+                                    paletteKey: 'obsidian',
+                                    title: loc.getText('palette_obsidian_title'),
+                                    description: loc.getText('palette_obsidian_desc'),
+                                    swatchColors: const [
+                                      Color(0xFF0F172A),
+                                      Color(0xFF6366F1),
+                                      Color(0xFFE0E7FF),
+                                    ],
+                                    isSelected: activePalette == 'obsidian',
+                                    onTap: () async {
+                                      await theme.setThemePalette('obsidian');
+                                      _showSnackBar(loc.getText('palette_obsidian_title'));
+                                    },
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 36),
+                              const SizedBox(height: 36),
 
                           // Section 2: VISUAL PREFERENCES
                           _buildSectionHeader(loc.getText('sec_visual_pref')),
@@ -522,6 +705,8 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                   ),
                 ),
               ),
+                );
+              },
             );
           },
         );

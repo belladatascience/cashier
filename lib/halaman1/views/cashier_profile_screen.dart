@@ -20,7 +20,7 @@ class CashierProfileScreen extends StatefulWidget {
 
   const CashierProfileScreen({
     super.key,
-    this.storeName = 'Bella Caffee',
+    this.storeName = 'Bella Cafe',
     this.storeLocation = 'Jakarta',
     this.shift = 'Pagi',
     this.name = 'Alex Johnson',
@@ -716,7 +716,7 @@ class _CashierProfileScreenState extends State<CashierProfileScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Daftar seluruh karyawan Bella Caffee:',
+            'Daftar seluruh karyawan Bella Cafe:',
             style: GoogleFonts.workSans(
               fontSize: 13,
               color: colorOnSurfaceVariant,

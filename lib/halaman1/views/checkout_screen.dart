@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/views/qris_payment_screen.dart';
 import 'package:flutter/material.dart';
@@ -352,14 +354,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     return Column(
       children: widget.cartItems.map((item) {
-        final iconData =
-            item['name'].toString().toLowerCase().contains('croissant')
-            ? Icons.bakery_dining
-            : item['name'].toString().toLowerCase().contains('tart') ||
-                  item['name'].toString().toLowerCase().contains('cake')
-            ? Icons.cake
-            : Icons.bakery_dining;
-
         final itemTotal = (item['price'] as int) * (item['quantity'] as int);
 
         return Container(
@@ -371,7 +365,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
           child: Row(
             children: [
-              // Icon Thumbnail Box
+              // Image Thumbnail Box
               Container(
                 width: 56,
                 height: 56,
@@ -379,10 +373,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   color: colorSurfaceContainerHigh,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  iconData,
-                  color: colorPrimary.withValues(alpha: 0.5),
-                  size: 28,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: _buildProductThumbnail(
+                    item['image'],
+                    width: 56,
+                    height: 56,
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -427,6 +424,80 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildProductThumbnail(
+    dynamic imageSource, {
+    double width = 56,
+    double height = 56,
+  }) {
+    if (imageSource is Uint8List) {
+      return Image.memory(
+        imageSource,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+      );
+    } else if (imageSource is String && imageSource.startsWith('http')) {
+      return Image.network(
+        imageSource,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildAssetWithFallback(imageSource, width: width, height: height),
+      );
+    } else if (imageSource is String && imageSource.isNotEmpty) {
+      return Image.asset(
+        imageSource,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildAssetWithFallback(imageSource, width: width, height: height),
+      );
+    }
+    return _buildProductFallback(width: width, height: height);
+  }
+
+  Widget _buildAssetWithFallback(
+    String path, {
+    double width = 56,
+    double height = 56,
+  }) {
+    String fallbackAsset = 'assets/images/sandwich.jpg';
+    if (path.contains('drink') ||
+        path.contains('latte') ||
+        path.contains('tea') ||
+        path.contains('citrus') ||
+        path.contains('chocolate')) {
+      fallbackAsset = 'assets/images/ice latte.jpg';
+    } else if (path.contains('dessert') ||
+        path.contains('cheesecake') ||
+        path.contains('tiramisu')) {
+      fallbackAsset = 'assets/images/caffee1.webp';
+    }
+    return Image.asset(
+      fallbackAsset,
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) =>
+          _buildProductFallback(width: width, height: height),
+    );
+  }
+
+  Widget _buildProductFallback({double width = 56, double height = 56}) {
+    return Container(
+      width: width,
+      height: height,
+      color: colorSurfaceContainerHigh,
+      child: Icon(
+        Icons.restaurant_menu,
+        size: width * 0.5,
+        color: colorPrimary.withValues(alpha: 0.5),
+      ),
     );
   }
 

@@ -1,5 +1,6 @@
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/widgets/animated_cartoon_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -69,32 +70,13 @@ class AboutAppScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // App Logo & Branding
-                        Container(
-                          width: 96,
-                          height: 96,
-                          decoration: BoxDecoration(
-                            color: theme.surfaceContainerLow,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: theme.secondaryColor,
-                              width: 3.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.06),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Icon(
-                              Icons.storefront_rounded,
-                              size: 48,
-                              color: theme.secondaryColor,
-                            ),
-                          ),
+                        // App Logo & Branding (Coffeedata Lottie Animation)
+                        const AnimatedCartoonLogo(
+                          height: 140,
+                          borderRadius: 20,
+                          defaultAssetPath:
+                              'assets/animation/cashier_header.json',
+                          showEditButton: false,
                         ),
                         const SizedBox(height: 20),
 

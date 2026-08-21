@@ -265,7 +265,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                               child: ClipOval(
                                 child: Lottie.asset(
-                                  "assets/images/lottielogorestaurant.png",
+                                  "assets/animation/cafe.json",
                                   fit: BoxFit.contain,
                                   errorBuilder: (context, error, stackTrace) {
                                     return Center(

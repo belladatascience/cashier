@@ -8,11 +8,17 @@ import 'package:image_picker/image_picker.dart';
 class EditMenuScreen extends StatefulWidget {
   final String cashierName;
   final bool isTab;
+  final List<String>? categoryNames;
+  final Map<String, List<Map<String, dynamic>>>? categoryDataMap;
+  final VoidCallback? onMenuUpdated;
 
   const EditMenuScreen({
     super.key,
     this.cashierName = 'Bella gita a',
     this.isTab = false,
+    this.categoryNames,
+    this.categoryDataMap,
+    this.onMenuUpdated,
   });
 
   @override
@@ -57,40 +63,63 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
       'price': 'Rp 8.500',
       'desc':
           'Classic artisanal loaf, naturally leavened with a dark, crackly crust and chewy crumb.',
-      'image':
-          'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/food_sourdough.jpg',
     },
     {
       'name': 'Butter Croissant',
       'price': 'Rp 4.250',
       'desc':
           'Traditional French pastry with shattered, buttery layers. Baked fresh daily.',
-      'image':
-          'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/food_croissant.jpg',
     },
     {
       'name': 'Berry Tart',
       'price': 'Rp 12.000',
       'desc':
           'Seasonal mixed berries on a bed of vanilla pastry cream in a sweet crust.',
-      'image':
-          'https://images.unsplash.com/photo-1519869325930-281384150729?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/food_tart.jpg',
     },
     {
       'name': 'Avocado Toast',
       'price': 'Rp 9.500',
       'desc':
           'Mashed Hass avocado with lemon, chili flakes, and sea salt on thick-cut toast.',
-      'image':
-          'https://images.unsplash.com/photo-1588137378633-dea1336ce1e2?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/food_avocado.jpg',
     },
     {
       'name': 'Pain au Chocolat',
-      'price': 'Rp 4.750',
+      'price': 'Rp 28.000',
       'desc':
           'Flaky, buttery dough rolled around two batons of semi-sweet dark chocolate.',
-      'image':
-          'https://images.unsplash.com/photo-1608198093002-ad4e005484ec?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/food_croissant.jpg',
+    },
+    {
+      'name': 'Nasi Goreng Special',
+      'price': 'Rp 35.000',
+      'desc':
+          'Nasi goreng rempah khas cafe disajikan dengan telur ceplok, sate ayam, dan kerupuk.',
+      'image': 'assets/images/food_nasigoreng.jpg',
+    },
+    {
+      'name': 'Spaghetti Carbonara',
+      'price': 'Rp 42.000',
+      'desc':
+          'Pasta spaghetti al dente dengan saus keju creamy, smoked beef, dan taburan keju parmesan.',
+      'image': 'assets/images/food_carbonara.jpg',
+    },
+    {
+      'name': 'Chicken Club Sandwich',
+      'price': 'Rp 38.000',
+      'desc':
+          'Sandwich lapis tiga isi daging ayam panggang, keju chedar, telur, dan french fries.',
+      'image': 'assets/images/food_sandwich.jpg',
+    },
+    {
+      'name': 'Beef Burger Deluxe',
+      'price': 'Rp 48.000',
+      'desc':
+          'Burger patty sapi juicy dengan keju leleh, caramelized onion, dan saus BBQ spesial.',
+      'image': 'assets/images/food_burger.jpg',
     },
   ];
 
@@ -100,23 +129,20 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
       'price': 'Rp 18.000',
       'desc':
           'Rich and bold shot extracted from dark roast house espresso blend.',
-      'image':
-          'https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/drink_latte.jpg',
     },
     {
       'name': 'Iced Caffe Latte',
       'price': 'Rp 28.000',
       'desc':
           'Smooth espresso paired with fresh cold milk and subtle caramel notes.',
-      'image':
-          'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/drink_latte.jpg',
     },
     {
       'name': 'Matcha Latte',
       'price': 'Rp 32.000',
       'desc': 'Ceremonial grade Japanese Uji matcha steamed with creamy milk.',
-      'image':
-          'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/drink_matcha.jpg',
     },
   ];
 
@@ -126,16 +152,14 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
       'price': 'Rp 15.000',
       'desc':
           'Soft-baked Belgian chocolate chunk cookie with a pinch of sea salt.',
-      'image':
-          'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/snack_cookie.jpg',
     },
     {
       'name': 'Almond Muffin',
       'price': 'Rp 18.000',
       'desc':
           'Fluffy golden muffin filled with almond paste and toasted flakes.',
-      'image':
-          'https://images.unsplash.com/photo-1607958996333-41aef7caefaa?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/snack_muffin.jpg',
     },
   ];
 
@@ -144,15 +168,13 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
       'name': 'Sparkling Citrus Water',
       'price': 'Rp 25.000',
       'desc': 'Crisp sparkling water served with fresh lime and lemon slices.',
-      'image':
-          'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/drink_citrus.jpg',
     },
     {
       'name': 'Artisan Matcha Latte',
       'price': 'Rp 35.000',
       'desc': 'Premium ceremonial grade matcha whisked with creamy milk.',
-      'image':
-          'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/drink_matcha.jpg',
     },
   ];
 
@@ -162,31 +184,39 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
       'price': 'Rp 28.000',
       'desc':
           'Creamy New York style cheesecake topped with fresh berry compote.',
-      'image':
-          'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/dessert_cheesecake.jpg',
     },
     {
       'name': 'Tiramisu Cup',
       'price': 'Rp 30.000',
       'desc':
           'Classic Italian dessert with espresso-soaked ladyfingers and mascarpone.',
-      'image':
-          'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?auto=format&fit=crop&w=300&q=80',
+      'image': 'assets/images/dessert_tiramisu.jpg',
     },
   ];
 
-  final List<String> _categoryNames = ['Food', 'Drink', 'Snack', 'Dessert'];
-  late final Map<String, List<Map<String, dynamic>>> _categoryDataMap = {
-    'Food': _foodItems,
-    'Drink': _drinkItems,
-    'Snack': _snackItems,
-    'Dessert': _dessertItems,
-  };
+  late List<String> _categoryNames;
+  late Map<String, List<Map<String, dynamic>>> _categoryDataMap;
+
+  @override
+  void initState() {
+    super.initState();
+    _categoryNames = widget.categoryNames ?? ['Food', 'Drink', 'Snack', 'Dessert'];
+    _categoryDataMap = widget.categoryDataMap ?? {
+      'Food': _foodItems,
+      'Drink': _drinkItems,
+      'Snack': _snackItems,
+      'Dessert': _dessertItems,
+    };
+  }
 
   List<Map<String, dynamic>> get _currentItems {
     if (_selectedTab < _categoryNames.length) {
       final key = _categoryNames[_selectedTab];
-      return _categoryDataMap[key] ?? [];
+      if (!_categoryDataMap.containsKey(key)) {
+        _categoryDataMap[key] = [];
+      }
+      return _categoryDataMap[key]!;
     }
     return _foodItems;
   }
@@ -381,19 +411,61 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
         height: height,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) =>
-            _buildImageFallback(width: width, height: height),
+            _buildAssetWithFallback(imageSource, width: width, height: height),
+      );
+    } else if (imageSource is String && imageSource.isNotEmpty) {
+      return Image.asset(
+        imageSource,
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildAssetWithFallback(imageSource, width: width, height: height),
       );
     } else {
       return _buildImageFallback(width: width, height: height);
     }
   }
 
-  Widget _buildImageFallback({double width = 80, double height = 80}) {
-    return Container(
+  Widget _buildAssetWithFallback(
+    String path, {
+    double width = 80,
+    double height = 80,
+  }) {
+    String fallbackAsset = 'assets/images/sandwich.jpg';
+    if (path.contains('drink') || path.contains('latte') || path.contains('tea') || path.contains('citrus') || path.contains('chocolate')) {
+      fallbackAsset = 'assets/images/ice latte.jpg';
+    } else if (path.contains('dessert') || path.contains('cheesecake') || path.contains('tiramisu')) {
+      fallbackAsset = 'assets/images/caffee1.webp';
+    }
+    return Image.asset(
+      fallbackAsset,
       width: width,
       height: height,
-      color: colorSurfaceVariant,
-      child: Icon(Icons.restaurant, size: width * 0.45, color: colorPrimary),
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) =>
+          _buildImageFallback(width: width, height: height),
+    );
+  }
+
+  Widget _buildImageFallback({double width = 80, double height = 80}) {
+    return Image.asset(
+      'assets/images/sandwich.jpg',
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => Container(
+        width: width,
+        height: height,
+        color: colorSurfaceContainerLow,
+        child: Center(
+          child: Icon(
+            Icons.restaurant_menu,
+            size: width * 0.4,
+            color: colorPrimary,
+          ),
+        ),
+      ),
     );
   }
 
@@ -520,6 +592,26 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
             ),
             actions: [
               TextButton(
+                onPressed: () {
+                  final itemName = _currentItems[index]['name'];
+                  setState(() {
+                    _currentItems.removeAt(index);
+                  });
+                  widget.onMenuUpdated?.call();
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Menu $itemName telah dihapus'),
+                      backgroundColor: const Color(0xFFBA1A1A),
+                    ),
+                  );
+                },
+                child: Text(
+                  'Hapus',
+                  style: GoogleFonts.workSans(color: const Color(0xFFBA1A1A)),
+                ),
+              ),
+              TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: Text(
                   'Batal',
@@ -528,12 +620,21 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
               ),
               ElevatedButton(
                 onPressed: () {
+                  final rawPrice = priceC.text.trim();
+                  final priceDigits = rawPrice.replaceAll(RegExp(r'[^\d]'), '');
+                  final parsedPrice = int.tryParse(priceDigits) ?? 25000;
+                  final formattedPriceText = rawPrice.startsWith('Rp')
+                      ? rawPrice
+                      : 'Rp ${parsedPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}';
+
                   setState(() {
-                    _currentItems[index]['name'] = nameC.text;
-                    _currentItems[index]['price'] = priceC.text;
-                    _currentItems[index]['desc'] = descC.text;
+                    _currentItems[index]['name'] = nameC.text.trim();
+                    _currentItems[index]['price'] = parsedPrice;
+                    _currentItems[index]['priceText'] = formattedPriceText;
+                    _currentItems[index]['desc'] = descC.text.trim();
                     _currentItems[index]['image'] = tempImage;
                   });
+                  widget.onMenuUpdated?.call();
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -690,14 +791,27 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
               ElevatedButton(
                 onPressed: () {
                   if (nameC.text.isNotEmpty && priceC.text.isNotEmpty) {
+                    final catName = _selectedTab < _categoryNames.length
+                        ? _categoryNames[_selectedTab]
+                        : 'Food';
+                    final rawPrice = priceC.text.trim();
+                    final priceDigits = rawPrice.replaceAll(RegExp(r'[^\d]'), '');
+                    final parsedPrice = int.tryParse(priceDigits) ?? 25000;
+                    final formattedPriceText = rawPrice.startsWith('Rp')
+                        ? rawPrice
+                        : 'Rp ${parsedPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}';
+
                     setState(() {
                       _currentItems.add({
-                        'name': nameC.text,
-                        'price': priceC.text,
-                        'desc': descC.text,
+                        'name': nameC.text.trim(),
+                        'price': parsedPrice,
+                        'priceText': formattedPriceText,
+                        'desc': descC.text.trim(),
                         'image': tempImage,
+                        'category': catName,
                       });
                     });
+                    widget.onMenuUpdated?.call();
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -1145,6 +1259,7 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
                   }
                   _selectedTab = _categoryNames.indexOf(catName);
                 });
+                widget.onMenuUpdated?.call();
                 Navigator.pop(dContext);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -1205,6 +1320,7 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
                     _selectedTab = _categoryNames.length - 1;
                   }
                 });
+                widget.onMenuUpdated?.call();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Kategori "$oldName" berhasil dihapus'),
@@ -1233,6 +1349,7 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
                   final items = _categoryDataMap.remove(oldName) ?? [];
                   _categoryDataMap[newName] = items;
                 });
+                widget.onMenuUpdated?.call();
                 Navigator.pop(dContext);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
