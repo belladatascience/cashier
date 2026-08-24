@@ -393,10 +393,8 @@ class _CashierProfileScreenState extends State<CashierProfileScreen>
                           ),
                           items: ['Pagi', 'Sore', 'Malam']
                               .map(
-                                (s) => DropdownMenuItem(
-                                  value: s,
-                                  child: Text(s),
-                                ),
+                                (s) =>
+                                    DropdownMenuItem(value: s, child: Text(s)),
                               )
                               .toList(),
                           onChanged: (val) {
@@ -467,62 +465,448 @@ class _CashierProfileScreenState extends State<CashierProfileScreen>
     );
   }
 
-  // Data Daftar Karyawan Cafe (Kerja, Shift Sore, & Libur)
-  final List<Map<String, dynamic>> _cafeStaffList = [
-    {
-      'name': 'Siti Aminah',
-      'role': 'Head Barista',
-      'status': 'Hadir (Pagi)',
-      'time': 'In: 06:45',
-      'avatarUrl':
-          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
-      'initials': 'SA',
-      'badgeColor': const Color(0xFFDCFCE7),
-      'textColor': const Color(0xFF166534),
-    },
-    {
-      'name': 'Budi Santoso',
-      'role': 'Pâtissier',
-      'status': 'Hadir (Pagi)',
-      'time': 'In: 06:50',
-      'avatarUrl':
-          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
-      'initials': 'BS',
-      'badgeColor': const Color(0xFFDCFCE7),
-      'textColor': const Color(0xFF166534),
-    },
-    {
-      'name': 'Rizky Pratama',
-      'role': 'Kasir',
-      'status': 'Istirahat',
-      'time': '12:00 - 13:00',
-      'avatarUrl':
-          'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
-      'initials': 'RP',
-      'badgeColor': const Color(0xFFFFEDD5),
-      'textColor': const Color(0xFFC2410C),
-    },
-    {
-      'name': 'Dewi Lestari',
-      'role': 'Pelayan',
-      'status': 'Shift Sore',
-      'time': '15:00 - 23:00',
-      'avatarUrl': null,
-      'initials': 'DW',
-      'badgeColor': const Color(0xFFE0F2FE),
-      'textColor': const Color(0xFF0369A1),
-    },
-    {
-      'name': 'Andi Wijaya',
-      'role': 'Barista Assistant',
-      'status': 'Libur',
-      'time': 'Off Duty',
-      'avatarUrl': null,
-      'initials': 'AW',
-      'badgeColor': const Color(0xFFF3F4F6),
-      'textColor': const Color(0xFF4B5563),
-    },
-  ];
+  // Persistent Data from UserDataStore singleton
+  List<Map<String, dynamic>> get _cafeStaffList =>
+      UserDataStore.instance.cafeStaffList;
+
+  void _showAddStaffDialog() {
+    final nameController = TextEditingController();
+    final roleController = TextEditingController(text: 'Barista');
+    String? errorMessage;
+
+    final List<String> rolePresets = [
+      'Head Barista',
+      'Barista',
+      'Barista Assistant',
+      'Kasir',
+      'Pâtissier',
+      'Pelayan',
+      'Kitchen Crew',
+      'Supervisor',
+    ];
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: colorSurfaceContainerLowest,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header Icon & Title
+                      Center(
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 58,
+                              height: 58,
+                              decoration: BoxDecoration(
+                                color: colorPrimary.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  Icons.person_add_alt_1_rounded,
+                                  size: 30,
+                                  color: colorPrimary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Tambah Staff Baru',
+                              style: GoogleFonts.sourceSerif4(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: colorPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Masukkan informasi karyawan baru cafe.',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.workSans(
+                                fontSize: 12,
+                                color: colorOnSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+
+                      if (errorMessage != null)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEE2E2),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: const Color(0xFFEF4444).withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: Color(0xFFDC2626),
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  errorMessage!,
+                                  style: GoogleFonts.workSans(
+                                    fontSize: 12,
+                                    color: const Color(0xFF991B1B),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      // Nama Lengkap Staff
+                      Text(
+                        'Nama Lengkap Staff',
+                        style: GoogleFonts.workSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: colorPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: nameController,
+                        style: GoogleFonts.workSans(
+                          fontSize: 14,
+                          color: colorPrimary,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Contoh: Bambang Saputra',
+                          prefixIcon: Icon(Icons.person_outline, color: colorPrimary),
+                          filled: true,
+                          fillColor: colorSurfaceContainerLow,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Jabatan / Posisi
+                      Text(
+                        'Jabatan / Posisi',
+                        style: GoogleFonts.workSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: colorPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: roleController,
+                        style: GoogleFonts.workSans(
+                          fontSize: 14,
+                          color: colorPrimary,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Contoh: Barista',
+                          prefixIcon: Icon(Icons.badge_outlined, color: colorPrimary),
+                          filled: true,
+                          fillColor: colorSurfaceContainerLow,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Preset Role Chips
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: rolePresets.map((r) {
+                          final isSelected = roleController.text == r;
+                          return InkWell(
+                            onTap: () {
+                              setDialogState(() {
+                                roleController.text = r;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? colorPrimary
+                                    : colorSurfaceContainerLow,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? colorPrimary
+                                      : colorOutlineVariant.withValues(alpha: 0.5),
+                                ),
+                              ),
+                              child: Text(
+                                r,
+                                style: GoogleFonts.workSans(
+                                  fontSize: 11,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: isSelected ? Colors.white : colorPrimary,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              actions: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(dialogCtx),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: BorderSide(color: colorOutlineVariant),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Text(
+                          'Batal',
+                          style: GoogleFonts.workSans(
+                            fontWeight: FontWeight.w600,
+                            color: colorOnSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          final name = nameController.text.trim();
+                          final role = roleController.text.trim();
+
+                          if (name.isEmpty) {
+                            setDialogState(() {
+                              errorMessage = 'Nama Staff tidak boleh kosong!';
+                            });
+                            return;
+                          }
+                          if (role.isEmpty) {
+                            setDialogState(() {
+                              errorMessage = 'Jabatan tidak boleh kosong!';
+                            });
+                            return;
+                          }
+
+                          // Initials
+                          final nameParts = name.split(' ');
+                          String inits = '';
+                          if (nameParts.isNotEmpty && nameParts[0].isNotEmpty) {
+                            inits += nameParts[0][0];
+                          }
+                          if (nameParts.length > 1 && nameParts[1].isNotEmpty) {
+                            inits += nameParts[1][0];
+                          }
+                          if (inits.isEmpty) inits = 'ST';
+                          inits = inits.toUpperCase();
+
+                          final newStaffData = {
+                            'name': name,
+                            'role': role,
+                            'avatarUrl': null,
+                            'initials': inits,
+                          };
+
+                          setState(() {
+                            UserDataStore.instance.addCafeStaff(newStaffData);
+                          });
+
+                          Navigator.pop(dialogCtx);
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Staff $name ($role) berhasil ditambahkan! 👤',
+                                style: GoogleFonts.workSans(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              backgroundColor: colorPrimary,
+                              behavior: SnackBarBehavior.floating,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.check, size: 16),
+                        label: const Text('Simpan Staff'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: colorPrimary,
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showDeleteCafeStaffDialog(Map<String, dynamic> staff, int index) {
+    final name = staff['name'] ?? 'Karyawan';
+    final role = staff['role'] ?? 'Staff';
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return AlertDialog(
+          backgroundColor: colorSurfaceContainerLowest,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEE2E2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.delete_forever_rounded,
+                  color: Color(0xFFDC2626),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Hapus Karyawan?',
+                  style: GoogleFonts.sourceSerif4(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: colorPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Apakah Anda yakin ingin menghapus $name ($role) dari daftar karyawan?',
+            style: GoogleFonts.workSans(
+              fontSize: 14,
+              color: colorOnSurfaceVariant,
+            ),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          actions: [
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(dialogCtx),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: BorderSide(color: colorOutlineVariant),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Text(
+                      'Batal',
+                      style: GoogleFonts.workSans(
+                        fontWeight: FontWeight.w600,
+                        color: colorOnSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        UserDataStore.instance.deleteCafeStaff(index);
+                      });
+                      Navigator.pop(dialogCtx);
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Karyawan $name berhasil dihapus! 🗑️',
+                            style: GoogleFonts.workSans(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          backgroundColor: const Color(0xFFDC2626),
+                          behavior: SnackBarBehavior.floating,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      backgroundColor: const Color(0xFFDC2626),
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Text(
+                      'Hapus',
+                      style: GoogleFonts.workSans(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     try {
@@ -1871,6 +2255,7 @@ class _CashierProfileScreenState extends State<CashierProfileScreen>
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
@@ -1897,134 +2282,261 @@ class _CashierProfileScreenState extends State<CashierProfileScreen>
                   ),
                 ],
               ),
-              InkWell(
-                onTap: () {
-                  context.push(
-                    StaffShiftScreen(
-                      activeShift: '${widget.shift} Shift: 07:00 - 15:00',
-                    ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        'Kelola Shift',
-                        style: GoogleFonts.workSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: colorSecondary,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  InkWell(
+                    onTap: () {
+                      context.push(
+                        StaffShiftScreen(
+                          activeShift: '${widget.shift} Shift: 07:00 - 15:00',
                         ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
                       ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.arrow_forward_ios,
-                        size: 12,
-                        color: colorSecondary,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Kelola Shift',
+                            style: GoogleFonts.workSans(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: colorSecondary,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            size: 11,
+                            color: colorSecondary,
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 6),
+                  InkWell(
+                    onTap: _showAddStaffDialog,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colorPrimary,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: colorPrimary.withValues(alpha: 0.25),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.person_add_alt_1_rounded,
+                            size: 13,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '+ Staff',
+                            style: GoogleFonts.workSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
           const SizedBox(height: 6),
-          Text(
-            'Daftar seluruh karyawan Bella Cafe:',
-            style: GoogleFonts.workSans(
-              fontSize: 13,
-              color: colorOnSurfaceVariant,
-            ),
+          ValueListenableBuilder<Map<String, dynamic>>(
+            valueListenable: UserDataStore.instance.userDataNotifier,
+            builder: (context, userData, _) {
+              final store = userData['storeName'] ??
+                  (widget.storeName.isNotEmpty
+                      ? widget.storeName
+                      : 'Kingdom Cafe');
+              return Text(
+                'Daftar seluruh karyawan $store:',
+                style: GoogleFonts.workSans(
+                  fontSize: 13,
+                  color: colorOnSurfaceVariant,
+                ),
+              );
+            },
           ),
           const SizedBox(height: 16),
 
           // List Staff Cards
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _cafeStaffList.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              final staff = _cafeStaffList[index];
-              return Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: colorSurfaceContainerLow,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: colorOutlineVariant.withValues(alpha: 0.3),
-                  ),
+          if (_cafeStaffList.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                vertical: 24,
+                horizontal: 16,
+              ),
+              decoration: BoxDecoration(
+                color: colorSurfaceContainerLow,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: colorOutlineVariant.withValues(alpha: 0.3),
                 ),
-                child: Row(
-                  children: [
-                    // Avatar / Initials
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        color: colorSecondaryContainer,
-                        child: staff['avatarUrl'] != null
-                            ? Image.network(
-                                staff['avatarUrl'],
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Center(
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.people_outline_rounded,
+                    size: 36,
+                    color: colorOnSurfaceVariant.withValues(alpha: 0.5),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Belum ada karyawan terdaftar',
+                    style: GoogleFonts.workSans(
+                      fontSize: 13,
+                      color: colorOnSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _cafeStaffList.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                final staff = _cafeStaffList[index];
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colorSurfaceContainerLow,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: colorOutlineVariant.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      // Avatar / Initials
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          color: colorSecondaryContainer,
+                          child: staff['avatarUrl'] != null
+                              ? Image.network(
+                                  staff['avatarUrl'],
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Center(
+                                    child: Text(
+                                      staff['initials'] ?? 'ST',
+                                      style: GoogleFonts.workSans(
+                                        fontWeight: FontWeight.bold,
+                                        color: colorOnSecondaryContainer,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : Center(
                                   child: Text(
-                                    staff['initials'],
+                                    staff['initials'] ?? 'ST',
                                     style: GoogleFonts.workSans(
                                       fontWeight: FontWeight.bold,
                                       color: colorOnSecondaryContainer,
                                     ),
                                   ),
                                 ),
-                              )
-                            : Center(
-                                child: Text(
-                                  staff['initials'],
-                                  style: GoogleFonts.workSans(
-                                    fontWeight: FontWeight.bold,
-                                    color: colorOnSecondaryContainer,
-                                  ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+
+                      // Staff Name & Role
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              staff['name'] ?? 'Karyawan',
+                              style: GoogleFonts.sourceSerif4(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: colorPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              staff['role'] ?? 'Staff',
+                              style: GoogleFonts.workSans(
+                                fontSize: 12,
+                                color: colorOnSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Tombol Hapus / Delete Karyawan
+                      InkWell(
+                        onTap: () => _showDeleteCafeStaffDialog(staff, index),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEE2E2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.delete_outline_rounded,
+                                size: 15,
+                                color: Color(0xFFDC2626),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Hapus',
+                                style: GoogleFonts.workSans(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFFDC2626),
                                 ),
                               ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-
-                    // Staff Name & Role
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            staff['name'],
-                            style: GoogleFonts.sourceSerif4(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: colorPrimary,
-                            ),
+                            ],
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            staff['role'],
-                            style: GoogleFonts.workSans(
-                              fontSize: 12,
-                              color: colorOnSurfaceVariant,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
+                    ],
+                  ),
+                );
+              },
+            ),
         ],
       ),
     );

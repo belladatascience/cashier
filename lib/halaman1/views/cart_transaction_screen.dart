@@ -1,6 +1,7 @@
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -852,6 +853,28 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                               color: theme.primaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Cashier:',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: theme.outlineColor,
+                            ),
+                          ),
+                          Text(
+                            UserDataStore.instance.userDataNotifier.value['cashierName'] ??
+                                UserDataStore.instance.userDataNotifier.value['name'] ??
+                                widget.cashierName,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: theme.secondaryColor,
                             ),
                           ),
                         ],

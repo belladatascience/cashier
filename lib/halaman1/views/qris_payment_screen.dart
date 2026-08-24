@@ -1,4 +1,5 @@
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:cashier/halaman1/views/payment_success_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,12 +7,18 @@ import 'package:google_fonts/google_fonts.dart';
 class QrisPaymentScreen extends StatefulWidget {
   final int totalAmount;
   final String merchantId;
+  final String customerName;
+  final String? transactionId;
+  final String? cashierName;
   final VoidCallback? onOrderCompleted;
 
   const QrisPaymentScreen({
     super.key,
     this.totalAmount = 44000,
     this.merchantId = 'BEE-COFFEE-01',
+    this.customerName = 'Pelanggan Umum',
+    this.transactionId,
+    this.cashierName,
     this.onOrderCompleted,
   });
 
@@ -41,14 +48,27 @@ class _QrisPaymentScreenState extends State<QrisPaymentScreen> {
   }
 
   void _handlePayNow() {
+    final activeCashier = widget.cashierName ??
+        UserDataStore.instance.userDataNotifier.value['cashierName'] ??
+        UserDataStore.instance.userDataNotifier.value['name'] ??
+        UserDataStore.instance.userDataNotifier.value['accountName'] ??
+        'Bella Saputra';
+
+    final now = DateTime.now();
+    final txId = widget.transactionId ??
+        '#INV-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-${now.millisecondsSinceEpoch.toString().substring(8)}';
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => PaymentSuccessScreen(
           totalAmount: widget.totalAmount,
-          customerName: 'Handky Chang',
-          transactionId: '#HH-99420',
-          paymentMethod: 'Digital Wallet',
+          customerName: widget.customerName.trim().isNotEmpty
+              ? widget.customerName.trim()
+              : 'Pelanggan Umum',
+          transactionId: txId,
+          paymentMethod: 'Digital Wallet (QRIS)',
+          cashierName: activeCashier.toString(),
           onOrderCompleted: widget.onOrderCompleted,
         ),
       ),

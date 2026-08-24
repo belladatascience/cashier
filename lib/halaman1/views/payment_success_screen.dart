@@ -1,4 +1,5 @@
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -7,6 +8,7 @@ class PaymentSuccessScreen extends StatefulWidget {
   final String customerName;
   final String transactionId;
   final String paymentMethod;
+  final String? cashierName;
   final VoidCallback? onOrderCompleted;
 
   const PaymentSuccessScreen({
@@ -15,6 +17,7 @@ class PaymentSuccessScreen extends StatefulWidget {
     this.customerName = 'Handky Chang',
     this.transactionId = '#HH-99420',
     this.paymentMethod = 'Digital Wallet',
+    this.cashierName,
     this.onOrderCompleted,
   });
 
@@ -37,6 +40,19 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
       : const Color(0xFFE8E8E4);
   Color get colorOnSurfaceVariant => AppTheme.instance.onSurfaceVariant;
   Color get colorOutlineVariant => AppTheme.instance.outlineVariant;
+
+  String get _activeCashierName {
+    if (widget.cashierName != null && widget.cashierName!.trim().isNotEmpty) {
+      return widget.cashierName!.trim();
+    }
+    final stored =
+        UserDataStore.instance.userDataNotifier.value['cashierName'] ??
+        UserDataStore.instance.userDataNotifier.value['name'] ??
+        UserDataStore.instance.userDataNotifier.value['accountName'];
+    return stored != null && stored.toString().trim().isNotEmpty
+        ? stored.toString().trim()
+        : 'Bella Saputra';
+  }
 
   @override
   void initState() {
@@ -229,6 +245,10 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                               padding: EdgeInsets.symmetric(vertical: 14),
                               child: Divider(),
                             ),
+
+                            // Cashier
+                            _buildDetailRow('Cashier', _activeCashierName),
+                            const SizedBox(height: 12),
 
                             // Customer
                             _buildDetailRow('Customer', widget.customerName),

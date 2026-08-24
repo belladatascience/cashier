@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,6 +12,7 @@ class EditMenuScreen extends StatefulWidget {
   final List<String>? categoryNames;
   final Map<String, List<Map<String, dynamic>>>? categoryDataMap;
   final VoidCallback? onMenuUpdated;
+  final VoidCallback? onLockRequested;
 
   const EditMenuScreen({
     super.key,
@@ -19,6 +21,7 @@ class EditMenuScreen extends StatefulWidget {
     this.categoryNames,
     this.categoryDataMap,
     this.onMenuUpdated,
+    this.onLockRequested,
   });
 
   @override
@@ -1011,23 +1014,76 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
           body: Column(
             children: [
               // Cashier Banner
-              Container(
-                width: double.infinity,
-                color: colorPrimary,
-                padding: const EdgeInsets.symmetric(
-                  vertical: 12,
-                  horizontal: 16,
-                ),
-                child: Text(
-                  'CASHIER: ${widget.cashierName.toUpperCase()}',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.workSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2.0,
-                    color: Colors.white,
-                  ),
-                ),
+              ValueListenableBuilder<Map<String, dynamic>>(
+                valueListenable: UserDataStore.instance.userDataNotifier,
+                builder: (context, userData, _) {
+                  final activeCashier = userData['cashierName'] ??
+                      userData['name'] ??
+                      userData['accountName'] ??
+                      widget.cashierName;
+                  return Container(
+                    width: double.infinity,
+                    color: colorPrimary,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 16,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const SizedBox(width: 24),
+                        Expanded(
+                          child: Text(
+                            'CASHIER: ${activeCashier.toString().toUpperCase()}',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.workSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 2.0,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        if (widget.onLockRequested != null)
+                          InkWell(
+                            onTap: widget.onLockRequested,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.lock,
+                                    size: 13,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Kunci',
+                                    style: GoogleFonts.workSans(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        else
+                          const SizedBox(width: 24),
+                      ],
+                    ),
+                  );
+                },
               ),
 
               // Main Scrollable Content

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:cashier/halaman1/views/qris_payment_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -93,6 +94,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   void _onCompleteOrder() {
+    final activeCashier = UserDataStore.instance.userDataNotifier.value['cashierName'] ??
+        UserDataStore.instance.userDataNotifier.value['name'] ??
+        UserDataStore.instance.userDataNotifier.value['accountName'] ??
+        'Bella Saputra';
+    final customerDisplayName = widget.tableNumber != '-' &&
+            widget.tableNumber.trim().isNotEmpty
+        ? '${widget.customerName.trim().isEmpty ? 'Pelanggan Umum' : widget.customerName.trim()} (${widget.tableNumber.trim()})'
+        : (widget.customerName.trim().isEmpty
+            ? 'Pelanggan Umum'
+            : widget.customerName.trim());
+
     if (_selectedPaymentMethod == 'wallet') {
       Navigator.push(
         context,
@@ -100,6 +112,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           builder: (context) => QrisPaymentScreen(
             totalAmount: _total,
             merchantId: 'BEE-COFFEE-01',
+            customerName: customerDisplayName,
+            cashierName: activeCashier.toString(),
             onOrderCompleted: widget.onOrderCompleted,
           ),
         ),
@@ -160,6 +174,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
               child: Column(
                 children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Cashier:',
+                        style: GoogleFonts.workSans(
+                          fontSize: 12,
+                          color: colorOnSurfaceVariant,
+                        ),
+                      ),
+                      Text(
+                        activeCashier.toString(),
+                        style: GoogleFonts.workSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: colorSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:cashier/extension/navigator.dart';
+import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:cashier/halaman1/views/cashier_profile_screen.dart';
@@ -34,6 +35,9 @@ class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _currentBottomTab = 1;
 
+  // Security Lock for Discover Tab (Menu Management)
+  bool _isDiscoverUnlocked = false;
+
   // Shop Category & Data State
   int _selectedShopCategoryTab = 1; // 0: Food, 1: Drink, 2: Snack
 
@@ -46,6 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260821-001',
       'date': '21 Aug 2026, 11:45',
+      'cashier': 'Bella Saputra',
       'method': 'Digital Wallet (QRIS)',
       'customer': 'Handky Chang',
       'items': [
@@ -60,6 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260821-002',
       'date': '21 Aug 2026, 10:15',
+      'cashier': 'Bella Saputra',
       'method': 'Digital Wallet (GoPay)',
       'customer': 'Siti Aminah',
       'items': [
@@ -74,6 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260820-001',
       'date': '20 Aug 2026, 16:30',
+      'cashier': 'Bella Saputra',
       'method': 'Cash in Store',
       'customer': 'Pelanggan Umum',
       'items': [
@@ -88,6 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260819-001',
       'date': '19 Aug 2026, 15:20',
+      'cashier': 'Bella Saputra',
       'method': 'Digital Wallet (QRIS)',
       'customer': 'Bella Saputra',
       'items': [
@@ -102,6 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260819-002',
       'date': '19 Aug 2026, 11:10',
+      'cashier': 'Bella Saputra',
       'method': 'Digital Wallet (GoPay)',
       'customer': 'Dewi Lestari',
       'items': [
@@ -116,6 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260819-003',
       'date': '19 Aug 2026, 09:45',
+      'cashier': 'Bella Saputra',
       'method': 'Cash in Store',
       'customer': 'Andi Wijaya',
       'items': [
@@ -130,6 +140,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260818-001',
       'date': '18 Aug 2026, 14:15',
+      'cashier': 'Bella Saputra',
       'method': 'Digital Wallet (QRIS)',
       'customer': 'Handky Chang',
       'items': [
@@ -145,6 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260818-002',
       'date': '18 Aug 2026, 13:40',
+      'cashier': 'Bella Saputra',
       'method': 'Cash in Store',
       'customer': 'Pelanggan Umum',
       'items': [
@@ -160,6 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260818-003',
       'date': '18 Aug 2026, 11:20',
+      'cashier': 'Bella Saputra',
       'method': 'Digital Wallet (GoPay)',
       'customer': 'Budi Santoso',
       'items': [
@@ -174,6 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260817-004',
       'date': '17 Aug 2026, 16:05',
+      'cashier': 'Bella Saputra',
       'method': 'Cash in Store',
       'customer': 'Siti Rahma',
       'items': [
@@ -523,6 +537,310 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // ==================== DISCOVER SECURITY AUTH DIALOG ====================
+  void _showDiscoverAuthDialog() {
+    final idController = TextEditingController();
+    final passController = TextEditingController();
+    bool isObscure = true;
+    String? errorMessage;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: colorSurfaceContainerLowest,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Lock Icon Header with Glow Container
+                      Container(
+                        width: 68,
+                        height: 68,
+                        decoration: BoxDecoration(
+                          color: colorPrimary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.lock_person_rounded,
+                            size: 36,
+                            color: colorPrimary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      Text(
+                        'Otorisasi Manajemen Menu',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.sourceSerif4(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: colorPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Masukkan ID Akun / Email dan Password untuk membuka akses edit & tambah menu Discover.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.workSans(
+                          fontSize: 12.5,
+                          color: colorOnSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      if (errorMessage != null)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 14),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEE2E2),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: const Color(
+                                0xFFEF4444,
+                              ).withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: Color(0xFFDC2626),
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  errorMessage!,
+                                  style: GoogleFonts.workSans(
+                                    fontSize: 12,
+                                    color: const Color(0xFF991B1B),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      // ID Akun Input Field
+                      TextField(
+                        controller: idController,
+                        style: GoogleFonts.workSans(
+                          fontSize: 14,
+                          color: colorPrimary,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: 'ID Akun / Email Kasir',
+                          hintText: 'Contoh: KASIR01',
+                          prefixIcon: Icon(
+                            Icons.person_outline,
+                            color: colorPrimary,
+                          ),
+                          filled: true,
+                          fillColor: colorSurfaceContainerLow,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Password Input Field
+                      TextField(
+                        controller: passController,
+                        obscureText: isObscure,
+                        style: GoogleFonts.workSans(
+                          fontSize: 14,
+                          color: colorPrimary,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          hintText: 'Masukkan password akun',
+                          prefixIcon: Icon(
+                            Icons.lock_outline,
+                            color: colorPrimary,
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              isObscure
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                              color: colorOnSurfaceVariant,
+                            ),
+                            onPressed: () {
+                              setDialogState(() {
+                                isObscure = !isObscure;
+                              });
+                            },
+                          ),
+                          filled: true,
+                          fillColor: colorSurfaceContainerLow,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Quick Hint Pill
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colorSecondary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              size: 14,
+                              color: colorSecondary,
+                            ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                'Default: KASIR01 • Pass: 123',
+                                style: GoogleFonts.workSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: colorSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              actions: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(dialogCtx),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: BorderSide(color: colorOutlineVariant),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Text(
+                          'Batal',
+                          style: GoogleFonts.workSans(
+                            fontWeight: FontWeight.w600,
+                            color: colorOnSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          final inputId = idController.text.trim();
+                          final inputPass = passController.text;
+
+                          if (inputId.isEmpty || inputPass.isEmpty) {
+                            setDialogState(() {
+                              errorMessage =
+                                  'ID Akun dan Password wajib diisi!';
+                            });
+                            return;
+                          }
+
+                          // Check SQLite Database
+                          final dbUser = await DataBaseHelper().loginUser(
+                            inputId,
+                            inputPass,
+                          );
+
+                          final isFallbackValid =
+                              (inputId.toLowerCase() == 'kasir01' &&
+                                  inputPass == '123') ||
+                              (inputId.toLowerCase() == 'admin' &&
+                                  (inputPass == '123' ||
+                                      inputPass == 'admin123')) ||
+                              (inputId.toLowerCase() == 'bella' &&
+                                  (inputPass == '123' ||
+                                      inputPass == '123456'));
+
+                          if (dbUser != null || isFallbackValid) {
+                            Navigator.pop(dialogCtx);
+                            setState(() {
+                              _isDiscoverUnlocked = true;
+                              _currentBottomTab = 0;
+                            });
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Akses Menu Discover berhasil dibuka! 🔓',
+                                  style: GoogleFonts.workSans(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                backgroundColor: const Color(0xFF166534),
+                                behavior: SnackBarBehavior.floating,
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          } else {
+                            setDialogState(() {
+                              errorMessage =
+                                  'ID Akun atau Password salah! Akses ditolak.';
+                            });
+                          }
+                        },
+                        icon: const Icon(Icons.lock_open, size: 16),
+                        label: const Text('Buka Kunci'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: colorPrimary,
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   // Dynamic Color Tokens linked to AppTheme
   Color get colorPrimary => AppTheme.instance.primaryColor;
   Color get colorPrimaryContainer => AppTheme.instance.isDarkMode
@@ -675,9 +993,16 @@ class _HomeScreenState extends State<HomeScreen> {
     final invId =
         '#INV-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-${(100 + _transactionHistory.length + 1)}';
 
+    final activeCashier =
+        UserDataStore.instance.userDataNotifier.value['cashierName'] ??
+        UserDataStore.instance.userDataNotifier.value['name'] ??
+        UserDataStore.instance.userDataNotifier.value['accountName'] ??
+        'Bella Saputra';
+
     _transactionHistory.insert(0, {
       'id': invId,
       'date': dateStr,
+      'cashier': activeCashier,
       'method': paymentMethod,
       'customer': customerName,
       'items': itemsCopy,
@@ -1408,13 +1733,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icon(Icons.menu, color: colorPrimary, size: 28),
                   onPressed: () => _scaffoldKey.currentState?.openDrawer(),
                 ),
-                title: Text(
-                  widget.storeName.isNotEmpty ? widget.storeName : 'BGA Co.',
-                  style: GoogleFonts.sourceSerif4(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: colorPrimary,
-                  ),
+                title: ValueListenableBuilder<Map<String, dynamic>>(
+                  valueListenable: UserDataStore.instance.userDataNotifier,
+                  builder: (context, userData, _) {
+                    final store =
+                        userData['storeName'] ??
+                        (widget.storeName.isNotEmpty
+                            ? widget.storeName
+                            : 'Kingdom Cafe');
+                    return Text(
+                      store,
+                      style: GoogleFonts.sourceSerif4(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: colorPrimary,
+                      ),
+                    );
+                  },
                 ),
                 centerTitle: true,
                 actions: [
@@ -1490,6 +1825,26 @@ class _HomeScreenState extends State<HomeScreen> {
                         isTab: true,
                         categoryNames: _shopCategoryNames,
                         categoryDataMap: _shopCategoryDataMap,
+                        onLockRequested: () {
+                          setState(() {
+                            _isDiscoverUnlocked = false;
+                            _currentBottomTab = 1;
+                          });
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Akses Manajemen Menu (Discover) telah dikunci kembali 🔒',
+                                style: GoogleFonts.workSans(
+                                  color: Colors.white,
+                                ),
+                              ),
+                              backgroundColor: colorPrimary,
+                              behavior: SnackBarBehavior.floating,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        },
                         onMenuUpdated: () {
                           setState(() {});
                         },
@@ -1516,9 +1871,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: BottomNavigationBar(
                   currentIndex: _currentBottomTab,
                   onTap: (index) {
-                    setState(() {
-                      _currentBottomTab = index;
-                    });
+                    if (index == 0 && !_isDiscoverUnlocked) {
+                      _showDiscoverAuthDialog();
+                    } else {
+                      setState(() {
+                        _currentBottomTab = index;
+                      });
+                    }
                   },
                   backgroundColor: colorSurfaceContainerLowest,
                   selectedItemColor: colorPrimary,
@@ -1534,9 +1893,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   type: BottomNavigationBarType.fixed,
                   elevation: 0,
                   items: [
-                    const BottomNavigationBarItem(
-                      icon: Icon(Icons.explore_outlined),
-                      activeIcon: Icon(Icons.explore),
+                    BottomNavigationBarItem(
+                      icon: Icon(
+                        _isDiscoverUnlocked
+                            ? Icons.explore_outlined
+                            : Icons.lock_outline,
+                      ),
+                      activeIcon: Icon(
+                        _isDiscoverUnlocked ? Icons.explore : Icons.lock,
+                      ),
                       label: 'Discover',
                     ),
                     const BottomNavigationBarItem(
@@ -1638,20 +2003,33 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         children: [
           // Cashier Banner
-          Container(
-            width: double.infinity,
-            color: colorPrimary,
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            child: Text(
-              'CASHIER: BELLA GITA A',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.workSans(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2.0,
-                color: Colors.white,
-              ),
-            ),
+          ValueListenableBuilder<Map<String, dynamic>>(
+            valueListenable: UserDataStore.instance.userDataNotifier,
+            builder: (context, userData, _) {
+              final activeCashier =
+                  userData['cashierName'] ??
+                  userData['name'] ??
+                  userData['accountName'] ??
+                  'Bella Saputra';
+              return Container(
+                width: double.infinity,
+                color: colorPrimary,
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 16,
+                ),
+                child: Text(
+                  'CASHIER: ${activeCashier.toString().toUpperCase()}',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.workSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2.0,
+                    color: Colors.white,
+                  ),
+                ),
+              );
+            },
           ),
 
           Padding(
@@ -2702,14 +3080,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                                   .isEmpty
                                               ? 'Pelanggan Umum'
                                               : _cartCustomerNameController.text
-                                                  .trim();
+                                                    .trim();
                                           final tableNo =
                                               _cartTableController.text
                                                   .trim()
                                                   .isEmpty
                                               ? '-'
                                               : _cartTableController.text
-                                                  .trim();
+                                                    .trim();
                                           return CheckoutScreen(
                                             cartItems: List.from(_cartItems),
                                             storeName: widget.storeName,
@@ -2717,9 +3095,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                             tableNumber: tableNo,
                                             onOrderCompleted: () {
                                               final currentCartCopy =
-                                                  List<Map<String, dynamic>>.from(
-                                                    _cartItems,
-                                                  );
+                                                  List<
+                                                    Map<String, dynamic>
+                                                  >.from(_cartItems);
                                               final displayCustomer =
                                                   tableNo != '-' &&
                                                       tableNo.isNotEmpty
@@ -3189,6 +3567,25 @@ class _HomeScreenState extends State<HomeScreen> {
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 Icon(
+                                                  Icons.badge_outlined,
+                                                  size: 14,
+                                                  color: colorSecondary,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'Cashier: ${tx['cashier'] ?? UserDataStore.instance.userDataNotifier.value['cashierName'] ?? UserDataStore.instance.userDataNotifier.value['name'] ?? 'Bella Saputra'}',
+                                                  style: GoogleFonts.workSans(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: colorSecondary,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
                                                   Icons.person_outline,
                                                   size: 14,
                                                   color: colorOnSurfaceVariant,
@@ -3267,7 +3664,10 @@ class _HomeScreenState extends State<HomeScreen> {
               Icon(Icons.receipt, size: 40, color: colorPrimary),
               const SizedBox(height: 8),
               Text(
-                widget.storeName.isNotEmpty ? widget.storeName : 'Bella Cafe',
+                UserDataStore.instance.userDataNotifier.value['storeName'] ??
+                    (widget.storeName.isNotEmpty
+                        ? widget.storeName
+                        : 'Kingdom Cafe'),
                 style: GoogleFonts.sourceSerif4(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -3322,6 +3722,33 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: GoogleFonts.workSans(
                       fontSize: 12,
                       color: colorPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Cashier:',
+                    style: GoogleFonts.workSans(
+                      fontSize: 12,
+                      color: colorOnSurfaceVariant,
+                    ),
+                  ),
+                  Text(
+                    tx['cashier'] ??
+                        UserDataStore
+                            .instance
+                            .userDataNotifier
+                            .value['cashierName'] ??
+                        UserDataStore.instance.userDataNotifier.value['name'] ??
+                        'Bella Saputra',
+                    style: GoogleFonts.workSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: colorSecondary,
                     ),
                   ),
                 ],
