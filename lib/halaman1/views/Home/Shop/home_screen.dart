@@ -3,13 +3,14 @@ import 'dart:typed_data';
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/menu_data_store.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
-import 'package:cashier/halaman1/views/cashier_profile_screen.dart';
-import 'package:cashier/halaman1/views/checkout_screen.dart';
-import 'package:cashier/halaman1/views/edit_menu_screen.dart';
-import 'package:cashier/halaman1/views/login.dart';
-import 'package:cashier/halaman1/views/settings_screen.dart';
-import 'package:cashier/halaman1/views/staff_shift_screen.dart';
+import 'package:cashier/halaman1/views/Profile/cashier_profile_screen.dart';
+import 'package:cashier/halaman1/views/Home/Transaction/checkout_screen.dart';
+import 'package:cashier/halaman1/views/Home/Discover/edit_menu_screen.dart';
+import 'package:cashier/halaman1/views/Home/login.dart';
+import 'package:cashier/halaman1/views/setting/settings_screen.dart';
+import 'package:cashier/halaman1/views/Home/Shift/staff_shift_screen.dart';
 import 'package:cashier/halaman1/widgets/animated_cartoon_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -490,13 +491,9 @@ class _HomeScreenState extends State<HomeScreen> {
     },
   ];
 
-  final List<String> _shopCategoryNames = ['Food', 'Drink', 'Snack', 'Dessert'];
-  Map<String, List<Map<String, dynamic>>> get _shopCategoryDataMap => {
-    'Food': _foodMenuItems,
-    'Drink': _drinkMenuItems,
-    'Snack': _snackMenuItems,
-    'Dessert': _dessertMenuItems,
-  };
+  List<String> get _shopCategoryNames => MenuDataStore.instance.categories;
+  Map<String, List<Map<String, dynamic>>> get _shopCategoryDataMap =>
+      MenuDataStore.instance.categoryDataMap;
 
   void _addToCart(Map<String, dynamic> item) {
     int pVal = 0;
@@ -2193,7 +2190,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        item['priceText'] as String,
+                        item['priceText']?.toString() ??
+                            (item['price'] is int
+                                ? 'Rp ${(item['price'] as int).toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}'
+                                : item['price']?.toString() ?? 'Rp 0'),
                         style: GoogleFonts.workSans(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,

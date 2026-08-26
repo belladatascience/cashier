@@ -226,7 +226,6 @@ class UserDataStore {
     final data = getShiftDataForDate(date);
     final List<Map<String, dynamic>> pagiList =
         ((data['pagi'] as List<dynamic>?) ?? [])
-            .where((e) => isStaffWorking(e['status']))
             .map((e) => {
                   ...Map<String, dynamic>.from(e as Map),
                   'shiftName': 'Shift Pagi',
@@ -237,7 +236,6 @@ class UserDataStore {
 
     final List<Map<String, dynamic>> soreList =
         ((data['sore'] as List<dynamic>?) ?? [])
-            .where((e) => isStaffWorking(e['status']))
             .map((e) => {
                   ...Map<String, dynamic>.from(e as Map),
                   'shiftName': 'Shift Sore',

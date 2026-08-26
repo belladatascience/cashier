@@ -1,8 +1,8 @@
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/widgets/animated_cartoon_logo.dart';
-import 'package:cashier/halaman1/views/cashier_profile_screen.dart';
-import 'package:cashier/halaman1/views/login.dart';
+import 'package:cashier/halaman1/views/Profile/cashier_profile_screen.dart';
+import 'package:cashier/halaman1/views/Home/login.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 

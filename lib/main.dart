@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
-import 'package:cashier/halaman1/views/splash_screen.dart';
+import 'package:cashier/halaman1/views/Home/splash_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';

@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
-import 'package:cashier/halaman1/views/qris_payment_screen.dart';
+import 'package:cashier/halaman1/views/Home/Transaction/qris_payment_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 

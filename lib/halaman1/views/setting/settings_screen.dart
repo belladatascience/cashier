@@ -1,15 +1,15 @@
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
-import 'package:cashier/halaman1/views/about_app_screen.dart';
-import 'package:cashier/halaman1/views/appearance_settings_screen.dart';
-import 'package:cashier/halaman1/views/change_password_screen.dart';
-import 'package:cashier/halaman1/views/edit_personal_info_screen.dart';
-import 'package:cashier/halaman1/views/help_center_screen.dart';
-import 'package:cashier/halaman1/views/language_screen.dart';
-import 'package:cashier/halaman1/views/notification_settings_screen.dart';
-import 'package:cashier/halaman1/views/privacy_policy_screen.dart';
-import 'package:cashier/halaman1/views/security_settings_screen.dart';
+import 'package:cashier/halaman1/views/setting/about_app_screen.dart';
+import 'package:cashier/halaman1/views/setting/appearance_settings_screen.dart';
+import 'package:cashier/halaman1/views/setting/change_password_screen.dart';
+import 'package:cashier/halaman1/views/setting/edit_personal_info_screen.dart';
+import 'package:cashier/halaman1/views/setting/help_center_screen.dart';
+import 'package:cashier/halaman1/views/setting/language_screen.dart';
+import 'package:cashier/halaman1/views/setting/notification_settings_screen.dart';
+import 'package:cashier/halaman1/views/setting/privacy_policy_screen.dart';
+import 'package:cashier/halaman1/views/setting/security_settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 

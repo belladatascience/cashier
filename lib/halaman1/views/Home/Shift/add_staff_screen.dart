@@ -526,12 +526,12 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
                   child: Text('Pagi (07:00 - 15:00)'),
                 ),
                 DropdownMenuItem(
-                  value: 'sore',
-                  child: Text('Sore (14:30 - 22:30)'),
-                ),
-                DropdownMenuItem(
                   value: 'middle',
                   child: Text('Middle (11:00 - 19:00)'),
+                ),
+                DropdownMenuItem(
+                  value: 'sore',
+                  child: Text('Sore (14:30 - 22:30)'),
                 ),
               ],
               onChanged: (val) => setState(() => _selectedShift = val),

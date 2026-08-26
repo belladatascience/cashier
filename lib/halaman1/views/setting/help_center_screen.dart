@@ -1,8 +1,8 @@
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
-import 'package:cashier/halaman1/views/contact_support_screen.dart';
-import 'package:cashier/halaman1/views/live_chat_screen.dart';
+import 'package:cashier/halaman1/views/setting/contact_support_screen.dart';
+import 'package:cashier/halaman1/views/setting/live_chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:cashier/halaman1/utils/app_theme.dart';
-import 'package:cashier/halaman1/views/login.dart';
+import 'package:cashier/halaman1/views/Home/login.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';

@@ -1,6 +1,6 @@
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
-import 'package:cashier/halaman1/views/home_screen.dart';
+import 'package:cashier/halaman1/views/Home/Shop/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';

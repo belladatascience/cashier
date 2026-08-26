@@ -1,7 +1,7 @@
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
-import 'package:cashier/halaman1/views/add_staff_screen.dart';
+import 'package:cashier/halaman1/views/Home/Shift/add_staff_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -142,8 +142,8 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
     }
     final s = shiftVal.toString().toLowerCase();
     if (s == 'pagi') return '07:00 - 15:00 WIB';
-    if (s == 'sore') return '14:30 - 22:30 WIB';
     if (s == 'middle') return '11:00 - 19:00 WIB';
+    if (s == 'sore') return '14:30 - 22:30 WIB';
     if (!s.contains('wib')) return '$shiftVal WIB';
     return shiftVal.toString();
   }
@@ -628,9 +628,17 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
     final newStaff =
         await context.push(const AddStaffScreen()) as Map<String, dynamic>?;
     if (newStaff != null) {
+      int targetTab = _selectedShiftTab;
+      final s = newStaff['shiftTime']?.toString().toLowerCase() ?? '';
+      if (s == 'pagi') {
+        targetTab = 0;
+      } else if (s == 'sore' || s == 'middle') {
+        targetTab = 1;
+      }
+
       setState(() {
         UserDataStore.instance.addStaffToRoster(
-          _selectedShiftTab,
+          targetTab,
           newStaff,
           activeDate: _selectedDate,
         );
@@ -638,7 +646,9 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Staf ${newStaff['name']} berhasil ditambahkan!'),
+            content: Text(
+              'Staf ${newStaff['name']} berhasil ditambahkan ke ${targetTab == 0 ? "Shift Pagi" : "Shift Sore"}! 🎉',
+            ),
             backgroundColor: colorSecondary,
             behavior: SnackBarBehavior.floating,
           ),
