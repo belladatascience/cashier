@@ -5,12 +5,12 @@ import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/menu_data_store.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
-import 'package:cashier/halaman1/views/Profile/cashier_profile_screen.dart';
-import 'package:cashier/halaman1/views/Home/Transaction/checkout_screen.dart';
 import 'package:cashier/halaman1/views/Home/Discover/edit_menu_screen.dart';
-import 'package:cashier/halaman1/views/Home/login.dart';
-import 'package:cashier/halaman1/views/setting/settings_screen.dart';
 import 'package:cashier/halaman1/views/Home/Shift/staff_shift_screen.dart';
+import 'package:cashier/halaman1/views/Home/Transaction/checkout_screen.dart';
+import 'package:cashier/halaman1/views/Home/login.dart';
+import 'package:cashier/halaman1/views/Profile/cashier_profile_screen.dart';
+import 'package:cashier/halaman1/views/setting/settings_screen.dart';
 import 'package:cashier/halaman1/widgets/animated_cartoon_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -51,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260821-001',
       'date': '21 Aug 2026, 11:45',
-      'cashier': 'Bella Saputra',
+      'cashier': 'Bee',
       'method': 'Digital Wallet (QRIS)',
       'customer': 'Handky Chang',
       'items': [
@@ -66,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260821-002',
       'date': '21 Aug 2026, 10:15',
-      'cashier': 'Bella Saputra',
+      'cashier': 'Bee',
       'method': 'Digital Wallet (GoPay)',
       'customer': 'Siti Aminah',
       'items': [
@@ -81,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260820-001',
       'date': '20 Aug 2026, 16:30',
-      'cashier': 'Bella Saputra',
+      'cashier': 'Bee',
       'method': 'Cash in Store',
       'customer': 'Pelanggan Umum',
       'items': [
@@ -96,9 +96,9 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260819-001',
       'date': '19 Aug 2026, 15:20',
-      'cashier': 'Bella Saputra',
+      'cashier': 'Bee',
       'method': 'Digital Wallet (QRIS)',
-      'customer': 'Bella Saputra',
+      'customer': 'Bee',
       'items': [
         {'name': 'Signature Hot Chocolate', 'qty': 2, 'price': 38000},
         {'name': 'Berry Tart', 'qty': 2, 'price': 55000},
@@ -111,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260819-002',
       'date': '19 Aug 2026, 11:10',
-      'cashier': 'Bella Saputra',
+      'cashier': 'Bee',
       'method': 'Digital Wallet (GoPay)',
       'customer': 'Dewi Lestari',
       'items': [
@@ -126,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260819-003',
       'date': '19 Aug 2026, 09:45',
-      'cashier': 'Bella Saputra',
+      'cashier': 'Bee',
       'method': 'Cash in Store',
       'customer': 'Andi Wijaya',
       'items': [
@@ -141,7 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260818-001',
       'date': '18 Aug 2026, 14:15',
-      'cashier': 'Bella Saputra',
+      'cashier': 'Bee',
       'method': 'Digital Wallet (QRIS)',
       'customer': 'Handky Chang',
       'items': [
@@ -157,7 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260818-002',
       'date': '18 Aug 2026, 13:40',
-      'cashier': 'Bella Saputra',
+      'cashier': 'Bee',
       'method': 'Cash in Store',
       'customer': 'Pelanggan Umum',
       'items': [
@@ -173,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260818-003',
       'date': '18 Aug 2026, 11:20',
-      'cashier': 'Bella Saputra',
+      'cashier': 'Bee',
       'method': 'Digital Wallet (GoPay)',
       'customer': 'Budi Santoso',
       'items': [
@@ -188,7 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'id': '#INV-20260817-004',
       'date': '17 Aug 2026, 16:05',
-      'cashier': 'Bella Saputra',
+      'cashier': 'Bee',
       'method': 'Cash in Store',
       'customer': 'Siti Rahma',
       'items': [
