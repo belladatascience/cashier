@@ -3,8 +3,8 @@ import 'dart:typed_data';
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
-import 'package:cashier/halaman1/views/setting/edit_personal_info_screen.dart';
 import 'package:cashier/halaman1/views/Home/Shift/staff_shift_screen.dart';
+import 'package:cashier/halaman1/views/setting/edit_personal_info_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -556,7 +556,9 @@ class _CashierProfileScreenState extends State<CashierProfileScreen>
                             color: const Color(0xFFFEE2E2),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: const Color(0xFFEF4444).withValues(alpha: 0.4),
+                              color: const Color(
+                                0xFFEF4444,
+                              ).withValues(alpha: 0.4),
                             ),
                           ),
                           child: Row(
@@ -599,7 +601,10 @@ class _CashierProfileScreenState extends State<CashierProfileScreen>
                         ),
                         decoration: InputDecoration(
                           hintText: 'Contoh: Bambang Saputra',
-                          prefixIcon: Icon(Icons.person_outline, color: colorPrimary),
+                          prefixIcon: Icon(
+                            Icons.person_outline,
+                            color: colorPrimary,
+                          ),
                           filled: true,
                           fillColor: colorSurfaceContainerLow,
                           border: OutlineInputBorder(
@@ -628,7 +633,10 @@ class _CashierProfileScreenState extends State<CashierProfileScreen>
                         ),
                         decoration: InputDecoration(
                           hintText: 'Contoh: Barista',
-                          prefixIcon: Icon(Icons.badge_outlined, color: colorPrimary),
+                          prefixIcon: Icon(
+                            Icons.badge_outlined,
+                            color: colorPrimary,
+                          ),
                           filled: true,
                           fillColor: colorSurfaceContainerLow,
                           border: OutlineInputBorder(
@@ -665,7 +673,9 @@ class _CashierProfileScreenState extends State<CashierProfileScreen>
                                 border: Border.all(
                                   color: isSelected
                                       ? colorPrimary
-                                      : colorOutlineVariant.withValues(alpha: 0.5),
+                                      : colorOutlineVariant.withValues(
+                                          alpha: 0.5,
+                                        ),
                                 ),
                               ),
                               child: Text(
@@ -675,7 +685,9 @@ class _CashierProfileScreenState extends State<CashierProfileScreen>
                                   fontWeight: isSelected
                                       ? FontWeight.bold
                                       : FontWeight.normal,
-                                  color: isSelected ? Colors.white : colorPrimary,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : colorPrimary,
                                 ),
                               ),
                             ),
@@ -2016,11 +2028,22 @@ class _CashierProfileScreenState extends State<CashierProfileScreen>
                   height: 48,
                   child: ElevatedButton(
                     onPressed: () {
+                      final newEmail = emailController.text.trim();
+                      final newPhone = phoneController.text.trim();
+                      final newNik = nikController.text.trim();
+
                       setState(() {
-                        _email = emailController.text.trim();
-                        _phone = phoneController.text.trim();
-                        _nik = nikController.text.trim();
+                        _email = newEmail;
+                        _phone = newPhone;
+                        _nik = newNik;
                       });
+
+                      UserDataStore.instance.updateUserData({
+                        'email': newEmail,
+                        'phone': newPhone,
+                        'cashierId': newNik,
+                      });
+
                       Navigator.pop(ctx);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -2369,7 +2392,8 @@ class _CashierProfileScreenState extends State<CashierProfileScreen>
           ValueListenableBuilder<Map<String, dynamic>>(
             valueListenable: UserDataStore.instance.userDataNotifier,
             builder: (context, userData, _) {
-              final store = userData['storeName'] ??
+              final store =
+                  userData['storeName'] ??
                   (widget.storeName.isNotEmpty
                       ? widget.storeName
                       : 'Kingdom Cafe');
@@ -2388,10 +2412,7 @@ class _CashierProfileScreenState extends State<CashierProfileScreen>
           if (_cafeStaffList.isEmpty)
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(
-                vertical: 24,
-                horizontal: 16,
-              ),
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
               decoration: BoxDecoration(
                 color: colorSurfaceContainerLow,
                 borderRadius: BorderRadius.circular(14),
@@ -2508,7 +2529,9 @@ class _CashierProfileScreenState extends State<CashierProfileScreen>
                             color: const Color(0xFFFEE2E2),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+                              color: const Color(
+                                0xFFEF4444,
+                              ).withValues(alpha: 0.3),
                             ),
                           ),
                           child: Row(

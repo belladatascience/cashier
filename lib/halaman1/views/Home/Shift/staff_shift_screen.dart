@@ -1,4 +1,6 @@
 import 'package:cashier/extension/navigator.dart';
+import 'package:cashier/halaman1/database/database_helper.dart';
+import 'package:cashier/halaman1/models/store_model.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:cashier/halaman1/views/Home/Shift/add_staff_screen.dart';
@@ -64,8 +66,10 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedDate = DateTime(2026, 8, 24);
-    _focusedMonth = DateTime(2026, 8, 1);
+    final now = DateTime.now();
+    _selectedDate = now;
+    _focusedMonth = DateTime(now.year, now.month, 1);
+    UserDataStore.instance.reloadShiftsForDate(now);
   }
 
   int _getDaysInMonth(DateTime monthDate) {
@@ -456,17 +460,29 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                           Expanded(
                             flex: 2,
                             child: ElevatedButton(
-                              onPressed: () {
+                              onPressed: () async {
                                 if (formKey.currentState!.validate()) {
                                   final storeName = nameC.text.trim();
                                   final location = locationC.text.trim();
 
-                                  UserDataStore.instance.updateUserData({
+                                  try {
+                                    await DataBaseHelper().insertStore(
+                                      StoreModel(
+                                        name: storeName,
+                                        location: location,
+                                        defaultShift: 'Pagi',
+                                      ),
+                                    );
+                                  } catch (_) {}
+
+                                  await UserDataStore.instance.updateUserData({
                                     'storeName': storeName,
                                     'location': location,
                                   });
 
-                                  Navigator.pop(context);
+                                  if (context.mounted) {
+                                    Navigator.pop(context);
+                                  }
 
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
@@ -642,6 +658,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
           newStaff,
           activeDate: _selectedDate,
         );
+        UserDataStore.instance.addCafeStaff(newStaff);
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

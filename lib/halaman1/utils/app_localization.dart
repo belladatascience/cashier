@@ -9,8 +9,9 @@ class AppLocalization {
 
   static const String keyLanguage = 'app_language_code';
 
-  final ValueNotifier<String> currentLanguageNotifier =
-      ValueNotifier<String>('en');
+  final ValueNotifier<String> currentLanguageNotifier = ValueNotifier<String>(
+    'en',
+  );
 
   String get currentCode => currentLanguageNotifier.value;
 
@@ -41,7 +42,9 @@ class AppLocalization {
     final lower = codeOrName.toLowerCase();
     if (lower.contains('indonesia') || lower == 'id') {
       code = 'id';
-    } else if (lower.contains('mandarin') || lower.contains('中文') || lower == 'zh') {
+    } else if (lower.contains('mandarin') ||
+        lower.contains('中文') ||
+        lower == 'zh') {
       code = 'zh';
     } else {
       code = 'en';
@@ -67,28 +70,16 @@ class AppLocalization {
 
   static const Map<String, Map<String, String>> _translations = {
     // Navigation & Common
-    'back': {
-      'en': 'Back',
-      'id': 'Kembali',
-      'zh': '返回',
-    },
+    'back': {'en': 'Back', 'id': 'Kembali', 'zh': '返回'},
     'save_changes': {
       'en': 'Save Changes',
       'id': 'Simpan Perubahan',
       'zh': '保存更改',
     },
-    'saved': {
-      'en': 'Saved',
-      'id': 'Tersimpan',
-      'zh': '已保存',
-    },
+    'saved': {'en': 'Saved', 'id': 'Tersimpan', 'zh': '已保存'},
 
     // Login Screen
-    'cashier_title': {
-      'en': 'CASHIER',
-      'id': 'KASIR',
-      'zh': '收银系统',
-    },
+    'cashier_title': {'en': 'CASHIER', 'id': 'KASIR', 'zh': '收银系统'},
     'cashier_id_label': {
       'en': 'Cashier ID / Email',
       'id': 'ID Kasir / Email',
@@ -99,21 +90,13 @@ class AppLocalization {
       'id': 'Masukkan ID atau email Anda',
       'zh': '请输入您的 ID 或邮箱',
     },
-    'password_label': {
-      'en': 'Password',
-      'id': 'Kata Sandi',
-      'zh': '密码',
-    },
+    'password_label': {'en': 'Password', 'id': 'Kata Sandi', 'zh': '密码'},
     'forgot_password': {
       'en': 'Forgot Password?',
       'id': 'Lupa Kata Sandi?',
       'zh': '忘记密码？',
     },
-    'login_button': {
-      'en': 'Sign In',
-      'id': 'Masuk',
-      'zh': '登录',
-    },
+    'login_button': {'en': 'Sign In', 'id': 'Masuk', 'zh': '登录'},
     'no_account': {
       'en': "Don't have an account? ",
       'id': 'Belum punya akun? ',
@@ -136,21 +119,9 @@ class AppLocalization {
       'id': 'Buat akun kasir baru BGA Co.',
       'zh': '创建 BGA Co. 新收银员账号',
     },
-    'full_name': {
-      'en': 'Full Name',
-      'id': 'Nama Lengkap',
-      'zh': '姓名',
-    },
-    'phone_number': {
-      'en': 'Phone Number',
-      'id': 'Nomor HP',
-      'zh': '手机号码',
-    },
-    'city': {
-      'en': 'City',
-      'id': 'Asal Kota',
-      'zh': '城市',
-    },
+    'full_name': {'en': 'Full Name', 'id': 'Nama Lengkap', 'zh': '姓名'},
+    'phone_number': {'en': 'Phone Number', 'id': 'Nomor HP', 'zh': '手机号码'},
+    'city': {'en': 'City', 'id': 'Asal Kota', 'zh': '城市'},
     'confirm_password': {
       'en': 'Confirm Password',
       'id': 'Konfirmasi Kata Sandi',
@@ -166,23 +137,11 @@ class AppLocalization {
       'id': 'Sudah punya akun? ',
       'zh': '已有账号？ ',
     },
-    'login_now': {
-      'en': 'Sign In Now',
-      'id': 'Masuk Sekarang',
-      'zh': '立即登录',
-    },
+    'login_now': {'en': 'Sign In Now', 'id': 'Masuk Sekarang', 'zh': '立即登录'},
 
     // Settings Screen
-    'settings_title': {
-      'en': 'Settings',
-      'id': 'Pengaturan',
-      'zh': '设置',
-    },
-    'account_section': {
-      'en': 'ACCOUNT',
-      'id': 'AKUN',
-      'zh': '账户',
-    },
+    'settings_title': {'en': 'Settings', 'id': 'Pengaturan', 'zh': '设置'},
+    'account_section': {'en': 'ACCOUNT', 'id': 'AKUN', 'zh': '账户'},
     'edit_personal_info': {
       'en': 'Edit Personal Info',
       'id': 'Edit Informasi Pribadi',
@@ -193,51 +152,23 @@ class AppLocalization {
       'id': 'Ubah Kata Sandi',
       'zh': '修改密码',
     },
-    'security': {
-      'en': 'Security',
-      'id': 'Keamanan',
-      'zh': '安全',
-    },
+    'security': {'en': 'Security', 'id': 'Keamanan', 'zh': '安全'},
     'preferences_section': {
       'en': 'PREFERENCES',
       'id': 'PREFERENSI',
       'zh': '偏好设置',
     },
-    'language': {
-      'en': 'Language',
-      'id': 'Bahasa',
-      'zh': '语言',
-    },
-    'notifications': {
-      'en': 'Notifications',
-      'id': 'Notifikasi',
-      'zh': '通知',
-    },
-    'appearance': {
-      'en': 'Appearance',
-      'id': 'Tampilan',
-      'zh': '外观',
-    },
-    'support_section': {
-      'en': 'SUPPORT',
-      'id': 'DUKUNGAN',
-      'zh': '支持',
-    },
-    'help_center': {
-      'en': 'Help Center',
-      'id': 'Pusat Bantuan',
-      'zh': '帮助中心',
-    },
+    'language': {'en': 'Language', 'id': 'Bahasa', 'zh': '语言'},
+    'notifications': {'en': 'Notifications', 'id': 'Notifikasi', 'zh': '通知'},
+    'appearance': {'en': 'Appearance', 'id': 'Tampilan', 'zh': '外观'},
+    'support_section': {'en': 'SUPPORT', 'id': 'DUKUNGAN', 'zh': '支持'},
+    'help_center': {'en': 'Help Center', 'id': 'Pusat Bantuan', 'zh': '帮助中心'},
     'privacy_policy': {
       'en': 'Privacy Policy',
       'id': 'Kebijakan Privasi',
       'zh': '隐私政策',
     },
-    'about_app': {
-      'en': 'About App',
-      'id': 'Tentang Aplikasi',
-      'zh': '关于应用',
-    },
+    'about_app': {'en': 'About App', 'id': 'Tentang Aplikasi', 'zh': '关于应用'},
 
     // Edit Personal Info Screen
     'edit_info_title': {
@@ -245,21 +176,9 @@ class AppLocalization {
       'id': 'Edit Informasi Pribadi',
       'zh': '编辑个人信息',
     },
-    'change_photo': {
-      'en': 'Change Photo',
-      'id': 'Ubah Foto',
-      'zh': '更换照片',
-    },
-    'cashier_id_field': {
-      'en': 'Cashier ID',
-      'id': 'ID Kasir',
-      'zh': '收银员 ID',
-    },
-    'position_field': {
-      'en': 'Position',
-      'id': 'Jabatan',
-      'zh': '职位',
-    },
+    'change_photo': {'en': 'Change Photo', 'id': 'Ubah Foto', 'zh': '更换照片'},
+    'cashier_id_field': {'en': 'Cashier ID', 'id': 'ID Kasir', 'zh': '收银员 ID'},
+    'position_field': {'en': 'Position', 'id': 'Jabatan', 'zh': '职位'},
     'location_field': {
       'en': 'Store Location',
       'id': 'Lokasi Toko',
@@ -273,8 +192,10 @@ class AppLocalization {
       'zh': '修改密码',
     },
     'change_password_desc': {
-      'en': 'Please enter your current password and choose a new one. Your new password must meet the security requirements below.',
-      'id': 'Silakan masukkan kata sandi Anda saat ini dan pilih kata sandi baru. Kata sandi baru Anda harus memenuhi persyaratan keamanan di bawah ini.',
+      'en':
+          'Please enter your current password and choose a new one. Your new password must meet the security requirements below.',
+      'id':
+          'Silakan masukkan kata sandi Anda saat ini dan pilih kata sandi baru. Kata sandi baru Anda harus memenuhi persyaratan keamanan di bawah ini.',
       'zh': '请输入您当前的密码并选择新密码。您的新密码必须满足以下安全要求。',
     },
     'current_password': {
@@ -364,26 +285,16 @@ class AppLocalization {
       'id': 'Kelola perangkat yang tidak memerlukan 2FA.',
       'zh': '管理不需要 2FA 验证的设备。',
     },
-    'status_label': {
-      'en': 'Status',
-      'id': 'Status',
-      'zh': '状态',
-    },
-    'status_on': {
-      'en': 'On',
-      'id': 'Aktif',
-      'zh': '开启',
-    },
-    'status_off': {
-      'en': 'Off',
-      'id': 'Nonaktif',
-      'zh': '关闭',
-    },
+    'status_label': {'en': 'Status', 'id': 'Status', 'zh': '状态'},
+    'status_on': {'en': 'On', 'id': 'Aktif', 'zh': '开启'},
+    'status_off': {'en': 'Off', 'id': 'Nonaktif', 'zh': '关闭'},
 
     // Language Screen
     'language_subtitle': {
-      'en': 'Select your preferred language for the app interface and content. This will not affect the language of user-generated reviews.',
-      'id': 'Pilih bahasa pilihan Anda untuk antarmuka dan konten aplikasi. Ini tidak akan memengaruhi bahasa ulasan pengguna.',
+      'en':
+          'Select your preferred language for the app interface and content. This will not affect the language of user-generated reviews.',
+      'id':
+          'Pilih bahasa pilihan Anda untuk antarmuka dan konten aplikasi. Ini tidak akan memengaruhi bahasa ulasan pengguna.',
       'zh': '选择您偏好的应用界面和内容语言。这不会影响用户生成的评价语言。',
     },
 
@@ -398,11 +309,7 @@ class AppLocalization {
       'id': 'NOTIFIKASI PESANAN',
       'zh': '订单通知',
     },
-    'item_new_orders': {
-      'en': 'New Orders',
-      'id': 'Pesanan Baru',
-      'zh': '新订单',
-    },
+    'item_new_orders': {'en': 'New Orders', 'id': 'Pesanan Baru', 'zh': '新订单'},
     'item_order_cancellations': {
       'en': 'Order Cancellations',
       'id': 'Pembatalan Pesanan',
@@ -433,11 +340,7 @@ class AppLocalization {
       'id': 'Pengumuman Staf',
       'zh': '员工公告',
     },
-    'sec_system': {
-      'en': 'SYSTEM',
-      'id': 'SISTEM',
-      'zh': '系统',
-    },
+    'sec_system': {'en': 'SYSTEM', 'id': 'SISTEM', 'zh': '系统'},
     'item_security_alerts': {
       'en': 'Security Alerts',
       'id': 'Peringatan Keamanan',
@@ -496,8 +399,10 @@ class AppLocalization {
       'zh': '如何更换班次？',
     },
     'faq_1_a': {
-      'en': "To change shifts, open the Schedule menu, select the shift you want to change, then tap 'Request Shift Change'. Wait for approval from your manager.",
-      'id': "Untuk mengganti shift, buka menu Jadwal, pilih shift yang ingin Anda ganti, lalu ketuk opsi 'Ajukan Penggantian Shift'. Tunggu persetujuan dari manajer Anda.",
+      'en':
+          "To change shifts, open the Schedule menu, select the shift you want to change, then tap 'Request Shift Change'. Wait for approval from your manager.",
+      'id':
+          "Untuk mengganti shift, buka menu Jadwal, pilih shift yang ingin Anda ganti, lalu ketuk opsi 'Ajukan Penggantian Shift'. Tunggu persetujuan dari manajer Anda.",
       'zh': "要更换班次，请打开“日程”菜单，选择您要更换的班次，然后点击“申请更换班次”。等待经理解批。",
     },
     'faq_2_q': {
@@ -506,8 +411,10 @@ class AppLocalization {
       'zh': '为什么小票打印机无法打印？',
     },
     'faq_2_a': {
-      'en': 'Make sure the printer is connected to the same Wi-Fi network as your cashier device. Also check if receipt paper is still available and the printer cover is securely closed.',
-      'id': 'Pastikan printer terhubung ke jaringan Wi-Fi yang sama dengan perangkat kasir Anda. Periksa juga apakah kertas struk masih tersedia dan tutup printer tertutup rapat.',
+      'en':
+          'Make sure the printer is connected to the same Wi-Fi network as your cashier device. Also check if receipt paper is still available and the printer cover is securely closed.',
+      'id':
+          'Pastikan printer terhubung ke jaringan Wi-Fi yang sama dengan perangkat kasir Anda. Periksa juga apakah kertas struk masih tersedia dan tutup printer tertutup rapat.',
       'zh': '请确保打印机已连接到与收银设备相同的 Wi-Fi 网络。还要检查热敏纸是否充足，以及打印机盖是否已盖紧。',
     },
     'faq_3_q': {
@@ -516,8 +423,10 @@ class AppLocalization {
       'zh': '如何查看交易历史记录？',
     },
     'faq_3_a': {
-      'en': "Open the 'History' tab on the main menu. You can filter transactions by date, payment status, or cashier name.",
-      'id': "Buka tab 'Riwayat' pada menu utama. Anda dapat memfilter transaksi berdasarkan tanggal, status pembayaran, atau nama kasir.",
+      'en':
+          "Open the 'History' tab on the main menu. You can filter transactions by date, payment status, or cashier name.",
+      'id':
+          "Buka tab 'Riwayat' pada menu utama. Anda dapat memfilter transaksi berdasarkan tanggal, status pembayaran, atau nama kasir.",
       'zh': "在主菜单上打开“历史记录”选项卡。您可以按日期、支付状态或收银员姓名筛选交易。",
     },
     'need_more_help': {
@@ -530,38 +439,14 @@ class AppLocalization {
       'id': 'Hubungi Support',
       'zh': '联系支持',
     },
-    'live_chat': {
-      'en': 'Live Chat',
-      'id': 'Chat Langsung',
-      'zh': '在线客服',
-    },
+    'live_chat': {'en': 'Live Chat', 'id': 'Chat Langsung', 'zh': '在线客服'},
 
     // Appearance Settings Screen
-    'appearance_title': {
-      'en': 'Appearance',
-      'id': 'Tampilan',
-      'zh': '外观设置',
-    },
-    'sec_theme_mode': {
-      'en': 'THEME MODE',
-      'id': 'MODE TEMA',
-      'zh': '主题模式',
-    },
-    'theme_light': {
-      'en': 'Light Mode',
-      'id': 'Mode Terang',
-      'zh': '浅色模式',
-    },
-    'theme_dark': {
-      'en': 'Dark Mode',
-      'id': 'Mode Gelap',
-      'zh': '深色模式',
-    },
-    'theme_system': {
-      'en': 'System',
-      'id': 'Sistem',
-      'zh': '系统默认',
-    },
+    'appearance_title': {'en': 'Appearance', 'id': 'Tampilan', 'zh': '外观设置'},
+    'sec_theme_mode': {'en': 'THEME MODE', 'id': 'MODE TEMA', 'zh': '主题模式'},
+    'theme_light': {'en': 'Light Mode', 'id': 'Mode Terang', 'zh': '浅色模式'},
+    'theme_dark': {'en': 'Dark Mode', 'id': 'Mode Gelap', 'zh': '深色模式'},
+    'theme_system': {'en': 'System', 'id': 'Sistem', 'zh': '系统默认'},
     'follow_device': {
       'en': 'Follow device',
       'id': 'Ikuti perangkat',
@@ -592,26 +477,10 @@ class AppLocalization {
       'id': 'Kurangi animasi dan efek latar belakang.',
       'zh': '减少动画和背景效果。',
     },
-    'sec_text_size': {
-      'en': 'TEXT SIZE',
-      'id': 'UKURAN TEKS',
-      'zh': '字体大小',
-    },
-    'size_small': {
-      'en': 'Small',
-      'id': 'Kecil',
-      'zh': '小',
-    },
-    'size_default': {
-      'en': 'Default',
-      'id': 'Default',
-      'zh': '默认',
-    },
-    'size_large': {
-      'en': 'Large',
-      'id': 'Besar',
-      'zh': '大',
-    },
+    'sec_text_size': {'en': 'TEXT SIZE', 'id': 'UKURAN TEKS', 'zh': '字体大小'},
+    'size_small': {'en': 'Small', 'id': 'Kecil', 'zh': '小'},
+    'size_default': {'en': 'Default', 'id': 'Default', 'zh': '默认'},
+    'size_large': {'en': 'Large', 'id': 'Besar', 'zh': '大'},
     'sec_color_palette': {
       'en': 'COLOR PALETTE PRESET',
       'id': 'PALET WARNA TEMA',
@@ -658,7 +527,8 @@ class AppLocalization {
       'zh': '深夜黑曜石、电光靛蓝与暖金',
     },
     'preview_quote': {
-      'en': '"The hearth is the heart of the home, warming both hands and spirit."',
+      'en':
+          '"The hearth is the heart of the home, warming both hands and spirit."',
       'id': '"Tungku adalah jantung rumah, menghangatkan tangan dan jiwa."',
       'zh': '“炉膛是家的心脏，温暖双手与心灵。”',
     },

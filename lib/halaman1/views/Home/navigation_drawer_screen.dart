@@ -1,8 +1,8 @@
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
-import 'package:cashier/halaman1/widgets/animated_cartoon_logo.dart';
-import 'package:cashier/halaman1/views/Profile/cashier_profile_screen.dart';
 import 'package:cashier/halaman1/views/Home/login.dart';
+import 'package:cashier/halaman1/views/Profile/cashier_profile_screen.dart';
+import 'package:cashier/halaman1/widgets/animated_cartoon_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -113,79 +113,173 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
               // Left Navigation Drawer Component
               drawer: Drawer(
                 width: 320,
-        backgroundColor: colorSurfaceContainerLowest,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.horizontal(right: Radius.circular(24)),
-        ),
-        child: Column(
-          children: [
-            // Header Card Section
-            Padding(
-              padding: const EdgeInsets.only(
-                left: 24,
-                right: 24,
-                top: 40,
-                bottom: 16,
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: colorSurfaceContainerLow,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: colorOutlineVariant.withValues(alpha: 0.3),
-                    width: 1,
+                backgroundColor: colorSurfaceContainerLowest,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.horizontal(
+                    right: Radius.circular(24),
                   ),
                 ),
-                padding: const EdgeInsets.all(20.0),
-                child: Stack(
+                child: Column(
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.storeName.isNotEmpty
-                              ? widget.storeName
-                              : 'Bella Cafe',
-                          style: GoogleFonts.sourceSerif4(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w600,
-                            color: colorOnSurfaceVariant,
+                    // Header Card Section
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        left: 24,
+                        right: 24,
+                        top: 40,
+                        bottom: 16,
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: colorSurfaceContainerLow,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: colorOutlineVariant.withValues(alpha: 0.3),
+                            width: 1,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.storeLocation.isNotEmpty
-                              ? widget.storeLocation
-                              : 'Jakarta',
-                          style: GoogleFonts.literata(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: colorOutline,
-                          ),
+                        padding: const EdgeInsets.all(20.0),
+                        child: Stack(
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.storeName.isNotEmpty
+                                      ? widget.storeName
+                                      : 'Bella Cafe',
+                                  style: GoogleFonts.sourceSerif4(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w600,
+                                    color: colorOnSurfaceVariant,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  widget.storeLocation.isNotEmpty
+                                      ? widget.storeLocation
+                                      : 'Jakarta',
+                                  style: GoogleFonts.literata(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: colorOutline,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Shift: ${widget.shift.isNotEmpty ? widget.shift : 'Pagi'}',
+                                  style: GoogleFonts.literata(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: colorOnSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: InkWell(
+                                onTap: () {},
+                                borderRadius: BorderRadius.circular(20),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: Icon(
+                                    Icons.edit_outlined,
+                                    size: 20,
+                                    color: colorOutline,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Shift: ${widget.shift.isNotEmpty ? widget.shift : 'Pagi'}',
-                          style: GoogleFonts.literata(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: colorOnSurfaceVariant,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                    Positioned(
-                      top: 0,
-                      right: 0,
+
+                    // Animated Cartoon Logo Banner Section
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24.0,
+                        vertical: 4.0,
+                      ),
+                      child: const AnimatedCartoonLogo(
+                        height: 120,
+                        borderRadius: 12,
+                        showEditButton: false,
+                      ),
+                    ),
+
+                    const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 24.0,
+                        vertical: 8.0,
+                      ),
+                      child: Divider(color: Color(0x33D4C3BE), height: 1),
+                    ),
+
+                    // Navigation Links Section
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        children: [
+                          _buildDrawerNavItem(
+                            icon: Icons.person_outline,
+                            title: 'Profile',
+                            onTap: () {
+                              Navigator.pop(context);
+                              context.push(const CashierProfileScreen());
+                            },
+                          ),
+                          _buildDrawerNavItem(
+                            icon: Icons.calendar_today_outlined,
+                            title: 'Shift',
+                            onTap: () {},
+                          ),
+                          _buildDrawerNavItem(
+                            icon: Icons.settings_outlined,
+                            title: 'Setting',
+                            onTap: () {},
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Logout Section at Bottom
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
                       child: InkWell(
-                        onTap: () {},
-                        borderRadius: BorderRadius.circular(20),
-                        child: Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: Icon(
-                            Icons.edit_outlined,
-                            size: 20,
-                            color: colorOutline,
+                        onTap: _handleLogout,
+                        borderRadius: BorderRadius.circular(12),
+                        hoverColor: colorErrorContainer.withValues(alpha: 0.5),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.logout, size: 22, color: colorError),
+                              const SizedBox(width: 16),
+                              Text(
+                                'Logout',
+                                style: GoogleFonts.literata(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: colorError,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -193,220 +287,136 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
                   ],
                 ),
               ),
-            ),
 
-            // Animated Cartoon Logo Banner Section
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24.0,
-                vertical: 4.0,
-              ),
-              child: const AnimatedCartoonLogo(
-                height: 120,
-                borderRadius: 12,
-                showEditButton: false,
-              ),
-            ),
-
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-              child: Divider(color: Color(0x33D4C3BE), height: 1),
-            ),
-
-            // Navigation Links Section
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+              // Main Dashboard View (Behind Scrim)
+              appBar: AppBar(
+                backgroundColor: colorBackground,
+                elevation: 0,
+                leading: IconButton(
+                  icon: Icon(Icons.menu, color: colorPrimary, size: 28),
+                  onPressed: () {
+                    _scaffoldKey.currentState?.openDrawer();
+                  },
                 ),
-                children: [
-                  _buildDrawerNavItem(
-                    icon: Icons.person_outline,
-                    title: 'Profile',
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push(const CashierProfileScreen());
-                    },
-                  ),
-                  _buildDrawerNavItem(
-                    icon: Icons.calendar_today_outlined,
-                    title: 'Shift',
-                    onTap: () {},
-                  ),
-                  _buildDrawerNavItem(
-                    icon: Icons.settings_outlined,
-                    title: 'Setting',
-                    onTap: () {},
-                  ),
-                ],
-              ),
-            ),
-
-            // Logout Section at Bottom
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: InkWell(
-                onTap: _handleLogout,
-                borderRadius: BorderRadius.circular(12),
-                hoverColor: colorErrorContainer.withValues(alpha: 0.5),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.logout, size: 22, color: colorError),
-                      const SizedBox(width: 16),
-                      Text(
-                        'Logout',
-                        style: GoogleFonts.literata(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: colorError,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ],
+                title: Text(
+                  'Discover',
+                  style: GoogleFonts.sourceSerif4(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: colorPrimary,
                   ),
                 ),
-              ),
-            ),
-          ],
-        ),
-      ),
-
-      // Main Dashboard View (Behind Scrim)
-      appBar: AppBar(
-        backgroundColor: colorBackground,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.menu, color: colorPrimary, size: 28),
-          onPressed: () {
-            _scaffoldKey.currentState?.openDrawer();
-          },
-        ),
-        title: Text(
-          'Discover',
-          style: GoogleFonts.sourceSerif4(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: colorPrimary,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.search, color: colorOnSurfaceVariant),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: Icon(
-              Icons.notifications_none,
-              color: colorOnSurfaceVariant,
-            ),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Welcome Card Banner
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: colorSurfaceContainerLow,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: colorOutline.withValues(alpha: 0.1)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Selamat Datang, Kasir!',
-                    style: GoogleFonts.sourceSerif4(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: colorPrimary,
-                    ),
+                actions: [
+                  IconButton(
+                    icon: Icon(Icons.search, color: colorOnSurfaceVariant),
+                    onPressed: () {},
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Toko: ${widget.storeName.isNotEmpty ? widget.storeName : 'Bella Cafe'} (${widget.storeLocation.isNotEmpty ? widget.storeLocation : 'Jakarta'})',
-                    style: GoogleFonts.oswald(
-                      fontSize: 16,
+                  IconButton(
+                    icon: Icon(
+                      Icons.notifications_none,
                       color: colorOnSurfaceVariant,
                     ),
+                    onPressed: () {},
                   ),
-                  Text(
-                    'Shift Aktif: ${widget.shift.isNotEmpty ? widget.shift : 'Pagi'}',
-                    style: GoogleFonts.oswald(
-                      fontSize: 16,
-                      color: colorPrimary,
-                      fontWeight: FontWeight.w500,
+                  const SizedBox(width: 8),
+                ],
+              ),
+
+              body: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Welcome Card Banner
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: colorSurfaceContainerLow,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: colorOutline.withValues(alpha: 0.1),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Selamat Datang, Kasir!',
+                            style: GoogleFonts.sourceSerif4(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: colorPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Toko: ${widget.storeName.isNotEmpty ? widget.storeName : 'Bella Cafe'} (${widget.storeLocation.isNotEmpty ? widget.storeLocation : 'Jakarta'})',
+                            style: GoogleFonts.oswald(
+                              fontSize: 16,
+                              color: colorOnSurfaceVariant,
+                            ),
+                          ),
+                          Text(
+                            'Shift Aktif: ${widget.shift.isNotEmpty ? widget.shift : 'Pagi'}',
+                            style: GoogleFonts.oswald(
+                              fontSize: 16,
+                              color: colorPrimary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-            Text(
-              'Menu Kasir & Statistik',
-              style: GoogleFonts.sourceSerif4(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: colorPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
+                    Text(
+                      'Menu Kasir & Statistik',
+                      style: GoogleFonts.sourceSerif4(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: colorPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
 
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                children: [
-                  _buildDashboardCard(
-                    icon: Icons.point_of_sale,
-                    title: 'POS Kasir',
-                    color: const Color(0xFF7D562D),
-                  ),
-                  _buildDashboardCard(
-                    icon: Icons.receipt_long,
-                    title: 'Transaksi',
-                    color: const Color(0xFF45492D),
-                  ),
-                  _buildDashboardCard(
-                    icon: Icons.inventory_2_outlined,
-                    title: 'Stok Produk',
-                    color: const Color(0xFF5D4037),
-                  ),
-                  _buildDashboardCard(
-                    icon: Icons.bar_chart,
-                    title: 'Laporan Shift',
-                    color: const Color(0xFF303030),
-                  ),
-                ],
+                    Expanded(
+                      child: GridView.count(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        children: [
+                          _buildDashboardCard(
+                            icon: Icons.point_of_sale,
+                            title: 'POS Kasir',
+                            color: const Color(0xFF7D562D),
+                          ),
+                          _buildDashboardCard(
+                            icon: Icons.receipt_long,
+                            title: 'Transaksi',
+                            color: const Color(0xFF45492D),
+                          ),
+                          _buildDashboardCard(
+                            icon: Icons.inventory_2_outlined,
+                            title: 'Stok Produk',
+                            color: const Color(0xFF5D4037),
+                          ),
+                          _buildDashboardCard(
+                            icon: Icons.bar_chart,
+                            title: 'Laporan Shift',
+                            color: const Color(0xFF303030),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
+            );
+          },
+        );
+      },
     );
-  },
-);
-  },
-);
   }
 
   Widget _buildDrawerNavItem({

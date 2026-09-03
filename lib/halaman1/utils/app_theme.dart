@@ -13,12 +13,14 @@ class AppTheme {
   static const String _themePaletteKey = 'app_theme_palette';
 
   // ValueNotifier holding current theme mode string: 'light', 'dark', 'system'
-  final ValueNotifier<String> themeModeNotifier =
-      ValueNotifier<String>('light');
+  final ValueNotifier<String> themeModeNotifier = ValueNotifier<String>(
+    'light',
+  );
 
   // ValueNotifier holding current color palette string: 'coffee', 'emerald', 'berry', 'obsidian'
-  final ValueNotifier<String> themePaletteNotifier =
-      ValueNotifier<String>('coffee');
+  final ValueNotifier<String> themePaletteNotifier = ValueNotifier<String>(
+    'coffee',
+  );
 
   // ValueNotifier holding font scaling factor: 0.85 (Small), 1.0 (Default), 1.18 (Large)
   final ValueNotifier<double> textScaleNotifier = ValueNotifier<double>(1.0);
@@ -276,4 +278,3 @@ class AppTheme {
     return dark ? const Color(0x33FFFFFF) : const Color(0x1F000000);
   }
 }
-

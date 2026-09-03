@@ -1,5 +1,8 @@
 import 'package:cashier/extension/navigator.dart';
+import 'package:cashier/halaman1/database/database_helper.dart';
+import 'package:cashier/halaman1/models/store_model.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:cashier/halaman1/views/Home/Shop/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -98,36 +101,33 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
                         child: Image.asset(
                           'assets/images/cartoon_logo.jpg',
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              Image.asset(
-                                'assets/images/logobellacashier.png',
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    CircleAvatar(
-                                      backgroundColor: colorPrimary,
-                                      child: const Icon(
-                                        Icons.storefront,
-                                        size: 60,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                              ),
+                          errorBuilder: (context, error, stackTrace) {
+                            return Image.asset(
+                              'assets/images/logo.png',
+                              fit: BoxFit.cover,
+                            );
+                          },
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
 
+                    // App Title
                     Text(
-                      'BGA Co. / Bee Cafe',
+                      'BGA Co. Cashier',
+                      textAlign: TextAlign.center,
                       style: GoogleFonts.sourceSerif4(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: colorPrimary,
+                        letterSpacing: -0.5,
                       ),
                     ),
                     const SizedBox(height: 6),
+
+                    // Store Subtitle
                     Text(
-                      '$name • $location\nShift $shift',
+                      '$name - $location ($shift)',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.workSans(
                         fontSize: 14,
@@ -137,36 +137,36 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
                     ),
                     const SizedBox(height: 24),
 
-                    // 3-Second Loading Animation & Progress Bar
+                    // Modern Spinner with Countdown Timer
                     TweenAnimationBuilder<double>(
-                      tween: Tween<double>(begin: 0.0, end: 1.0),
+                      tween: Tween(begin: 3.0, end: 0.0),
                       duration: const Duration(seconds: 3),
                       builder: (context, value, child) {
-                        final remainingSeconds = (3 * (1.0 - value)).ceil();
+                        final remainingSeconds = value.ceil();
                         return Column(
                           children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: LinearProgressIndicator(
-                                value: value,
-                                minHeight: 8,
-                                backgroundColor: colorSurfaceContainerLow,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  colorPrimary,
-                                ),
+                            LinearProgressIndicator(
+                              value: (3.0 - value) / 3.0,
+                              backgroundColor: colorOutlineVariant.withValues(
+                                alpha: 0.3,
                               ),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                colorSecondary,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                              minHeight: 6,
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 16),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 SizedBox(
-                                  width: 16,
-                                  height: 16,
+                                  width: 18,
+                                  height: 18,
                                   child: CircularProgressIndicator(
-                                    strokeWidth: 2,
+                                    strokeWidth: 2.5,
                                     valueColor: AlwaysStoppedAnimation<Color>(
-                                      colorSecondary,
+                                      colorPrimary,
                                     ),
                                   ),
                                 ),
@@ -204,7 +204,7 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
     }
   }
 
-  void _handleSubmit() {
+  void _handleSubmit() async {
     final name = storeNameC.text.trim();
     final location = storeLocationC.text.trim();
     final shift = selectedShift;
@@ -223,11 +223,18 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
       return;
     }
 
-    _showAppLogoSplashAndNavigate(
-      name: name,
-      location: location,
-      shift: shift,
-    );
+    try {
+      await DataBaseHelper().insertStore(
+        StoreModel(name: name, location: location, defaultShift: shift),
+      );
+      await UserDataStore.instance.updateUserData({
+        'storeName': name,
+        'location': location,
+        'shift': shift,
+      });
+    } catch (_) {}
+
+    _showAppLogoSplashAndNavigate(name: name, location: location, shift: shift);
   }
 
   @override
@@ -327,203 +334,203 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
                         ),
                         const SizedBox(height: 16),
 
-                          // Nama Toko Field
-                          Text(
-                            'Nama Toko',
-                            style: GoogleFonts.workSans(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: colorPrimary,
-                              letterSpacing: 0.7,
-                            ),
+                        // Nama Toko Field
+                        Text(
+                          'Nama Toko',
+                          style: GoogleFonts.workSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: colorPrimary,
+                            letterSpacing: 0.7,
                           ),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: storeNameC,
-                            style: GoogleFonts.workSans(
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: storeNameC,
+                          style: GoogleFonts.workSans(
+                            fontSize: 16,
+                            color: colorOnSurface,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Cafe',
+                            hintStyle: GoogleFonts.workSans(
+                              color: colorOutlineVariant,
                               fontSize: 16,
-                              color: colorOnSurface,
                             ),
-                            decoration: InputDecoration(
-                              hintText: 'Cafe',
-                              hintStyle: GoogleFonts.workSans(
+                            filled: true,
+                            fillColor: colorSurfaceContainerLow,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                              horizontal: 14,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
                                 color: colorOutlineVariant,
-                                fontSize: 16,
+                                width: 1,
                               ),
-                              filled: true,
-                              fillColor: colorSurfaceContainerLow,
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 14,
-                                horizontal: 14,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(
-                                  color: colorOutlineVariant,
-                                  width: 1,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(
-                                  color: colorPrimary,
-                                  width: 1.5,
-                                ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: colorPrimary,
+                                width: 1.5,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                        ),
+                        const SizedBox(height: 16),
 
-                          // Lokasi Toko Field
-                          Text(
-                            'Lokasi Toko',
-                            style: GoogleFonts.workSans(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: colorPrimary,
-                              letterSpacing: 0.7,
-                            ),
+                        // Lokasi Toko Field
+                        Text(
+                          'Lokasi Toko',
+                          style: GoogleFonts.workSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: colorPrimary,
+                            letterSpacing: 0.7,
                           ),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: storeLocationC,
-                            style: GoogleFonts.workSans(
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: storeLocationC,
+                          style: GoogleFonts.workSans(
+                            fontSize: 16,
+                            color: colorOnSurface,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Jakarta',
+                            hintStyle: GoogleFonts.workSans(
+                              color: colorOutlineVariant,
                               fontSize: 16,
-                              color: colorOnSurface,
                             ),
-                            decoration: InputDecoration(
-                              hintText: 'Jakarta',
-                              hintStyle: GoogleFonts.workSans(
+                            filled: true,
+                            fillColor: colorSurfaceContainerLow,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                              horizontal: 14,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
                                 color: colorOutlineVariant,
-                                fontSize: 16,
+                                width: 1,
                               ),
-                              filled: true,
-                              fillColor: colorSurfaceContainerLow,
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 14,
-                                horizontal: 14,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(
-                                  color: colorOutlineVariant,
-                                  width: 1,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(
-                                  color: colorPrimary,
-                                  width: 1.5,
-                                ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: colorPrimary,
+                                width: 1.5,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                        ),
+                        const SizedBox(height: 16),
 
-                          // Shift Dropdown Field
-                          Text(
-                            'Shift',
-                            style: GoogleFonts.workSans(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: colorPrimary,
-                              letterSpacing: 0.7,
-                            ),
+                        // Shift Dropdown Field
+                        Text(
+                          'Shift',
+                          style: GoogleFonts.workSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: colorPrimary,
+                            letterSpacing: 0.7,
                           ),
-                          const SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
-                            initialValue: selectedShift,
-                            hint: Text(
-                              'Pilih shift',
-                              style: GoogleFonts.workSans(
-                                color: colorOutlineVariant,
-                                fontSize: 16,
-                              ),
-                            ),
+                        ),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          initialValue: selectedShift,
+                          hint: Text(
+                            'Pilih shift',
                             style: GoogleFonts.workSans(
+                              color: colorOutlineVariant,
                               fontSize: 16,
-                              color: colorOnSurface,
                             ),
-                            icon: Icon(
-                              Icons.arrow_drop_down,
-                              color: colorPrimary,
-                            ),
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: colorSurfaceContainerLow,
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 14,
-                                horizontal: 14,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(
-                                  color: colorOutlineVariant,
-                                  width: 1,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(
-                                  color: colorPrimary,
-                                  width: 1.5,
-                                ),
-                              ),
-                            ),
-                            items: ['Pagi', 'Siang', 'Malam'].map((shift) {
-                              return DropdownMenuItem<String>(
-                                value: shift,
-                                child: Text(
-                                  shift,
-                                  style: GoogleFonts.workSans(
-                                    color: colorOnSurface,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                selectedShift = value;
-                              });
-                            },
                           ),
-                          const SizedBox(height: 24),
-
-                          // Submit Button "Kirim"
-                          SizedBox(
-                            width: double.infinity,
-                            height: 52,
-                            child: ElevatedButton(
-                              onPressed: _handleSubmit,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: colorPrimary,
-                                foregroundColor: colorOnPrimary,
-                                elevation: 2,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
+                          style: GoogleFonts.workSans(
+                            fontSize: 16,
+                            color: colorOnSurface,
+                          ),
+                          icon: Icon(
+                            Icons.arrow_drop_down,
+                            color: colorPrimary,
+                          ),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: colorSurfaceContainerLow,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                              horizontal: 14,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: colorOutlineVariant,
+                                width: 1,
                               ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: colorPrimary,
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                          items: ['Pagi', 'Siang', 'Malam'].map((shift) {
+                            return DropdownMenuItem<String>(
+                              value: shift,
                               child: Text(
-                                'Kirim',
+                                shift,
                                 style: GoogleFonts.workSans(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.7,
-                                  color: colorOnPrimary,
+                                  color: colorOnSurface,
                                 ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              selectedShift = value;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Submit Button "Kirim"
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: _handleSubmit,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: colorPrimary,
+                              foregroundColor: colorOnPrimary,
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: Text(
+                              'Kirim',
+                              style: GoogleFonts.workSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.7,
+                                color: colorOnPrimary,
                               ),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
             ),
-          );
-        },
-      );
-    }
+          ),
+        );
+      },
+    );
   }
+}

@@ -7,12 +7,17 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:video_player_win/video_player_win.dart';
 
+import 'package:cashier/halaman1/utils/menu_data_store.dart';
+import 'package:cashier/halaman1/utils/user_data_store.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (!kIsWeb && Platform.isWindows) {
     WindowsVideoPlayer.registerWith();
   }
   await initializeDateFormatting("id_ID", null);
+  await MenuDataStore.instance.initFromDatabase();
+  await UserDataStore.instance.initFromDatabase();
   runApp(const MyApp());
 }
 

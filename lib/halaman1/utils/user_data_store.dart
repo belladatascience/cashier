@@ -1,173 +1,47 @@
+import 'dart:typed_data';
+
+import 'package:cashier/halaman1/database/database_helper.dart';
+import 'package:cashier/halaman1/models/shift_model.dart';
+import 'package:cashier/halaman1/models/staff_model.dart';
+import 'package:cashier/halaman1/models/user_login.dart';
 import 'package:flutter/material.dart';
 
 class UserDataStore {
   static final UserDataStore instance = UserDataStore._internal();
   UserDataStore._internal();
 
+  bool _isInitialized = false;
+
   final ValueNotifier<Map<String, dynamic>> userDataNotifier = ValueNotifier({
-    // Profile Akun Data (Edited in EditPersonalInfoScreen)
+    // Profile Akun Data
     'accountName': 'Bella Gita Asmara',
     'email': 'bella.gita@bgaco.com',
     'cashierId': 'BG188889',
     'phone': '087888848000',
     'accountRole': 'Senior Barista',
 
-    // Profile Kasir Data (Edited in Profile screen via Edit Profil Kasir modal)
-    'cashierName': 'Bella Saputra',
+    // Profile Kasir Data
+    'cashierName': 'Bella Gita Asmara',
     'cashierRole': 'Senior Barista',
-    'location': 'BGA Co. - Central Perk',
+    'location': 'Jakarta',
     'storeName': 'Bella Cafe',
     'shift': 'Pagi',
     'startDate': DateTime(2024, 1, 15),
     'avatarBytes': null,
+    'userId': 1,
   });
 
-  // Persistent Shift Roster Pagi Notifier
   final ValueNotifier<List<Map<String, dynamic>>> shiftRosterPagiNotifier =
-      ValueNotifier<List<Map<String, dynamic>>>([
-    {
-      'name': 'Siti Aminah',
-      'role': 'Head Barista',
-      'shiftTime': '07:00 - 15:00',
-      'status': 'Hadir',
-      'time': 'In: 06:45',
-      'imageUrl':
-          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
-      'initials': 'SA',
-    },
-    {
-      'name': 'Budi Santoso',
-      'role': 'Pâtissier',
-      'shiftTime': '07:00 - 15:00',
-      'status': 'Hadir',
-      'time': 'In: 06:50',
-      'imageUrl':
-          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
-      'initials': 'BS',
-    },
-    {
-      'name': 'Rizky Pratama',
-      'role': 'Kasir',
-      'shiftTime': '07:00 - 15:00',
-      'status': 'Istirahat',
-      'time': '12:00 - 13:00',
-      'imageUrl':
-          'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
-      'initials': 'RP',
-    },
-    {
-      'name': 'Dewi Lestari',
-      'role': 'Pelayan',
-      'shiftTime': '07:00 - 15:00',
-      'status': 'Hadir',
-      'time': 'In: 06:55',
-      'imageUrl': null,
-      'initials': 'DW',
-    },
-    {
-      'name': 'Ahmad Fadil',
-      'role': 'Pelayan',
-      'shiftTime': '07:00 - 15:00',
-      'status': 'Belum Hadir',
-      'time': '-',
-      'imageUrl':
-          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=300&q=80',
-      'initials': 'AF',
-    },
-  ]);
+      ValueNotifier<List<Map<String, dynamic>>>([]);
 
-  // Persistent Shift Roster Sore Notifier
   final ValueNotifier<List<Map<String, dynamic>>> shiftRosterSoreNotifier =
-      ValueNotifier<List<Map<String, dynamic>>>([
-    {
-      'name': 'Andi Wijaya',
-      'role': 'Kasir Utama',
-      'shiftTime': '15:00 - 23:00',
-      'status': 'Hadir',
-      'time': 'In: 14:50',
-      'imageUrl': null,
-      'initials': 'AW',
-    },
-    {
-      'name': 'Maya Indah',
-      'role': 'Runner',
-      'shiftTime': '15:00 - 23:00',
-      'status': 'Hadir',
-      'time': 'In: 14:55',
-      'imageUrl': null,
-      'initials': 'MI',
-    },
-    {
-      'name': 'Doni Setiawan',
-      'role': 'Barista',
-      'shiftTime': '15:00 - 23:00',
-      'status': 'Belum Hadir',
-      'time': '-',
-      'imageUrl': null,
-      'initials': 'DS',
-    },
-  ]);
+      ValueNotifier<List<Map<String, dynamic>>>([]);
 
-  // Persistent Cafe Staff List (Used in Profile screen)
   final ValueNotifier<List<Map<String, dynamic>>> cafeStaffListNotifier =
-      ValueNotifier<List<Map<String, dynamic>>>([
-    {
-      'name': 'Siti Aminah',
-      'role': 'Head Barista',
-      'status': 'Hadir (Pagi)',
-      'time': 'In: 06:45',
-      'avatarUrl':
-          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
-      'initials': 'SA',
-      'badgeColor': const Color(0xFFDCFCE7),
-      'textColor': const Color(0xFF166534),
-    },
-    {
-      'name': 'Budi Santoso',
-      'role': 'Pâtissier',
-      'status': 'Hadir (Pagi)',
-      'time': 'In: 06:50',
-      'avatarUrl':
-          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
-      'initials': 'BS',
-      'badgeColor': const Color(0xFFDCFCE7),
-      'textColor': const Color(0xFF166534),
-    },
-    {
-      'name': 'Rizky Pratama',
-      'role': 'Kasir',
-      'status': 'Istirahat',
-      'time': '12:00 - 13:00',
-      'avatarUrl':
-          'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
-      'initials': 'RP',
-      'badgeColor': const Color(0xFFFFEDD5),
-      'textColor': const Color(0xFFC2410C),
-    },
-    {
-      'name': 'Dewi Lestari',
-      'role': 'Pelayan',
-      'status': 'Shift Sore',
-      'time': '15:00 - 23:00',
-      'avatarUrl': null,
-      'initials': 'DW',
-      'badgeColor': const Color(0xFFE0F2FE),
-      'textColor': const Color(0xFF0369A1),
-    },
-    {
-      'name': 'Andi Wijaya',
-      'role': 'Barista Assistant',
-      'status': 'Libur',
-      'time': 'Off Duty',
-      'avatarUrl': null,
-      'initials': 'AW',
-      'badgeColor': const Color(0xFFF3F4F6),
-      'textColor': const Color(0xFF4B5563),
-    },
-  ]);
+      ValueNotifier<List<Map<String, dynamic>>>([]);
 
-  // Persistent Shift Calendar History (mapped by date key YYYY-MM-DD)
-  final ValueNotifier<Map<String, Map<String, dynamic>>> shiftCalendarHistoryNotifier =
+  final ValueNotifier<Map<String, Map<String, dynamic>>>
+  shiftCalendarHistoryNotifier =
       ValueNotifier<Map<String, Map<String, dynamic>>>({});
 
   List<Map<String, dynamic>> get shiftRosterPagi =>
@@ -176,16 +50,6 @@ class UserDataStore {
       shiftRosterSoreNotifier.value;
   List<Map<String, dynamic>> get cafeStaffList => cafeStaffListNotifier.value;
 
-  static bool isStaffWorking(dynamic status) {
-    if (status == null) return false;
-    final s = status.toString().trim().toLowerCase();
-    return s == 'hadir' ||
-        s == 'on duty' ||
-        s == 'istirahat' ||
-        s == 'active' ||
-        s == 'masuk';
-  }
-
   String formatDateKey(DateTime date) {
     final y = date.year.toString();
     final m = date.month.toString().padLeft(2, '0');
@@ -193,20 +57,76 @@ class UserDataStore {
     return '$y-$m-$d';
   }
 
-  bool hasRecordedShiftOnDate(DateTime date) {
-    return getStaffWhoWorkedOnDate(date).isNotEmpty;
+  Future<void> initFromDatabase() async {
+    if (_isInitialized) return;
+    await reloadUserData();
+    await reloadStaffList();
+    await reloadShiftsForDate(DateTime.now());
+    _isInitialized = true;
   }
 
-  Map<String, dynamic> getShiftDataForDate(DateTime date) {
-    final key = formatDateKey(date);
-    if (shiftCalendarHistoryNotifier.value.containsKey(key)) {
-      return shiftCalendarHistoryNotifier.value[key]!;
+  Future<void> reloadUserData() async {
+    try {
+      final session = await DataBaseHelper().getActiveSession();
+      if (session != null) {
+        final current = Map<String, dynamic>.from(userDataNotifier.value);
+        current['accountName'] = session['user_name'] ?? current['accountName'];
+        current['email'] = session['email'] ?? current['email'];
+        current['cashierId'] = session['cashier_id'] ?? current['cashierId'];
+        current['accountRole'] = session['role'] ?? current['accountRole'];
+        current['phone'] = session['phone'] ?? current['phone'];
+        current['cashierName'] = session['user_name'] ?? current['cashierName'];
+        current['cashierRole'] = session['role'] ?? current['cashierRole'];
+        current['storeName'] = session['store_name'] ?? current['storeName'];
+        current['location'] = session['store_location'] ?? current['location'];
+        current['shift'] = session['shift'] ?? current['shift'];
+        current['avatarBytes'] =
+            session['avatar_bytes'] ?? current['avatarBytes'];
+        current['userId'] = session['user_id'] ?? current['userId'];
+        userDataNotifier.value = current;
+      }
+    } catch (e) {
+      debugPrint('Error loading active session: $e');
     }
-    // Return active base template
-    return {
-      'pagi': List<Map<String, dynamic>>.from(shiftRosterPagiNotifier.value),
-      'sore': List<Map<String, dynamic>>.from(shiftRosterSoreNotifier.value),
-    };
+  }
+
+  Future<void> reloadStaffList() async {
+    try {
+      final staffList = await DataBaseHelper().getAllStaff();
+      final list = staffList.map((s) => s.toLegacyMap()).toList();
+      cafeStaffListNotifier.value = list;
+    } catch (e) {
+      debugPrint('Error loading staff list: $e');
+    }
+  }
+
+  Future<void> reloadShiftsForDate(DateTime date) async {
+    try {
+      final key = formatDateKey(date);
+      final shifts = await DataBaseHelper().getShiftsForDate(key);
+
+      final List<Map<String, dynamic>> pagi = [];
+      final List<Map<String, dynamic>> sore = [];
+
+      for (final s in shifts) {
+        if (s.shiftType.toLowerCase() == 'pagi') {
+          pagi.add(s.toLegacyMap());
+        } else {
+          sore.add(s.toLegacyMap());
+        }
+      }
+
+      shiftRosterPagiNotifier.value = pagi;
+      shiftRosterSoreNotifier.value = sore;
+
+      final history = Map<String, Map<String, dynamic>>.from(
+        shiftCalendarHistoryNotifier.value,
+      );
+      history[key] = {'pagi': pagi, 'sore': sore};
+      shiftCalendarHistoryNotifier.value = history;
+    } catch (e) {
+      debugPrint('Error loading shifts for date: $e');
+    }
   }
 
   List<Map<String, dynamic>> getRosterPagiForDate(DateTime date) {
@@ -219,29 +139,44 @@ class UserDataStore {
     return List<Map<String, dynamic>>.from(data['sore'] ?? []);
   }
 
+  Map<String, dynamic> getShiftDataForDate(DateTime date) {
+    final key = formatDateKey(date);
+    if (shiftCalendarHistoryNotifier.value.containsKey(key)) {
+      return shiftCalendarHistoryNotifier.value[key]!;
+    }
+    return {
+      'pagi': List<Map<String, dynamic>>.from(shiftRosterPagiNotifier.value),
+      'sore': List<Map<String, dynamic>>.from(shiftRosterSoreNotifier.value),
+    };
+  }
+
   List<Map<String, dynamic>> getStaffWhoWorkedOnDate(
     DateTime date, {
-    int shiftFilter = 0, // 0: Semua, 1: Shift Pagi, 2: Shift Sore
+    int shiftFilter = 0,
   }) {
     final data = getShiftDataForDate(date);
     final List<Map<String, dynamic>> pagiList =
         ((data['pagi'] as List<dynamic>?) ?? [])
-            .map((e) => {
-                  ...Map<String, dynamic>.from(e as Map),
-                  'shiftName': 'Shift Pagi',
-                  'shiftBadgeColor': const Color(0xFFDCFCE7),
-                  'shiftTextColor': const Color(0xFF166534),
-                })
+            .map(
+              (e) => {
+                ...Map<String, dynamic>.from(e as Map),
+                'shiftName': 'Shift Pagi',
+                'shiftBadgeColor': const Color(0xFFDCFCE7),
+                'shiftTextColor': const Color(0xFF166534),
+              },
+            )
             .toList();
 
     final List<Map<String, dynamic>> soreList =
         ((data['sore'] as List<dynamic>?) ?? [])
-            .map((e) => {
-                  ...Map<String, dynamic>.from(e as Map),
-                  'shiftName': 'Shift Sore',
-                  'shiftBadgeColor': const Color(0xFFE0F2FE),
-                  'shiftTextColor': const Color(0xFF0369A1),
-                })
+            .map(
+              (e) => {
+                ...Map<String, dynamic>.from(e as Map),
+                'shiftName': 'Shift Sore',
+                'shiftBadgeColor': const Color(0xFFE0F2FE),
+                'shiftTextColor': const Color(0xFF0369A1),
+              },
+            )
             .toList();
 
     if (shiftFilter == 1) {
@@ -253,125 +188,166 @@ class UserDataStore {
     }
   }
 
-  void syncActiveRosterToDate(DateTime date) {
+  bool hasRecordedShiftOnDate(DateTime date) {
     final key = formatDateKey(date);
-    final currentHistory =
-        Map<String, Map<String, dynamic>>.from(shiftCalendarHistoryNotifier.value);
-    currentHistory[key] = {
-      'pagi': List<Map<String, dynamic>>.from(shiftRosterPagiNotifier.value),
-      'sore': List<Map<String, dynamic>>.from(shiftRosterSoreNotifier.value),
-    };
-    shiftCalendarHistoryNotifier.value = currentHistory;
+    if (shiftCalendarHistoryNotifier.value.containsKey(key)) {
+      return true;
+    }
+    return getStaffWhoWorkedOnDate(date).isNotEmpty;
   }
 
-  void addStaffToRoster(
+  Future<void> syncActiveRosterToDate(DateTime date) async {
+    final key = formatDateKey(date);
+    for (final staff in shiftRosterPagi) {
+      final model = ShiftModel(
+        staffName: staff['name'] as String? ?? 'Staf Pagi',
+        role: staff['role'] as String? ?? 'Barista',
+        shiftType: 'Pagi',
+        dateKey: key,
+        status: staff['status'] as String? ?? 'Hadir',
+        checkInTime: staff['time'] as String? ?? 'In: 07:00',
+        storeName: userDataNotifier.value['storeName'] ?? 'Bella Cafe',
+        avatarUrl: staff['imageUrl'] as String?,
+        initials: staff['initials'] as String?,
+      );
+      await DataBaseHelper().insertShift(model);
+    }
+
+    for (final staff in shiftRosterSore) {
+      final model = ShiftModel(
+        staffName: staff['name'] as String? ?? 'Staf Sore',
+        role: staff['role'] as String? ?? 'Barista',
+        shiftType: 'Sore',
+        dateKey: key,
+        status: staff['status'] as String? ?? 'Hadir',
+        checkInTime: staff['time'] as String? ?? 'In: 15:00',
+        storeName: userDataNotifier.value['storeName'] ?? 'Bella Cafe',
+        avatarUrl: staff['imageUrl'] as String?,
+        initials: staff['initials'] as String?,
+      );
+      await DataBaseHelper().insertShift(model);
+    }
+
+    await reloadShiftsForDate(date);
+  }
+
+  static bool isStaffWorking(dynamic status) {
+    if (status == null) return false;
+    final s = status.toString().trim().toLowerCase();
+    return s == 'hadir' ||
+        s == 'on duty' ||
+        s == 'istirahat' ||
+        s == 'active' ||
+        s == 'masuk';
+  }
+
+  Future<void> addStaffToRoster(
     int shiftTab,
     Map<String, dynamic> staff, {
     DateTime? activeDate,
-  }) {
+  }) async {
     final targetDate = activeDate ?? DateTime.now();
-    final key = formatDateKey(targetDate);
-    final currentHistory =
-        Map<String, Map<String, dynamic>>.from(shiftCalendarHistoryNotifier.value);
-    final data = getShiftDataForDate(targetDate);
-    final pagiList = List<Map<String, dynamic>>.from(data['pagi'] ?? []);
-    final soreList = List<Map<String, dynamic>>.from(data['sore'] ?? []);
+    final dateKey = formatDateKey(targetDate);
+    final shiftType = shiftTab == 0 ? 'Pagi' : 'Sore';
 
-    if (shiftTab == 0) {
-      pagiList.add(staff);
-      shiftRosterPagiNotifier.value = pagiList;
-    } else {
-      soreList.add(staff);
-      shiftRosterSoreNotifier.value = soreList;
-    }
+    final model = ShiftModel(
+      staffName: staff['name'] as String? ?? 'Staf Baru',
+      role: staff['role'] as String? ?? 'Barista',
+      shiftType: shiftType,
+      dateKey: dateKey,
+      status: staff['status'] as String? ?? 'Hadir',
+      checkInTime:
+          staff['time'] as String? ??
+          (shiftTab == 0 ? 'In: 07:00' : 'In: 15:00'),
+      storeName: userDataNotifier.value['storeName'] ?? 'Bella Cafe',
+      avatarUrl: staff['imageUrl'] as String?,
+      initials: staff['initials'] as String?,
+    );
 
-    currentHistory[key] = {
-      'pagi': pagiList,
-      'sore': soreList,
-    };
-    shiftCalendarHistoryNotifier.value = currentHistory;
+    await DataBaseHelper().insertShift(model);
+    await reloadShiftsForDate(targetDate);
   }
 
-  void editStaffInRoster(
+  Future<void> editStaffInRoster(
     int shiftTab,
     int index,
     Map<String, dynamic> updatedStaff, {
     DateTime? activeDate,
-  }) {
+  }) async {
     final targetDate = activeDate ?? DateTime.now();
-    final key = formatDateKey(targetDate);
-    final currentHistory =
-        Map<String, Map<String, dynamic>>.from(shiftCalendarHistoryNotifier.value);
-    final data = getShiftDataForDate(targetDate);
-    final pagiList = List<Map<String, dynamic>>.from(data['pagi'] ?? []);
-    final soreList = List<Map<String, dynamic>>.from(data['sore'] ?? []);
+    final shiftType = shiftTab == 0 ? 'Pagi' : 'Sore';
+    final currentList = shiftTab == 0 ? shiftRosterPagi : shiftRosterSore;
 
-    if (shiftTab == 0) {
-      if (index >= 0 && index < pagiList.length) {
-        pagiList[index] = updatedStaff;
-        shiftRosterPagiNotifier.value = pagiList;
+    if (index >= 0 && index < currentList.length) {
+      final oldItem = currentList[index];
+      final shiftId = oldItem['id'] as int?;
+
+      final model = ShiftModel(
+        id: shiftId,
+        staffName: updatedStaff['name'] as String? ?? oldItem['name'],
+        role: updatedStaff['role'] as String? ?? oldItem['role'],
+        shiftType: shiftType,
+        dateKey: formatDateKey(targetDate),
+        status: updatedStaff['status'] as String? ?? oldItem['status'],
+        checkInTime: updatedStaff['time'] as String? ?? oldItem['time'],
+        storeName: userDataNotifier.value['storeName'] ?? 'Bella Cafe',
+        avatarUrl: updatedStaff['imageUrl'] as String?,
+        initials: updatedStaff['initials'] as String?,
+      );
+
+      if (shiftId != null) {
+        await DataBaseHelper().updateShift(model);
       }
-    } else {
-      if (index >= 0 && index < soreList.length) {
-        soreList[index] = updatedStaff;
-        shiftRosterSoreNotifier.value = soreList;
-      }
+      await reloadShiftsForDate(targetDate);
     }
-
-    currentHistory[key] = {
-      'pagi': pagiList,
-      'sore': soreList,
-    };
-    shiftCalendarHistoryNotifier.value = currentHistory;
   }
 
-  void deleteStaffFromRoster(
+  Future<void> deleteStaffFromRoster(
     int shiftTab,
     int index, {
     DateTime? activeDate,
-  }) {
+  }) async {
     final targetDate = activeDate ?? DateTime.now();
-    final key = formatDateKey(targetDate);
-    final currentHistory =
-        Map<String, Map<String, dynamic>>.from(shiftCalendarHistoryNotifier.value);
-    final data = getShiftDataForDate(targetDate);
-    final pagiList = List<Map<String, dynamic>>.from(data['pagi'] ?? []);
-    final soreList = List<Map<String, dynamic>>.from(data['sore'] ?? []);
+    final currentList = shiftTab == 0 ? shiftRosterPagi : shiftRosterSore;
 
-    if (shiftTab == 0) {
-      if (index >= 0 && index < pagiList.length) {
-        pagiList.removeAt(index);
-        shiftRosterPagiNotifier.value = pagiList;
+    if (index >= 0 && index < currentList.length) {
+      final item = currentList[index];
+      final shiftId = item['id'] as int?;
+      if (shiftId != null) {
+        await DataBaseHelper().deleteShift(shiftId);
       }
-    } else {
-      if (index >= 0 && index < soreList.length) {
-        soreList.removeAt(index);
-        shiftRosterSoreNotifier.value = soreList;
-      }
-    }
-
-    currentHistory[key] = {
-      'pagi': pagiList,
-      'sore': soreList,
-    };
-    shiftCalendarHistoryNotifier.value = currentHistory;
-  }
-
-  void addCafeStaff(Map<String, dynamic> staff) {
-    final list = List<Map<String, dynamic>>.from(cafeStaffListNotifier.value);
-    list.add(staff);
-    cafeStaffListNotifier.value = list;
-  }
-
-  void deleteCafeStaff(int index) {
-    final list = List<Map<String, dynamic>>.from(cafeStaffListNotifier.value);
-    if (index >= 0 && index < list.length) {
-      list.removeAt(index);
-      cafeStaffListNotifier.value = list;
+      await reloadShiftsForDate(targetDate);
     }
   }
 
-  void updateUserData(Map<String, dynamic> newData) {
+  Future<void> addCafeStaff(Map<String, dynamic> staff) async {
+    final model = StaffModel(
+      name: staff['name'] as String,
+      role: staff['role'] as String,
+      phone: staff['phone'] as String?,
+      email: staff['email'] as String?,
+      status: staff['status'] as String? ?? 'Hadir',
+      initials: staff['initials'] as String?,
+      avatarUrl: staff['avatarUrl'] as String?,
+      avatarBytes: staff['avatarBytes'] as Uint8List?,
+    );
+
+    await DataBaseHelper().insertStaff(model);
+    await reloadStaffList();
+  }
+
+  Future<void> deleteCafeStaff(int index) async {
+    if (index >= 0 && index < cafeStaffList.length) {
+      final staff = cafeStaffList[index];
+      final staffId = staff['id'] as int?;
+      if (staffId != null) {
+        await DataBaseHelper().deleteStaff(staffId);
+      }
+      await reloadStaffList();
+    }
+  }
+
+  Future<void> updateUserData(Map<String, dynamic> newData) async {
     final current = Map<String, dynamic>.from(userDataNotifier.value);
     newData.forEach((key, value) {
       if (value != null) {
@@ -379,6 +355,41 @@ class UserDataStore {
       }
     });
     userDataNotifier.value = current;
+
+    // Persist to active_session in SQLite
+    final sessionData = {
+      'user_id': current['userId'] ?? 1,
+      'user_name':
+          current['accountName'] ??
+          current['cashierName'] ??
+          'Bella Gita Asmara',
+      'email': current['email'] ?? 'bella.gita@bgaco.com',
+      'cashier_id': current['cashierId'] ?? 'BG188889',
+      'role':
+          current['accountRole'] ?? current['cashierRole'] ?? 'Senior Barista',
+      'store_name': current['storeName'] ?? 'Bella Cafe',
+      'store_location': current['location'] ?? 'Jakarta',
+      'shift': current['shift'] ?? 'Pagi',
+      'phone': current['phone'] ?? '087888848000',
+      'avatar_bytes': current['avatarBytes'] as Uint8List?,
+      'login_time': DateTime.now().toIso8601String(),
+    };
+
+    await DataBaseHelper().saveActiveSession(sessionData);
+
+    // Update users table in SQLite
+    if (current['userId'] != null) {
+      final userModel = UserModelSQL(
+        id: current['userId'] as int?,
+        email: current['email'] as String? ?? 'bella.gita@bgaco.com',
+        password: '123',
+        nama: current['accountName'] as String?,
+        nomor_hp: current['phone'] as String?,
+        cashierId: current['cashierId'] as String?,
+        role: current['accountRole'] as String?,
+        avatarBytes: current['avatarBytes'] as Uint8List?,
+      );
+      await DataBaseHelper().updateUser(userModel);
+    }
   }
 }
-

@@ -696,19 +696,29 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
             ),
             actions: [
               TextButton(
-                onPressed: () {
-                  final itemName = _currentItems[index]['name'];
+                onPressed: () async {
+                  final item = _currentItems[index];
+                  final itemName = item['name'];
+                  final itemId = item['id'] as int?;
+
                   setState(() {
                     _currentItems.removeAt(index);
                   });
+
+                  if (itemId != null) {
+                    await MenuDataStore.instance.deleteMenuItem(itemId);
+                  }
+
                   widget.onMenuUpdated?.call();
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Menu $itemName telah dihapus'),
-                      backgroundColor: const Color(0xFFBA1A1A),
-                    ),
-                  );
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Menu $itemName telah dihapus'),
+                        backgroundColor: const Color(0xFFBA1A1A),
+                      ),
+                    );
+                  }
                 },
                 child: Text(
                   'Hapus',
@@ -723,12 +733,19 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
                 ),
               ),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   final rawPrice = priceC.text.trim();
                   final priceDigits = rawPrice.replaceAll(RegExp(r'[^\d]'), '');
                   final parsedPrice = int.tryParse(priceDigits) ?? 25000;
                   final formattedPriceText =
                       'Rp ${parsedPrice.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}';
+
+                  final catName = _selectedTab < _categoryNames.length
+                      ? _categoryNames[_selectedTab]
+                      : 'Food';
+
+                  final item = _currentItems[index];
+                  final itemId = item['id'] as int?;
 
                   setState(() {
                     _currentItems[index]['name'] = nameC.text.trim();
@@ -736,15 +753,28 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
                     _currentItems[index]['priceText'] = formattedPriceText;
                     _currentItems[index]['desc'] = descC.text.trim();
                     _currentItems[index]['image'] = tempImage;
+                    _currentItems[index]['category'] = catName;
                   });
+
+                  if (itemId != null) {
+                    await MenuDataStore.instance.updateMenuItem(
+                      itemId,
+                      _currentItems[index],
+                    );
+                  }
+
                   widget.onMenuUpdated?.call();
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Menu ${nameC.text} berhasil diperbarui!'),
-                      backgroundColor: colorSecondary,
-                    ),
-                  );
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Menu ${nameC.text} berhasil diperbarui!',
+                        ),
+                        backgroundColor: colorSecondary,
+                      ),
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colorPrimary,

@@ -2,8 +2,9 @@ import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
-import 'package:cashier/halaman1/views/Home/register_screen.dart';
+import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:cashier/halaman1/views/Home/Shift/store_showcase_screen.dart';
+import 'package:cashier/halaman1/views/Home/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
@@ -173,7 +174,28 @@ class _cashierLogin1State extends State<cashierlogin1> {
           user == 'KASIR01') {
         final displayName =
             pengguna?.nama ??
-            (user == 'admin' ? 'Administrator' : 'Bella Gita');
+            (user == 'admin' ? 'Administrator' : 'Bella Gita Asmara');
+        final displayEmail =
+            pengguna?.email ??
+            (user == 'admin' ? 'admin@bgaco.com' : 'bella.gita@bgaco.com');
+        final displayCashierId =
+            pengguna?.cashierId ?? (user == 'admin' ? 'ADM-001' : 'BG188889');
+        final displayPhone = pengguna?.nomor_hp ?? '087888848000';
+        final displayRole =
+            pengguna?.role ??
+            (user == 'admin' ? 'Store Manager' : 'Senior Barista');
+
+        await UserDataStore.instance.updateUserData({
+          'userId': pengguna?.id ?? 1,
+          'accountName': displayName,
+          'cashierName': displayName,
+          'email': displayEmail,
+          'cashierId': displayCashierId,
+          'phone': displayPhone,
+          'accountRole': displayRole,
+          'cashierRole': displayRole,
+        });
+
         await _showSuccessAnimationAndNavigate(displayName);
       } else {
         _showSnackBar(
@@ -186,7 +208,7 @@ class _cashierLogin1State extends State<cashierlogin1> {
       setState(() {
         _isLoading = false;
       });
-      await _showSuccessAnimationAndNavigate('Bella Gita');
+      await _showSuccessAnimationAndNavigate('Bella Gita Asmara');
     }
   }
 

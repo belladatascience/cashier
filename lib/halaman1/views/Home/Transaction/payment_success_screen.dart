@@ -1,3 +1,5 @@
+import 'package:cashier/halaman1/database/database_helper.dart';
+import 'package:cashier/halaman1/models/transaction_model.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:flutter/material.dart';
@@ -58,6 +60,43 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
   void initState() {
     super.initState();
     _formattedTime = _getFormattedCurrentTime();
+    _saveTransactionToDatabase();
+  }
+
+  Future<void> _saveTransactionToDatabase() async {
+    try {
+      final activeStore =
+          UserDataStore.instance.userDataNotifier.value['storeName'] ??
+          'Bella Cafe';
+      final subtotal = (widget.totalAmount / 1.1).round();
+      final tax = widget.totalAmount - subtotal;
+
+      final txModel = TransactionModel(
+        invoiceNumber: widget.transactionId,
+        dateTime: _formattedTime,
+        cashierName: _activeCashierName,
+        paymentMethod: widget.paymentMethod,
+        customerName: widget.customerName,
+        subtotal: subtotal,
+        tax: tax,
+        total: widget.totalAmount,
+        status: 'LUNAS',
+        storeName: activeStore.toString(),
+        items: [
+          TransactionItemModel(
+            invoiceNumber: widget.transactionId,
+            menuName: 'Pesanan Kasir',
+            qty: 1,
+            price: subtotal,
+            subtotal: subtotal,
+          ),
+        ],
+      );
+
+      await DataBaseHelper().insertTransaction(txModel);
+    } catch (e) {
+      debugPrint('Error saving transaction in success screen: $e');
+    }
   }
 
   String _getFormattedCurrentTime() {

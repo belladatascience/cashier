@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
+
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -80,10 +81,7 @@ class _AnimatedCartoonLogoState extends State<AnimatedCartoonLogo>
 
   Widget _buildImageWidget() {
     if (widget.imageBytes != null) {
-      return Image.memory(
-        widget.imageBytes!,
-        fit: BoxFit.contain,
-      );
+      return Image.memory(widget.imageBytes!, fit: BoxFit.contain);
     } else if (widget.customUrl != null) {
       return Image.network(
         widget.customUrl!,
@@ -114,7 +112,11 @@ class _AnimatedCartoonLogoState extends State<AnimatedCartoonLogo>
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.point_of_sale, size: 48, color: AppTheme.instance.secondaryColor),
+        Icon(
+          Icons.point_of_sale,
+          size: 48,
+          color: AppTheme.instance.secondaryColor,
+        ),
         const SizedBox(height: 6),
         Text(
           'BGA Co. Cashier',
@@ -196,7 +198,10 @@ class _AnimatedCartoonLogoState extends State<AnimatedCartoonLogo>
 
                 // Animated Cartoon Logo Content (Floating & Pulsing)
                 AnimatedBuilder(
-                  animation: Listenable.merge([_floatController, _pulseController]),
+                  animation: Listenable.merge([
+                    _floatController,
+                    _pulseController,
+                  ]),
                   builder: (context, child) {
                     return Transform.translate(
                       offset: Offset(0, _floatAnimation.value),
@@ -217,7 +222,10 @@ class _AnimatedCartoonLogoState extends State<AnimatedCartoonLogo>
                   bottom: 6,
                   left: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: theme.secondaryColor,
                       borderRadius: BorderRadius.circular(10),
@@ -265,7 +273,10 @@ class _AnimatedCartoonLogoState extends State<AnimatedCartoonLogo>
               onTap: widget.onChangeRequested,
               borderRadius: BorderRadius.circular(20),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.65),
                   borderRadius: BorderRadius.circular(20),

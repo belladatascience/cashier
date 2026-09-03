@@ -3,11 +3,10 @@ import 'dart:typed_data';
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-
-import 'package:cashier/halaman1/utils/user_data_store.dart';
 
 class EditPersonalInfoScreen extends StatefulWidget {
   const EditPersonalInfoScreen({super.key});
@@ -55,9 +54,7 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
     emailC = TextEditingController(
       text: data['email'] ?? 'bella.gita@bgaco.com',
     );
-    cashierIdC = TextEditingController(
-      text: data['cashierId'] ?? 'BG188889',
-    );
+    cashierIdC = TextEditingController(text: data['cashierId'] ?? 'BG188889');
     phoneC = TextEditingController(text: data['phone'] ?? '087888848000');
     selectedPosition = data['accountRole'] ?? 'Senior Barista';
     selectedLocation = data['location'] ?? 'BGA Co. - Central Perk';

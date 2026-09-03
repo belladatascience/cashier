@@ -137,11 +137,15 @@ class _SplashScreenState extends State<SplashScreen>
     final value = controller.value;
     if (value.duration > const Duration(milliseconds: 300)) {
       final progress =
-          (value.position.inMilliseconds / value.duration.inMilliseconds)
-              .clamp(0.0, 1.0);
+          (value.position.inMilliseconds / value.duration.inMilliseconds).clamp(
+            0.0,
+            1.0,
+          );
 
-      final stepIndex =
-          (progress * (_loadingSteps.length - 1)).floor().clamp(0, _loadingSteps.length - 1);
+      final stepIndex = (progress * (_loadingSteps.length - 1)).floor().clamp(
+        0,
+        _loadingSteps.length - 1,
+      );
 
       setState(() {
         _currentProgress = progress;
@@ -483,7 +487,10 @@ class _SplashScreenState extends State<SplashScreen>
                                       child: Align(
                                         alignment: Alignment.centerLeft,
                                         child: FractionallySizedBox(
-                                          widthFactor: _currentProgress.clamp(0.0, 1.0),
+                                          widthFactor: _currentProgress.clamp(
+                                            0.0,
+                                            1.0,
+                                          ),
                                           child: Container(
                                             decoration: BoxDecoration(
                                               borderRadius:
@@ -635,7 +642,9 @@ class _SplashScreenState extends State<SplashScreen>
           alignment: Alignment.center,
           children: [
             // Video Player
-            if (_isVideoInitialized && controller != null && controller.value.isInitialized)
+            if (_isVideoInitialized &&
+                controller != null &&
+                controller.value.isInitialized)
               SizedBox.expand(
                 child: FittedBox(
                   fit: BoxFit.cover,

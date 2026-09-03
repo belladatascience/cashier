@@ -1,4 +1,6 @@
 import 'package:cashier/extension/navigator.dart';
+import 'package:cashier/halaman1/database/database_helper.dart';
+import 'package:cashier/halaman1/models/transaction_model.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
@@ -778,6 +780,46 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
         '#POS-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
     final changeAmount = cashGiven - _totalPayable;
 
+    final now = DateTime.now();
+    final dateStr =
+        '${now.day} Aug ${now.year}, ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final activeCashier =
+        UserDataStore.instance.userDataNotifier.value['cashierName'] ??
+        UserDataStore.instance.userDataNotifier.value['name'] ??
+        widget.cashierName;
+    final customerName = _customerNameController.text.trim().isEmpty
+        ? 'Pelanggan Umum'
+        : _customerNameController.text.trim();
+
+    final txModel = TransactionModel(
+      invoiceNumber: receiptNo,
+      dateTime: dateStr,
+      cashierName: activeCashier.toString(),
+      paymentMethod: _selectedPaymentMethod,
+      customerName: customerName,
+      tableNumber: _tableNumberController.text.trim().isNotEmpty
+          ? _tableNumberController.text.trim()
+          : '-',
+      subtotal: _cartSubtotal,
+      tax: _taxAmount,
+      total: _totalPayable,
+      status: 'LUNAS',
+      storeName: widget.storeName,
+      items: _cart
+          .map(
+            (c) => TransactionItemModel(
+              invoiceNumber: receiptNo,
+              menuName: c.product.name,
+              qty: c.quantity,
+              price: c.product.price,
+              subtotal: c.totalPrice,
+            ),
+          )
+          .toList(),
+    );
+
+    DataBaseHelper().insertTransaction(txModel);
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -868,8 +910,14 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
                             ),
                           ),
                           Text(
-                            UserDataStore.instance.userDataNotifier.value['cashierName'] ??
-                                UserDataStore.instance.userDataNotifier.value['name'] ??
+                            UserDataStore
+                                    .instance
+                                    .userDataNotifier
+                                    .value['cashierName'] ??
+                                UserDataStore
+                                    .instance
+                                    .userDataNotifier
+                                    .value['name'] ??
                                 widget.cashierName,
                             style: TextStyle(
                               fontSize: 12,

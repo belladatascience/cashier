@@ -251,11 +251,7 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
               ),
             ),
             if (isSelected)
-              Icon(
-                Icons.check_circle,
-                size: 22,
-                color: theme.secondaryColor,
-              )
+              Icon(Icons.check_circle, size: 22, color: theme.secondaryColor)
             else
               Icon(
                 Icons.radio_button_unchecked,
@@ -321,7 +317,9 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // Section 1: THEME MODE
-                              _buildSectionHeader(loc.getText('sec_theme_mode')),
+                              _buildSectionHeader(
+                                loc.getText('sec_theme_mode'),
+                              ),
                               Row(
                                 children: [
                                   _buildThemeCard(
@@ -354,7 +352,9 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                                     isSelected: activeThemeMode == 'system',
                                     onTap: () async {
                                       await theme.setThemeMode('system');
-                                      _showSnackBar(loc.getText('theme_system'));
+                                      _showSnackBar(
+                                        loc.getText('theme_system'),
+                                      );
                                     },
                                   ),
                                 ],
@@ -370,7 +370,9 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                                   _buildPaletteCard(
                                     paletteKey: 'coffee',
                                     title: loc.getText('palette_coffee_title'),
-                                    description: loc.getText('palette_coffee_desc'),
+                                    description: loc.getText(
+                                      'palette_coffee_desc',
+                                    ),
                                     swatchColors: const [
                                       Color(0xFF2C1A11),
                                       Color(0xFFD97706),
@@ -379,14 +381,18 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                                     isSelected: activePalette == 'coffee',
                                     onTap: () async {
                                       await theme.setThemePalette('coffee');
-                                      _showSnackBar(loc.getText('palette_coffee_title'));
+                                      _showSnackBar(
+                                        loc.getText('palette_coffee_title'),
+                                      );
                                     },
                                   ),
                                   const SizedBox(height: 10),
                                   _buildPaletteCard(
                                     paletteKey: 'emerald',
                                     title: loc.getText('palette_emerald_title'),
-                                    description: loc.getText('palette_emerald_desc'),
+                                    description: loc.getText(
+                                      'palette_emerald_desc',
+                                    ),
                                     swatchColors: const [
                                       Color(0xFF064E3B),
                                       Color(0xFF10B981),
@@ -395,14 +401,18 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                                     isSelected: activePalette == 'emerald',
                                     onTap: () async {
                                       await theme.setThemePalette('emerald');
-                                      _showSnackBar(loc.getText('palette_emerald_title'));
+                                      _showSnackBar(
+                                        loc.getText('palette_emerald_title'),
+                                      );
                                     },
                                   ),
                                   const SizedBox(height: 10),
                                   _buildPaletteCard(
                                     paletteKey: 'berry',
                                     title: loc.getText('palette_berry_title'),
-                                    description: loc.getText('palette_berry_desc'),
+                                    description: loc.getText(
+                                      'palette_berry_desc',
+                                    ),
                                     swatchColors: const [
                                       Color(0xFF4C1D95),
                                       Color(0xFFE11D48),
@@ -411,14 +421,20 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                                     isSelected: activePalette == 'berry',
                                     onTap: () async {
                                       await theme.setThemePalette('berry');
-                                      _showSnackBar(loc.getText('palette_berry_title'));
+                                      _showSnackBar(
+                                        loc.getText('palette_berry_title'),
+                                      );
                                     },
                                   ),
                                   const SizedBox(height: 10),
                                   _buildPaletteCard(
                                     paletteKey: 'obsidian',
-                                    title: loc.getText('palette_obsidian_title'),
-                                    description: loc.getText('palette_obsidian_desc'),
+                                    title: loc.getText(
+                                      'palette_obsidian_title',
+                                    ),
+                                    description: loc.getText(
+                                      'palette_obsidian_desc',
+                                    ),
                                     swatchColors: const [
                                       Color(0xFF0F172A),
                                       Color(0xFF6366F1),
@@ -427,284 +443,303 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                                     isSelected: activePalette == 'obsidian',
                                     onTap: () async {
                                       await theme.setThemePalette('obsidian');
-                                      _showSnackBar(loc.getText('palette_obsidian_title'));
+                                      _showSnackBar(
+                                        loc.getText('palette_obsidian_title'),
+                                      );
                                     },
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 36),
 
-                          // Section 2: VISUAL PREFERENCES
-                          _buildSectionHeader(loc.getText('sec_visual_pref')),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: theme.surfaceColor,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: theme.dividerColor,
-                                width: 1,
+                              // Section 2: VISUAL PREFERENCES
+                              _buildSectionHeader(
+                                loc.getText('sec_visual_pref'),
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.04),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: Column(
-                                children: [
-                                  // High Contrast Toggle
-                                  ListTile(
-                                    leading: Container(
-                                      width: 40,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        color: theme.surfaceContainerLow,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        Icons.contrast,
-                                        color: theme.primaryColor,
-                                        size: 20,
-                                      ),
-                                    ),
-                                    title: Text(
-                                      loc.getText('high_contrast_title'),
-                                      style: GoogleFonts.workSans(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600,
-                                        color: theme.primaryColor,
-                                      ),
-                                    ),
-                                    subtitle: Text(
-                                      loc.getText('high_contrast_desc'),
-                                      style: GoogleFonts.workSans(
-                                        fontSize: 13,
-                                        color: theme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                    trailing: Switch(
-                                      value: _highContrast,
-                                      activeTrackColor: theme.secondaryColor
-                                          .withValues(alpha: 0.3),
-                                      activeThumbColor: theme.secondaryColor,
-                                      inactiveThumbColor: Colors.white,
-                                      inactiveTrackColor: theme.surfaceVariant,
-                                      onChanged: (val) {
-                                        setState(() => _highContrast = val);
-                                        _showSnackBar(
-                                          '${loc.getText("high_contrast_title")}: ${val ? loc.getText("status_on") : loc.getText("status_off")}',
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  Divider(
-                                    height: 1,
-                                    thickness: 1,
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: theme.surfaceColor,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
                                     color: theme.dividerColor,
+                                    width: 1,
                                   ),
-                                  // Battery Saver Toggle
-                                  ListTile(
-                                    leading: Container(
-                                      width: 40,
-                                      height: 40,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.04,
+                                      ),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Column(
+                                    children: [
+                                      // High Contrast Toggle
+                                      ListTile(
+                                        leading: Container(
+                                          width: 40,
+                                          height: 40,
+                                          decoration: BoxDecoration(
+                                            color: theme.surfaceContainerLow,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            Icons.contrast,
+                                            color: theme.primaryColor,
+                                            size: 20,
+                                          ),
+                                        ),
+                                        title: Text(
+                                          loc.getText('high_contrast_title'),
+                                          style: GoogleFonts.workSans(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: theme.primaryColor,
+                                          ),
+                                        ),
+                                        subtitle: Text(
+                                          loc.getText('high_contrast_desc'),
+                                          style: GoogleFonts.workSans(
+                                            fontSize: 13,
+                                            color: theme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                        trailing: Switch(
+                                          value: _highContrast,
+                                          activeTrackColor: theme.secondaryColor
+                                              .withValues(alpha: 0.3),
+                                          activeThumbColor:
+                                              theme.secondaryColor,
+                                          inactiveThumbColor: Colors.white,
+                                          inactiveTrackColor:
+                                              theme.surfaceVariant,
+                                          onChanged: (val) {
+                                            setState(() => _highContrast = val);
+                                            _showSnackBar(
+                                              '${loc.getText("high_contrast_title")}: ${val ? loc.getText("status_on") : loc.getText("status_off")}',
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                      Divider(
+                                        height: 1,
+                                        thickness: 1,
+                                        color: theme.dividerColor,
+                                      ),
+                                      // Battery Saver Toggle
+                                      ListTile(
+                                        leading: Container(
+                                          width: 40,
+                                          height: 40,
+                                          decoration: BoxDecoration(
+                                            color: theme.surfaceContainerLow,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            Icons.battery_saver,
+                                            color: theme.primaryColor,
+                                            size: 20,
+                                          ),
+                                        ),
+                                        title: Text(
+                                          loc.getText('battery_saver_title'),
+                                          style: GoogleFonts.workSans(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: theme.primaryColor,
+                                          ),
+                                        ),
+                                        subtitle: Text(
+                                          loc.getText('battery_saver_desc'),
+                                          style: GoogleFonts.workSans(
+                                            fontSize: 13,
+                                            color: theme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                        trailing: Switch(
+                                          value: _batterySaver,
+                                          activeTrackColor: theme.secondaryColor
+                                              .withValues(alpha: 0.3),
+                                          activeThumbColor:
+                                              theme.secondaryColor,
+                                          inactiveThumbColor: Colors.white,
+                                          inactiveTrackColor:
+                                              theme.surfaceVariant,
+                                          onChanged: (val) {
+                                            setState(() => _batterySaver = val);
+                                            _showSnackBar(
+                                              '${loc.getText("battery_saver_title")}: ${val ? loc.getText("status_on") : loc.getText("status_off")}',
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 36),
+
+                              // Section 3: TEXT SIZE
+                              _buildSectionHeader(loc.getText('sec_text_size')),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: theme.surfaceColor,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: theme.dividerColor,
+                                    width: 1,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.04,
+                                      ),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                padding: const EdgeInsets.all(20),
+                                child: Column(
+                                  children: [
+                                    // Text Size A Markers
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'A',
+                                          style: GoogleFonts.workSans(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: theme.primaryColor,
+                                          ),
+                                        ),
+                                        Text(
+                                          'A',
+                                          style: GoogleFonts.sourceSerif4(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: theme.primaryColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+
+                                    // Slider
+                                    SliderTheme(
+                                      data: SliderTheme.of(context).copyWith(
+                                        activeTrackColor: theme.secondaryColor,
+                                        inactiveTrackColor:
+                                            theme.surfaceVariant,
+                                        thumbColor: theme.primaryColor,
+                                        overlayColor: theme.secondaryColor
+                                            .withValues(alpha: 0.2),
+                                        valueIndicatorShape:
+                                            const RectangularSliderValueIndicatorShape(),
+                                      ),
+                                      child: Slider(
+                                        value: _textSizeValue,
+                                        min: 0.0,
+                                        max: 2.0,
+                                        divisions: 2,
+                                        onChanged: (val) {
+                                          setState(() => _textSizeValue = val);
+                                          double targetScale = 1.0;
+                                          String sizeLabel = loc.getText(
+                                            'size_default',
+                                          );
+                                          if (val == 0.0) {
+                                            targetScale = 0.85;
+                                            sizeLabel = loc.getText(
+                                              'size_small',
+                                            );
+                                          } else if (val == 2.0) {
+                                            targetScale = 1.18;
+                                            sizeLabel = loc.getText(
+                                              'size_large',
+                                            );
+                                          }
+                                          AppTheme.instance.setTextScaleFactor(
+                                            targetScale,
+                                          );
+                                          _showSnackBar(
+                                            '${loc.getText("sec_text_size")}: $sizeLabel',
+                                          );
+                                        },
+                                      ),
+                                    ),
+
+                                    // Small / Default / Large Labels
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          loc.getText('size_small'),
+                                          style: GoogleFonts.workSans(
+                                            fontSize: 12,
+                                            color: theme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                        Text(
+                                          loc.getText('size_default'),
+                                          style: GoogleFonts.workSans(
+                                            fontSize: 12,
+                                            color: theme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                        Text(
+                                          loc.getText('size_large'),
+                                          style: GoogleFonts.workSans(
+                                            fontSize: 12,
+                                            color: theme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 24),
+
+                                    // Live Preview Box
+                                    AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 200,
+                                      ),
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(16),
                                       decoration: BoxDecoration(
                                         color: theme.surfaceContainerLow,
-                                        shape: BoxShape.circle,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: theme.dividerColor,
+                                        ),
                                       ),
-                                      child: Icon(
-                                        Icons.battery_saver,
-                                        color: theme.primaryColor,
-                                        size: 20,
-                                      ),
-                                    ),
-                                    title: Text(
-                                      loc.getText('battery_saver_title'),
-                                      style: GoogleFonts.workSans(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600,
-                                        color: theme.primaryColor,
-                                      ),
-                                    ),
-                                    subtitle: Text(
-                                      loc.getText('battery_saver_desc'),
-                                      style: GoogleFonts.workSans(
-                                        fontSize: 13,
-                                        color: theme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                    trailing: Switch(
-                                      value: _batterySaver,
-                                      activeTrackColor: theme.secondaryColor
-                                          .withValues(alpha: 0.3),
-                                      activeThumbColor: theme.secondaryColor,
-                                      inactiveThumbColor: Colors.white,
-                                      inactiveTrackColor: theme.surfaceVariant,
-                                      onChanged: (val) {
-                                        setState(() => _batterySaver = val);
-                                        _showSnackBar(
-                                          '${loc.getText("battery_saver_title")}: ${val ? loc.getText("status_on") : loc.getText("status_off")}',
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 36),
-
-                          // Section 3: TEXT SIZE
-                          _buildSectionHeader(loc.getText('sec_text_size')),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: theme.surfaceColor,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: theme.dividerColor,
-                                width: 1,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.04),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            padding: const EdgeInsets.all(20),
-                            child: Column(
-                              children: [
-                                // Text Size A Markers
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'A',
-                                      style: GoogleFonts.workSans(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color: theme.primaryColor,
-                                      ),
-                                    ),
-                                    Text(
-                                      'A',
-                                      style: GoogleFonts.sourceSerif4(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: theme.primaryColor,
+                                      child: Text(
+                                        loc.getText('preview_quote'),
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.sourceSerif4(
+                                          fontSize: _getPreviewFontSize(),
+                                          fontStyle: FontStyle.italic,
+                                          height: 1.5,
+                                          color: theme.onSurfaceVariant,
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 8),
-
-                                // Slider
-                                SliderTheme(
-                                  data: SliderTheme.of(context).copyWith(
-                                    activeTrackColor: theme.secondaryColor,
-                                    inactiveTrackColor: theme.surfaceVariant,
-                                    thumbColor: theme.primaryColor,
-                                    overlayColor: theme.secondaryColor
-                                        .withValues(alpha: 0.2),
-                                    valueIndicatorShape:
-                                        const RectangularSliderValueIndicatorShape(),
-                                  ),
-                                  child: Slider(
-                                    value: _textSizeValue,
-                                    min: 0.0,
-                                    max: 2.0,
-                                    divisions: 2,
-                                    onChanged: (val) {
-                                      setState(() => _textSizeValue = val);
-                                      double targetScale = 1.0;
-                                      String sizeLabel = loc.getText(
-                                        'size_default',
-                                      );
-                                      if (val == 0.0) {
-                                        targetScale = 0.85;
-                                        sizeLabel = loc.getText('size_small');
-                                      } else if (val == 2.0) {
-                                        targetScale = 1.18;
-                                        sizeLabel = loc.getText('size_large');
-                                      }
-                                      AppTheme.instance.setTextScaleFactor(
-                                        targetScale,
-                                      );
-                                      _showSnackBar(
-                                        '${loc.getText("sec_text_size")}: $sizeLabel',
-                                      );
-                                    },
-                                  ),
-                                ),
-
-                                // Small / Default / Large Labels
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      loc.getText('size_small'),
-                                      style: GoogleFonts.workSans(
-                                        fontSize: 12,
-                                        color: theme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                    Text(
-                                      loc.getText('size_default'),
-                                      style: GoogleFonts.workSans(
-                                        fontSize: 12,
-                                        color: theme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                    Text(
-                                      loc.getText('size_large'),
-                                      style: GoogleFonts.workSans(
-                                        fontSize: 12,
-                                        color: theme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 24),
-
-                                // Live Preview Box
-                                AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: theme.surfaceContainerLow,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: theme.dividerColor,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    loc.getText('preview_quote'),
-                                    textAlign: TextAlign.center,
-                                    style: GoogleFonts.sourceSerif4(
-                                      fontSize: _getPreviewFontSize(),
-                                      fontStyle: FontStyle.italic,
-                                      height: 1.5,
-                                      color: theme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(height: 32),
+                            ],
                           ),
-                          const SizedBox(height: 32),
-                        ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
                 );
               },
             );

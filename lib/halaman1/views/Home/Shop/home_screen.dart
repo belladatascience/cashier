@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/database/database_helper.dart';
+import 'package:cashier/halaman1/models/transaction_model.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/menu_data_store.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
@@ -47,159 +48,43 @@ class _HomeScreenState extends State<HomeScreen> {
   String _transactionSearchQuery = '';
   DateTime? _selectedTransactionDate;
 
-  final List<Map<String, dynamic>> _transactionHistory = [
-    {
-      'id': '#INV-20260821-001',
-      'date': '21 Aug 2026, 11:45',
-      'cashier': 'Bee',
-      'method': 'Digital Wallet (QRIS)',
-      'customer': 'Handky Chang',
-      'items': [
-        {'name': 'Artisan Matcha Latte', 'qty': 2, 'price': 35000},
-        {'name': 'Berry Cheesecake', 'qty': 1, 'price': 28000},
-      ],
-      'subtotal': 98000,
-      'tax': 9800,
-      'total': 107800,
-      'status': 'LUNAS',
-    },
-    {
-      'id': '#INV-20260821-002',
-      'date': '21 Aug 2026, 10:15',
-      'cashier': 'Bee',
-      'method': 'Digital Wallet (GoPay)',
-      'customer': 'Siti Aminah',
-      'items': [
-        {'name': 'Classic Cafe Latte', 'qty': 1, 'price': 32000},
-        {'name': 'Butter Croissant', 'qty': 2, 'price': 28000},
-      ],
-      'subtotal': 88000,
-      'tax': 8800,
-      'total': 96800,
-      'status': 'LUNAS',
-    },
-    {
-      'id': '#INV-20260820-001',
-      'date': '20 Aug 2026, 16:30',
-      'cashier': 'Bee',
-      'method': 'Cash in Store',
-      'customer': 'Pelanggan Umum',
-      'items': [
-        {'name': 'Rustic Sourdough Loaf', 'qty': 1, 'price': 45000},
-        {'name': 'Ice Americano', 'qty': 2, 'price': 24000},
-      ],
-      'subtotal': 93000,
-      'tax': 9300,
-      'total': 102300,
-      'status': 'LUNAS',
-    },
-    {
-      'id': '#INV-20260819-001',
-      'date': '19 Aug 2026, 15:20',
-      'cashier': 'Bee',
-      'method': 'Digital Wallet (QRIS)',
-      'customer': 'Bee',
-      'items': [
-        {'name': 'Signature Hot Chocolate', 'qty': 2, 'price': 38000},
-        {'name': 'Berry Tart', 'qty': 2, 'price': 55000},
-      ],
-      'subtotal': 186000,
-      'tax': 18600,
-      'total': 204600,
-      'status': 'LUNAS',
-    },
-    {
-      'id': '#INV-20260819-002',
-      'date': '19 Aug 2026, 11:10',
-      'cashier': 'Bee',
-      'method': 'Digital Wallet (GoPay)',
-      'customer': 'Dewi Lestari',
-      'items': [
-        {'name': 'Artisan Matcha Latte', 'qty': 1, 'price': 35000},
-        {'name': 'Snack Donat Kentang', 'qty': 2, 'price': 18000},
-      ],
-      'subtotal': 71000,
-      'tax': 7100,
-      'total': 78100,
-      'status': 'LUNAS',
-    },
-    {
-      'id': '#INV-20260819-003',
-      'date': '19 Aug 2026, 09:45',
-      'cashier': 'Bee',
-      'method': 'Cash in Store',
-      'customer': 'Andi Wijaya',
-      'items': [
-        {'name': 'Ice Latte', 'qty': 2, 'price': 28000},
-        {'name': 'Butter Croissant', 'qty': 1, 'price': 28000},
-      ],
-      'subtotal': 84000,
-      'tax': 8400,
-      'total': 92400,
-      'status': 'LUNAS',
-    },
-    {
-      'id': '#INV-20260818-001',
-      'date': '18 Aug 2026, 14:15',
-      'cashier': 'Bee',
-      'method': 'Digital Wallet (QRIS)',
-      'customer': 'Handky Chang',
-      'items': [
-        {'name': 'Rustic Sourdough Loaf', 'qty': 1, 'price': 45000},
-        {'name': 'Butter Croissant', 'qty': 2, 'price': 28000},
-        {'name': 'Berry Tart', 'qty': 1, 'price': 55000},
-      ],
-      'subtotal': 156000,
-      'tax': 15600,
-      'total': 171600,
-      'status': 'LUNAS',
-    },
-    {
-      'id': '#INV-20260818-002',
-      'date': '18 Aug 2026, 13:40',
-      'cashier': 'Bee',
-      'method': 'Cash in Store',
-      'customer': 'Pelanggan Umum',
-      'items': [
-        {'name': 'Artisan Matcha Latte', 'qty': 1, 'price': 35000},
-        {'name': 'Classic Cafe Latte', 'qty': 1, 'price': 32000},
-        {'name': 'Signature Hot Chocolate', 'qty': 1, 'price': 38000},
-      ],
-      'subtotal': 105000,
-      'tax': 10500,
-      'total': 115500,
-      'status': 'LUNAS',
-    },
-    {
-      'id': '#INV-20260818-003',
-      'date': '18 Aug 2026, 11:20',
-      'cashier': 'Bee',
-      'method': 'Digital Wallet (GoPay)',
-      'customer': 'Budi Santoso',
-      'items': [
-        {'name': 'Berry Cheesecake', 'qty': 2, 'price': 28000},
-        {'name': 'Sparkling Citrus Water', 'qty': 1, 'price': 25000},
-      ],
-      'subtotal': 81000,
-      'tax': 8100,
-      'total': 89100,
-      'status': 'LUNAS',
-    },
-    {
-      'id': '#INV-20260817-004',
-      'date': '17 Aug 2026, 16:05',
-      'cashier': 'Bee',
-      'method': 'Cash in Store',
-      'customer': 'Siti Rahma',
-      'items': [
-        {'name': 'Butter Croissant', 'qty': 3, 'price': 28000},
-      ],
-      'subtotal': 84000,
-      'tax': 8400,
-      'total': 92400,
-      'status': 'LUNAS',
-    },
-  ];
+  List<Map<String, dynamic>> _transactionHistory = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTransactionsFromDatabase();
+    MenuDataStore.instance.menuDataNotifier.addListener(_onMenuDataChanged);
+    MenuDataStore.instance.categoriesNotifier.addListener(_onMenuDataChanged);
+  }
+
+  @override
+  void dispose() {
+    MenuDataStore.instance.menuDataNotifier.removeListener(_onMenuDataChanged);
+    MenuDataStore.instance.categoriesNotifier.removeListener(
+      _onMenuDataChanged,
+    );
+    super.dispose();
+  }
+
+  void _onMenuDataChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _loadTransactionsFromDatabase() async {
+    try {
+      final txList = await DataBaseHelper().getAllTransactions();
+      if (mounted) {
+        setState(() {
+          _transactionHistory = txList.map((tx) => tx.toLegacyMap()).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading transactions: $e');
+    }
+  }
 
   final List<Map<String, dynamic>> _drinkMenuItems = [
     {
@@ -996,17 +881,38 @@ class _HomeScreenState extends State<HomeScreen> {
         UserDataStore.instance.userDataNotifier.value['accountName'] ??
         'Bella Saputra';
 
-    _transactionHistory.insert(0, {
-      'id': invId,
-      'date': dateStr,
-      'cashier': activeCashier,
-      'method': paymentMethod,
-      'customer': customerName,
-      'items': itemsCopy,
-      'subtotal': subtotal,
-      'tax': tax,
-      'total': total,
-      'status': 'LUNAS',
+    final activeStore =
+        UserDataStore.instance.userDataNotifier.value['storeName'] ??
+        (widget.storeName.isNotEmpty ? widget.storeName : 'Bella Cafe');
+
+    final txModel = TransactionModel(
+      invoiceNumber: invId,
+      dateTime: dateStr,
+      cashierName: activeCashier.toString(),
+      paymentMethod: paymentMethod,
+      customerName: customerName,
+      tableNumber: _cartTableController.text.trim().isNotEmpty
+          ? _cartTableController.text.trim()
+          : '-',
+      subtotal: subtotal,
+      tax: tax,
+      total: total,
+      status: 'LUNAS',
+      storeName: activeStore.toString(),
+      items: itemsCopy
+          .map(
+            (i) => TransactionItemModel(
+              invoiceNumber: invId,
+              menuName: i['name'].toString(),
+              qty: (i['qty'] as int?) ?? 1,
+              price: (i['price'] as int?) ?? 0,
+            ),
+          )
+          .toList(),
+    );
+
+    DataBaseHelper().insertTransaction(txModel).then((_) {
+      _loadTransactionsFromDatabase();
     });
   }
 
