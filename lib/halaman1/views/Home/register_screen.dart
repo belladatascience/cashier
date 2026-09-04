@@ -78,12 +78,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
+      final cashierId = email.contains('@')
+          ? 'BG${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}'
+          : email;
+
       final newUser = UserModelSQL(
         nama: name,
         email: email,
         nomor_hp: phone,
         asalKota: city,
         password: pass,
+        cashierId: cashierId,
+        role: 'Barista / Kasir',
       );
 
       bool success = await DataBaseHelper().registerUser(newUser);
@@ -95,10 +101,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
 
       if (success) {
-        _showSnackBar('Pendaftaran berhasil! Silakan masuk.', isError: false);
-        await Future.delayed(const Duration(milliseconds: 600));
+        _showSnackBar(
+          'Pendaftaran berhasil! ID Kasir Anda: $cashierId',
+          isError: false,
+        );
+        await Future.delayed(const Duration(milliseconds: 900));
         if (mounted) {
-          context.pop();
+          context.pop({'user': email, 'pass': pass});
         }
       } else {
         _showSnackBar(

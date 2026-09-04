@@ -105,11 +105,13 @@ class _DataUserCashierState extends State<DataUserCashier> {
   // Helper Modal Bottom Sheet untuk menginputkan data Tambah, Edit, atau Hapus pengguna.
   void _showBottomSheet(BuildContext context, UserModelSQL? user) {
     // Inisialisasi controller teks dari data pengguna yang dipilih (jika ada).
+    final nameController = TextEditingController(text: user?.nama ?? "");
     final emailController = TextEditingController(text: user?.email ?? "");
     final passwordController = TextEditingController(
       text: user?.password ?? "",
     );
     final noHpController = TextEditingController(text: user?.nomor_hp ?? "");
+    final cityController = TextEditingController(text: user?.asalKota ?? "");
 
     showModalBottomSheet(
       context: context,
@@ -121,142 +123,176 @@ class _DataUserCashierState extends State<DataUserCashier> {
       builder: (context) {
         return Padding(
           padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
             left: 16,
             right: 16,
             top: 16,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Kelola Pengguna',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              // Input Email
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Kelola Pengguna',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-              ),
-              const SizedBox(height: 10),
-              // Input Password
-              TextField(
-                controller: passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 16),
+                // Input Nama Lengkap
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nama Lengkap',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              // Input Nomor HP
-              TextField(
-                controller: noHpController,
-                decoration: const InputDecoration(
-                  labelText: 'Nomor HP',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 10),
+                // Input Email / ID Kasir
+                TextField(
+                  controller: emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email / ID Kasir',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
+                const SizedBox(height: 10),
+                // Input Password
+                TextField(
+                  controller: passwordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                // Input Nomor HP
+                TextField(
+                  controller: noHpController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nomor HP',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                // Input Asal Kota
+                TextField(
+                  controller: cityController,
+                  decoration: const InputDecoration(
+                    labelText: 'Asal Kota',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 20),
 
-              // Aksi 1: Tambah Pengguna Baru
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                icon: const Icon(Icons.add, color: Colors.white),
-                label: const Text(
-                  'Tambah',
-                  style: TextStyle(color: Colors.white),
-                ),
-                onPressed: () async {
-                  final newUser = UserModelSQL(
-                    email: emailController.text.trim(),
-                    password: passwordController.text,
-                    nomor_hp: noHpController.text,
-                  );
-
-                  bool success = await DataBaseHelper().registerUser(newUser);
-                  if (success && context.mounted) {
-                    Navigator.pop(context);
-                    _refreshList();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Data berhasil ditambahkan'),
-                      ),
+                // Aksi 1: Tambah Pengguna Baru
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    minimumSize: const Size(double.infinity, 44),
+                  ),
+                  icon: const Icon(Icons.add, color: Colors.white),
+                  label: const Text(
+                    'Tambah / Simpan',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  onPressed: () async {
+                    final newUser = UserModelSQL(
+                      nama: nameController.text.trim(),
+                      email: emailController.text.trim(),
+                      password: passwordController.text,
+                      nomor_hp: noHpController.text.trim(),
+                      asalKota: cityController.text.trim(),
+                      cashierId: emailController.text.trim(),
                     );
-                  }
-                },
-              ),
-              const SizedBox(height: 10),
-              // Baris Aksi 2 & 3: Update dan Delete Data Pengguna
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Aksi 2: Update Pengguna
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                    ),
-                    icon: const Icon(Icons.edit, color: Colors.white),
-                    label: const Text(
-                      'Update',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    onPressed: () async {
-                      if (user?.id != null) {
-                        final updatedUser = UserModelSQL(
-                          id: user?.id,
-                          email: emailController.text.trim(),
-                          password: passwordController.text,
-                          nomor_hp: noHpController.text,
-                        );
 
-                        bool success = await DataBaseHelper().updateUser(
-                          updatedUser,
-                        );
-                        if (success && context.mounted) {
-                          Navigator.pop(context);
-                          _refreshList();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Data berhasil diperbarui'),
-                            ),
-                          );
-                        }
-                      }
-                    },
-                  ),
-                  // Aksi 3: Delete Pengguna
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
+                    bool success = await DataBaseHelper().registerUser(newUser);
+                    if (success && context.mounted) {
+                      Navigator.pop(context);
+                      _refreshList();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Data berhasil disimpan/diperbarui'),
+                        ),
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 10),
+                // Baris Aksi 2 & 3: Update dan Delete Data Pengguna
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Aksi 2: Update Pengguna
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                        ),
+                        icon: const Icon(Icons.edit, color: Colors.white),
+                        label: const Text(
+                          'Update',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        onPressed: () async {
+                          if (user?.id != null) {
+                            final updatedUser = UserModelSQL(
+                              id: user?.id,
+                              nama: nameController.text.trim(),
+                              email: emailController.text.trim(),
+                              password: passwordController.text,
+                              nomor_hp: noHpController.text.trim(),
+                              asalKota: cityController.text.trim(),
+                              cashierId: emailController.text.trim(),
+                            );
+
+                            bool success = await DataBaseHelper().updateUser(
+                              updatedUser,
+                            );
+                            if (success && context.mounted) {
+                              Navigator.pop(context);
+                              _refreshList();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Data berhasil diperbarui'),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                      ),
                     ),
-                    icon: const Icon(Icons.delete, color: Colors.white),
-                    label: const Text(
-                      'Delete',
-                      style: TextStyle(color: Colors.white),
+                    const SizedBox(width: 10),
+                    // Aksi 3: Delete Pengguna
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                        ),
+                        icon: const Icon(Icons.delete, color: Colors.white),
+                        label: const Text(
+                          'Delete',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        onPressed: () async {
+                          if (user?.id != null) {
+                            await DataBaseHelper().deleteUser(user!.id!);
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              _refreshList();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Data berhasil dihapus'),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                      ),
                     ),
-                    onPressed: () async {
-                      if (user?.id != null) {
-                        await DataBaseHelper().deleteUser(user!.id!);
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                          _refreshList();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Data berhasil dihapus'),
-                            ),
-                          );
-                        }
-                      }
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-            ],
+                  ],
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         );
       },

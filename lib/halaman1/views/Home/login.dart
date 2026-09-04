@@ -147,7 +147,7 @@ class _cashierLogin1State extends State<cashierlogin1> {
 
   void login() async {
     final user = cashierIdC.text.trim();
-    final pass = passwordC.text;
+    final pass = passwordC.text.trim();
 
     if (user.isEmpty || pass.isEmpty) {
       _showSnackBar('Harap isi ID Kasir dan Kata Sandi!', isError: true);
@@ -169,21 +169,35 @@ class _cashierLogin1State extends State<cashierlogin1> {
       });
 
       // Allow demo login or DB user login
-      if (pengguna != null ||
-          (user == 'admin' && pass == '123456') ||
-          user == 'KASIR01') {
+      final isDemoLogin =
+          (user.toLowerCase() == 'admin' &&
+              (pass == '123456' || pass == '123')) ||
+          (user.toUpperCase() == 'KASIR01') ||
+          (user == '188889' ||
+              user.toUpperCase() == 'BG188889' ||
+              user.toLowerCase().contains('bella') ||
+              user.toLowerCase() == 'bella.gita@bgaco.com');
+
+      if (pengguna != null || isDemoLogin) {
         final displayName =
             pengguna?.nama ??
-            (user == 'admin' ? 'Administrator' : 'Bella Gita Asmara');
+            (user.toLowerCase() == 'admin'
+                ? 'Administrator'
+                : 'Bella Gita Asmara');
         final displayEmail =
             pengguna?.email ??
-            (user == 'admin' ? 'admin@bgaco.com' : 'bella.gita@bgaco.com');
+            (user.toLowerCase() == 'admin'
+                ? 'admin@bgaco.com'
+                : 'bella.gita@bgaco.com');
         final displayCashierId =
-            pengguna?.cashierId ?? (user == 'admin' ? 'ADM-001' : 'BG188889');
+            pengguna?.cashierId ??
+            (user.toLowerCase() == 'admin' ? 'ADM-001' : 'BG188889');
         final displayPhone = pengguna?.nomor_hp ?? '087888848000';
         final displayRole =
             pengguna?.role ??
-            (user == 'admin' ? 'Store Manager' : 'Senior Barista');
+            (user.toLowerCase() == 'admin'
+                ? 'Store Manager'
+                : 'Senior Barista');
 
         await UserDataStore.instance.updateUserData({
           'userId': pengguna?.id ?? 1,
@@ -208,7 +222,7 @@ class _cashierLogin1State extends State<cashierlogin1> {
       setState(() {
         _isLoading = false;
       });
-      await _showSuccessAnimationAndNavigate('Bella Gita Asmara');
+      _showSnackBar('Terjadi kesalahan: $e', isError: true);
     }
   }
 
@@ -608,8 +622,20 @@ class _cashierLogin1State extends State<cashierlogin1> {
                                         ),
                                       ),
                                       GestureDetector(
-                                        onTap: () {
-                                          context.push(const RegisterScreen());
+                                        onTap: () async {
+                                          final result = await context.push(
+                                            const RegisterScreen(),
+                                          );
+                                          if (result != null && result is Map) {
+                                            if (result['user'] != null) {
+                                              cashierIdC.text = result['user']
+                                                  .toString();
+                                            }
+                                            if (result['pass'] != null) {
+                                              passwordC.text = result['pass']
+                                                  .toString();
+                                            }
+                                          }
                                         },
                                         child: Text(
                                           AppLocalization.instance.getText(

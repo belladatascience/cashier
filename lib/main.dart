@@ -1,14 +1,14 @@
 import 'dart:io';
+
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/menu_data_store.dart';
+import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:cashier/halaman1/views/Home/splash_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:video_player_win/video_player_win.dart';
-
-import 'package:cashier/halaman1/utils/menu_data_store.dart';
-import 'package:cashier/halaman1/utils/user_data_store.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -99,9 +99,9 @@ class MyApp extends StatelessWidget {
                       ),
                       builder: (context, childWidget) {
                         return MediaQuery(
-                          data: MediaQuery.of(context).copyWith(
-                            textScaler: TextScaler.linear(textScale),
-                          ),
+                          data: MediaQuery.of(
+                            context,
+                          ).copyWith(textScaler: TextScaler.linear(textScale)),
                           child: childWidget!,
                         );
                       },

@@ -27,14 +27,20 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
   String selectedLocation = 'BGA Co. - Central Perk';
 
   final List<String> positionOptions = [
+    'Barista / Kasir',
     'Senior Barista',
     'Head Barista',
     'Junior Barista',
+    'Kasir',
+    'Head Cashier',
     'Store Supervisor',
+    'Store Manager',
     'Cashier Specialist',
+    'Administrator',
   ];
 
   final List<String> locationOptions = [
+    'Bella Cafe',
     'BGA Co. - Central Perk',
     'BGA Co. - Downtown Latte',
     'BGA Co. - Westside Brew',
@@ -56,8 +62,19 @@ class _EditPersonalInfoScreenState extends State<EditPersonalInfoScreen> {
     );
     cashierIdC = TextEditingController(text: data['cashierId'] ?? 'BG188889');
     phoneC = TextEditingController(text: data['phone'] ?? '087888848000');
-    selectedPosition = data['accountRole'] ?? 'Senior Barista';
-    selectedLocation = data['location'] ?? 'BGA Co. - Central Perk';
+
+    final role = data['accountRole'] ?? 'Senior Barista';
+    if (!positionOptions.contains(role)) {
+      positionOptions.insert(0, role);
+    }
+    selectedPosition = role;
+
+    final loc = data['location'] ?? 'BGA Co. - Central Perk';
+    if (!locationOptions.contains(loc)) {
+      locationOptions.insert(0, loc);
+    }
+    selectedLocation = loc;
+
     if (data['avatarBytes'] != null) {
       _avatarBytes = data['avatarBytes'];
     }
