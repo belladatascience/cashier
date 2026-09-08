@@ -1,6 +1,7 @@
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/models/user_login.dart';
+import 'package:cashier/halaman1/services/firebase_auth_service.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -73,45 +74,70 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
+    if (pass.length < 6) {
+      _showSnackBar('Kata sandi minimal 6 karakter!', isError: true);
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final cashierId = email.contains('@')
-          ? 'BG${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}'
-          : email;
+      final cashierId =
+          'BG${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
 
-      final newUser = UserModelSQL(
-        nama: name,
+      // 1. Register with Firebase Authentication & Cloud Firestore
+      final result = await FirebaseAuthService.instance.registerUser(
+        name: name,
         email: email,
-        nomor_hp: phone,
-        asalKota: city,
         password: pass,
+        phone: phone,
+        city: city,
         cashierId: cashierId,
         role: 'Barista / Kasir',
       );
 
-      bool success = await DataBaseHelper().registerUser(newUser);
-
       if (!mounted) return;
 
-      setState(() {
-        _isLoading = false;
-      });
+      if (result['success'] == true) {
+        final generatedCashierId = result['cashierId'] ?? cashierId;
 
-      if (success) {
+        // 2. Synchronize to local SQLite for offline fallback
+        try {
+          final newUser = UserModelSQL(
+            nama: name,
+            email: email,
+            nomor_hp: phone,
+            asalKota: city,
+            password: pass,
+            cashierId: generatedCashierId,
+            role: 'Barista / Kasir',
+          );
+          await DataBaseHelper().registerUser(newUser);
+        } catch (dbErr) {
+          debugPrint('Local SQLite sync error (non-fatal): $dbErr');
+        }
+
+        setState(() {
+          _isLoading = false;
+        });
+
         _showSnackBar(
-          'Pendaftaran berhasil! ID Kasir Anda: $cashierId',
+          'Pendaftaran berhasil! ID Kasir Anda: $generatedCashierId',
           isError: false,
         );
-        await Future.delayed(const Duration(milliseconds: 900));
+
+        await Future.delayed(const Duration(milliseconds: 1000));
         if (mounted) {
           context.pop({'user': email, 'pass': pass});
         }
       } else {
+        setState(() {
+          _isLoading = false;
+        });
         _showSnackBar(
-          'Gagal mendaftar! Email / ID Kasir mungkin sudah terdaftar.',
+          result['message'] ?? 'Gagal mendaftar ke Firebase!',
           isError: true,
         );
       }

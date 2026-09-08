@@ -1,5 +1,6 @@
 import 'dart:io';
-
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cashier/firebase_options.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/menu_data_store.dart';
@@ -16,6 +17,13 @@ void main() async {
     WindowsVideoPlayer.registerWith();
   }
   await initializeDateFormatting("id_ID", null);
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('Firebase initialization error: $e');
+  }
   await MenuDataStore.instance.initFromDatabase();
   await UserDataStore.instance.initFromDatabase();
   runApp(const MyApp());

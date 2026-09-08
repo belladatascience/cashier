@@ -1,5 +1,6 @@
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/database/database_helper.dart';
+import 'package:cashier/halaman1/services/firebase_auth_service.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
@@ -150,7 +151,7 @@ class _cashierLogin1State extends State<cashierlogin1> {
     final pass = passwordC.text.trim();
 
     if (user.isEmpty || pass.isEmpty) {
-      _showSnackBar('Harap isi ID Kasir dan Kata Sandi!', isError: true);
+      _showSnackBar('Harap isi ID Kasir / Email dan Kata Sandi!', isError: true);
       return;
     }
 
@@ -159,16 +160,46 @@ class _cashierLogin1State extends State<cashierlogin1> {
     });
 
     try {
-      // Check database login
-      final pengguna = await DataBaseHelper().loginUser(user, pass);
+      // 1. First attempt Firebase Authentication
+      final firebaseResult = await FirebaseAuthService.instance.loginUser(
+        identifier: user,
+        password: pass,
+      );
 
       if (!mounted) return;
 
-      setState(() {
-        _isLoading = false;
-      });
+      if (firebaseResult['success'] == true) {
+        final profile = firebaseResult['profile'] as Map<String, dynamic>? ?? {};
+        final displayName = (profile['nama'] as String?)?.isNotEmpty == true
+            ? profile['nama'] as String
+            : (user.toLowerCase() == 'admin' ? 'Administrator' : 'Kasir');
+        final displayEmail = (profile['email'] as String?) ?? user;
+        final displayCashierId = (profile['cashierId'] as String?) ?? user;
+        final displayPhone = (profile['nomor_hp'] as String?) ?? '087888848000';
+        final displayRole = (profile['role'] as String?) ?? 'Barista / Kasir';
 
-      // Allow demo login or DB user login
+        await UserDataStore.instance.updateUserData({
+          'userId': 1,
+          'accountName': displayName,
+          'cashierName': displayName,
+          'email': displayEmail,
+          'cashierId': displayCashierId,
+          'phone': displayPhone,
+          'accountRole': displayRole,
+          'cashierRole': displayRole,
+        });
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        await _showSuccessAnimationAndNavigate(displayName);
+        return;
+      }
+
+      // 2. Secondary fallback: Local SQLite database or Demo logins
+      final pengguna = await DataBaseHelper().loginUser(user, pass);
+
       final isDemoLogin =
           (user.toLowerCase() == 'admin' &&
               (pass == '123456' || pass == '123')) ||
@@ -210,10 +241,18 @@ class _cashierLogin1State extends State<cashierlogin1> {
           'cashierRole': displayRole,
         });
 
+        setState(() {
+          _isLoading = false;
+        });
+
         await _showSuccessAnimationAndNavigate(displayName);
       } else {
+        setState(() {
+          _isLoading = false;
+        });
         _showSnackBar(
-          'Login gagal! ID Kasir atau Kata Sandi salah.',
+          firebaseResult['message'] ??
+              'Login gagal! ID Kasir / Email atau Kata Sandi salah.',
           isError: true,
         );
       }

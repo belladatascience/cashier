@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/models/shift_model.dart';
 import 'package:cashier/halaman1/models/staff_model.dart';
@@ -390,6 +392,23 @@ class UserDataStore {
         avatarBytes: current['avatarBytes'] as Uint8List?,
       );
       await DataBaseHelper().updateUser(userModel);
+    }
+
+    // Sync to Firestore if Firebase user is logged in
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'nama': current['accountName'] ?? current['cashierName'],
+          'email': current['email'],
+          'cashierId': current['cashierId'],
+          'role': current['accountRole'] ?? current['cashierRole'],
+          'nomor_hp': current['phone'],
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      debugPrint('Firestore profile sync error (non-fatal): $e');
     }
   }
 }
