@@ -1,8 +1,10 @@
-import 'package:cashier/extension/navigator.dart';
+﻿import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/views/setting/contact_support_screen.dart';
 import 'package:cashier/halaman1/views/setting/live_chat_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -16,6 +18,56 @@ class HelpCenterScreen extends StatefulWidget {
 class _HelpCenterScreenState extends State<HelpCenterScreen> {
   final TextEditingController _searchController = TextEditingController();
   int? _expandedFaqIndex;
+  String _searchQuery = '';
+
+  List<Map<String, String>> _firebaseFaqs = [];
+  bool _isLoadingFaqs = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchFaqsFromFirebase();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.trim().toLowerCase();
+      });
+    });
+  }
+
+  Future<void> _fetchFaqsFromFirebase() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('faqs')
+          .limit(10)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        final faqs = snapshot.docs.map((doc) {
+          final data = doc.data();
+          return {
+            'q': (data['question'] ?? data['q'] ?? '').toString(),
+            'a': (data['answer'] ?? data['a'] ?? '').toString(),
+          };
+        }).where((f) => f['q']!.isNotEmpty).toList();
+
+        if (mounted && faqs.isNotEmpty) {
+          setState(() {
+            _firebaseFaqs = faqs;
+            _isLoadingFaqs = false;
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('Firestore fetch FAQs notice: $e');
+    }
+
+    if (mounted) {
+      setState(() {
+        _isLoadingFaqs = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -155,7 +207,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             crossFadeState: isExpanded
                 ? CrossFadeState.showSecond
                 : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 250),
+            duration: const Duration(milliseconds: 200),
           ),
         ],
       ),
@@ -166,6 +218,36 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
   Widget build(BuildContext context) {
     final loc = AppLocalization.instance;
     final theme = AppTheme.instance;
+    final currentFbUser = FirebaseAuth.instance.currentUser;
+
+    // Build FAQ list (Dynamic from Firebase or fallback)
+    final defaultFaqs = [
+      {
+        'q': loc.getText('faq_1_q'),
+        'a': loc.getText('faq_1_a'),
+      },
+      {
+        'q': loc.getText('faq_2_q'),
+        'a': loc.getText('faq_2_a'),
+      },
+      {
+        'q': loc.getText('faq_3_q'),
+        'a': loc.getText('faq_3_a'),
+      },
+      {
+        'q': 'Bagaimana cara reset kata sandi kasir via Firebase?',
+        'a': 'Buka menu Ganti Kata Sandi di Pengaturan, atau gunakan fitur "Lupa Kata Sandi" di halaman Login untuk menerima tautan reset otomatis ke email Anda.',
+      },
+    ];
+
+    final sourceFaqs = _firebaseFaqs.isNotEmpty ? _firebaseFaqs : defaultFaqs;
+    final filteredFaqs = _searchQuery.isEmpty
+        ? sourceFaqs
+        : sourceFaqs
+            .where((f) =>
+                f['q']!.toLowerCase().contains(_searchQuery) ||
+                f['a']!.toLowerCase().contains(_searchQuery))
+            .toList();
 
     return ValueListenableBuilder<String>(
       valueListenable: theme.themeModeNotifier,
@@ -176,7 +258,7 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
             return Scaffold(
               backgroundColor: theme.backgroundColor,
 
-              // Top Header Sticky AppBar
+              // Top App Bar
               appBar: AppBar(
                 backgroundColor: theme.backgroundColor,
                 elevation: 0,
@@ -189,17 +271,11 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                   loc.getText('help_center_title'),
                   style: GoogleFonts.sourceSerif4(
                     fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: theme.primaryColor,
                   ),
                 ),
-                actions: [
-                  IconButton(
-                    icon: Icon(Icons.account_circle, color: theme.primaryColor),
-                    onPressed: () => _showSnackBar('Profil Akun'),
-                  ),
-                  const SizedBox(width: 8),
-                ],
+                centerTitle: true,
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(1.0),
                   child: Container(color: theme.dividerColor, height: 1.0),
@@ -214,70 +290,110 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                   ),
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 540),
+                      constraints: const BoxConstraints(maxWidth: 680),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Search Bar
-                          TextField(
-                            controller: _searchController,
-                            style: GoogleFonts.workSans(
-                              fontSize: 15,
-                              color: theme.primaryColor,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: loc.getText('search_faq_hint'),
-                              hintStyle: GoogleFonts.workSans(
-                                color: theme.onSurfaceVariant,
-                                fontSize: 15,
-                              ),
-                              filled: true,
-                              fillColor: theme.surfaceColor,
-                              prefixIcon: Icon(
-                                Icons.search,
-                                color: theme.onSurfaceVariant,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 14,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4),
-                                borderSide: BorderSide(
-                                  color: theme.dividerColor,
-                                  width: 1,
+                          // Search Box Section
+                          Container(
+                            decoration: BoxDecoration(
+                              color: theme.surfaceColor,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: theme.dividerColor),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.04),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
                                 ),
+                              ],
+                            ),
+                            child: TextField(
+                              controller: _searchController,
+                              style: GoogleFonts.workSans(
+                                color: theme.primaryColor,
                               ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4),
-                                borderSide: BorderSide(
-                                  color: theme.secondaryColor,
-                                  width: 1.5,
+                              decoration: InputDecoration(
+                                hintText: loc.getText('search_help_hint'),
+                                hintStyle: GoogleFonts.workSans(
+                                  color: theme.onSurfaceVariant,
+                                  fontSize: 15,
+                                ),
+                                prefixIcon: Icon(
+                                  Icons.search,
+                                  color: theme.onSurfaceVariant,
+                                ),
+                                suffixIcon: _searchController.text.isNotEmpty
+                                    ? IconButton(
+                                        icon: const Icon(Icons.clear, size: 18),
+                                        onPressed: () {
+                                          _searchController.clear();
+                                        },
+                                      )
+                                    : null,
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                  horizontal: 16,
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 28),
 
-                          // Popular Categories Title
+                          // Firebase Cloud Support Status Banner (If User Logged In)
+                          if (currentFbUser != null) ...[
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: theme.surfaceColor,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: theme.secondaryColor.withValues(alpha: 0.25),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.cloud_done_outlined,
+                                    color: theme.secondaryColor,
+                                    size: 22,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      'Akun Kasir Terhubung Cloud: ${currentFbUser.email ?? "Aktif"}',
+                                      style: GoogleFonts.workSans(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: theme.primaryColor,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+
+                          // Category Cards Grid
                           Text(
-                            loc.getText('popular_categories'),
+                            loc.getText('categories_title'),
                             style: GoogleFonts.sourceSerif4(
-                              fontSize: 22,
+                              fontSize: 20,
                               fontWeight: FontWeight.w600,
                               color: theme.primaryColor,
                             ),
                           ),
                           const SizedBox(height: 16),
 
-                          // Bento 2-Column Grid
                           GridView.count(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 1.35,
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 16,
-                            childAspectRatio: 1.3,
                             children: [
                               _buildCategoryCard(
                                 icon: Icons.receipt_long,
@@ -312,13 +428,29 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                           const SizedBox(height: 36),
 
                           // Popular FAQs Section
-                          Text(
-                            loc.getText('popular_faqs'),
-                            style: GoogleFonts.sourceSerif4(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w600,
-                              color: theme.primaryColor,
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                loc.getText('popular_faqs'),
+                                style: GoogleFonts.sourceSerif4(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.primaryColor,
+                                ),
+                              ),
+                              if (_isLoadingFaqs)
+                                SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      theme.secondaryColor,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                           const SizedBox(height: 16),
 
@@ -336,25 +468,28 @@ class _HelpCenterScreenState extends State<HelpCenterScreen> {
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              child: Column(
-                                children: [
-                                  _buildFaqItem(
-                                    index: 0,
-                                    question: loc.getText('faq_1_q'),
-                                    answer: loc.getText('faq_1_a'),
-                                  ),
-                                  _buildFaqItem(
-                                    index: 1,
-                                    question: loc.getText('faq_2_q'),
-                                    answer: loc.getText('faq_2_a'),
-                                  ),
-                                  _buildFaqItem(
-                                    index: 2,
-                                    question: loc.getText('faq_3_q'),
-                                    answer: loc.getText('faq_3_a'),
-                                  ),
-                                ],
-                              ),
+                              child: filteredFaqs.isEmpty
+                                  ? Padding(
+                                      padding: const EdgeInsets.all(24.0),
+                                      child: Center(
+                                        child: Text(
+                                          'Tidak ada FAQ yang cocok dengan pencarian "$_searchQuery".',
+                                          style: GoogleFonts.workSans(
+                                            color: theme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : Column(
+                                      children: List.generate(
+                                        filteredFaqs.length,
+                                        (index) => _buildFaqItem(
+                                          index: index,
+                                          question: filteredFaqs[index]['q']!,
+                                          answer: filteredFaqs[index]['a']!,
+                                        ),
+                                      ),
+                                    ),
                             ),
                           ),
                           const SizedBox(height: 40),

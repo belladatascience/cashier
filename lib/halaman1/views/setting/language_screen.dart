@@ -1,6 +1,8 @@
-import 'package:cashier/extension/navigator.dart';
+﻿import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -27,15 +29,16 @@ class LanguageScreen extends StatefulWidget {
 
 class _LanguageScreenState extends State<LanguageScreen> {
   late String _selectedCode;
+  bool _isSaving = false;
 
   final List<LanguageOption> _options = const [
-    LanguageOption(title: 'English', subtitle: 'Default', code: 'en'),
+    LanguageOption(title: 'English', subtitle: 'Default (English)', code: 'en'),
     LanguageOption(
       title: 'Bahasa Indonesia',
-      subtitle: 'Indonesian',
+      subtitle: 'Bahasa Indonesia',
       code: 'id',
     ),
-    LanguageOption(title: '中文', subtitle: 'Mandarin (Simplified)', code: 'zh'),
+    LanguageOption(title: '中文 (简体)', subtitle: 'Mandarin (Simplified)', code: 'zh'),
   ];
 
   @override
@@ -43,27 +46,69 @@ class _LanguageScreenState extends State<LanguageScreen> {
     super.initState();
     // Initialize selected code from the localization notifier
     _selectedCode = AppLocalization.instance.currentLanguageNotifier.value;
+    _loadLanguageFromFirebase();
   }
 
-  void _saveLanguagePreference() async {
+  Future<void> _loadLanguageFromFirebase() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        if (doc.exists && doc.data() != null) {
+          final remoteLang = doc.data()!['language'] as String?;
+          if (remoteLang != null && remoteLang.isNotEmpty && mounted) {
+            setState(() {
+              _selectedCode = remoteLang;
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint('Firebase load language notice: $e');
+      }
+    }
+  }
+
+  Future<void> _saveLanguagePreference() async {
+    setState(() {
+      _isSaving = true;
+    });
+
     await AppLocalization.instance.setLanguage(_selectedCode);
     final theme = AppTheme.instance;
+    final user = FirebaseAuth.instance.currentUser;
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${AppLocalization.instance.getText("saved")}: ${AppLocalization.instance.currentLanguageName}',
-            style: GoogleFonts.workSans(color: Colors.white),
-          ),
-          backgroundColor: theme.secondaryColor,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 1),
-        ),
-      );
-      context.pop(_selectedCode);
+    // Sync to Cloud Firestore
+    if (user != null) {
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'language': _selectedCode,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('Firestore save language error: $e');
+      }
     }
+
+    if (!mounted) return;
+
+    setState(() {
+      _isSaving = false;
+    });
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${AppLocalization.instance.getText("saved")}: ${AppLocalization.instance.currentLanguageName} (Synced to Cloud)',
+          style: GoogleFonts.workSans(color: Colors.white),
+        ),
+        backgroundColor: theme.secondaryColor,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 1),
+      ),
+    );
+
+    context.pop(_selectedCode);
   }
 
   Widget _buildLanguageCard(LanguageOption option) {
@@ -92,19 +137,18 @@ class _LanguageScreenState extends State<LanguageScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
           child: Row(
             children: [
-              Radio<String>(
-                value: option.code,
-                groupValue: _selectedCode,
-                activeColor: theme.secondaryColor,
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedCode = value;
-                    });
-                  }
-                },
+              Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected ? theme.secondaryColor : theme.outlineColor,
+                    width: isSelected ? 6.5 : 2.0,
+                  ),
+                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,6 +212,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
                     color: theme.primaryColor,
                   ),
                 ),
+                centerTitle: true,
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(1.0),
                   child: Container(color: theme.dividerColor, height: 1.0),
@@ -236,7 +281,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
                             width: double.infinity,
                             height: 52,
                             child: ElevatedButton(
-                              onPressed: _saveLanguagePreference,
+                              onPressed: _isSaving ? null : _saveLanguagePreference,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: theme.primaryColor,
                                 foregroundColor: theme.surfaceColor,
@@ -245,13 +290,24 @@ class _LanguageScreenState extends State<LanguageScreen> {
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                               ),
-                              child: Text(
-                                loc.getText('save_changes'),
-                                style: GoogleFonts.workSans(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                              child: _isSaving
+                                  ? SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                          theme.surfaceColor,
+                                        ),
+                                      ),
+                                    )
+                                  : Text(
+                                      loc.getText('save_changes'),
+                                      style: GoogleFonts.workSans(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                             ),
                           ),
                         ),

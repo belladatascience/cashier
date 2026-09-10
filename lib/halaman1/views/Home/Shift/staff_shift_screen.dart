@@ -70,6 +70,23 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
     _selectedDate = now;
     _focusedMonth = DateTime(now.year, now.month, 1);
     UserDataStore.instance.reloadShiftsForDate(now);
+    UserDataStore.instance.shiftRosterPagiNotifier.addListener(_onUserDataStoreChanged);
+    UserDataStore.instance.shiftRosterSoreNotifier.addListener(_onUserDataStoreChanged);
+    UserDataStore.instance.cafeStaffListNotifier.addListener(_onUserDataStoreChanged);
+  }
+
+  @override
+  void dispose() {
+    UserDataStore.instance.shiftRosterPagiNotifier.removeListener(_onUserDataStoreChanged);
+    UserDataStore.instance.shiftRosterSoreNotifier.removeListener(_onUserDataStoreChanged);
+    UserDataStore.instance.cafeStaffListNotifier.removeListener(_onUserDataStoreChanged);
+    super.dispose();
+  }
+
+  void _onUserDataStoreChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   int _getDaysInMonth(DateTime monthDate) {
@@ -1420,54 +1437,66 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  GestureDetector(
-                                    onTap: _selectDateViaPicker,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Text(
-                                              monthFormat
-                                                  .format(_focusedMonth)
-                                                  .toUpperCase(),
-                                              style: GoogleFonts.workSans(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.bold,
-                                                letterSpacing: 1.2,
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: _selectDateViaPicker,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Flexible(
+                                                child: Text(
+                                                  monthFormat
+                                                      .format(_focusedMonth)
+                                                      .toUpperCase(),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: GoogleFonts.workSans(
+                                                    fontSize: 12.5,
+                                                    fontWeight: FontWeight.bold,
+                                                    letterSpacing: 1.0,
+                                                    color: colorSecondary,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Icon(
+                                                Icons.arrow_drop_down,
+                                                size: 18,
                                                 color: colorSecondary,
                                               ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Icon(
-                                              Icons.arrow_drop_down,
-                                              size: 20,
-                                              color: colorSecondary,
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          dateFormatFull.format(_selectedDate),
-                                          style: GoogleFonts.sourceSerif4(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
-                                            color: colorPrimary,
+                                            ],
                                           ),
-                                        ),
-                                      ],
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            dateFormatFull.format(_selectedDate),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.sourceSerif4(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: colorPrimary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
+                                  const SizedBox(width: 8),
                                   Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       InkWell(
                                         onTap: _previousMonth,
                                         borderRadius: BorderRadius.circular(20),
                                         child: Container(
-                                          width: 36,
-                                          height: 36,
+                                          width: 34,
+                                          height: 34,
                                           decoration: BoxDecoration(
                                             shape: BoxShape.circle,
                                             border: Border.all(
@@ -1476,18 +1505,18 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                           ),
                                           child: Icon(
                                             Icons.chevron_left,
-                                            size: 20,
+                                            size: 18,
                                             color: colorPrimary,
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
+                                      const SizedBox(width: 6),
                                       InkWell(
                                         onTap: _nextMonth,
                                         borderRadius: BorderRadius.circular(20),
                                         child: Container(
-                                          width: 36,
-                                          height: 36,
+                                          width: 34,
+                                          height: 34,
                                           decoration: BoxDecoration(
                                             shape: BoxShape.circle,
                                             border: Border.all(
@@ -1496,7 +1525,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                           ),
                                           child: Icon(
                                             Icons.chevron_right,
-                                            size: 20,
+                                            size: 18,
                                             color: colorPrimary,
                                           ),
                                         ),
@@ -1521,8 +1550,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                           'MING',
                                         ]
                                         .map(
-                                          (day) => SizedBox(
-                                            width: 38,
+                                          (day) => Expanded(
                                             child: Text(
                                               day,
                                               textAlign: TextAlign.center,
@@ -1676,31 +1704,36 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Who is on Shift',
-                                  style: GoogleFonts.sourceSerif4(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    color: colorPrimary,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Who is on Shift',
+                                    style: GoogleFonts.sourceSerif4(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                      color: colorPrimary,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  DateFormat(
-                                    'EEEE, d MMMM yyyy',
-                                    'id_ID',
-                                  ).format(_selectedDate),
-                                  style: GoogleFonts.workSans(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w500,
-                                    color: colorOnSurfaceVariant,
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    DateFormat(
+                                      'EEEE, d MMMM yyyy',
+                                      'id_ID',
+                                    ).format(_selectedDate),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.workSans(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w500,
+                                      color: colorOnSurfaceVariant,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
+                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 10,

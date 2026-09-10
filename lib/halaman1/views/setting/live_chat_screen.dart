@@ -1,5 +1,7 @@
-import 'package:cashier/extension/navigator.dart';
+﻿import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -29,24 +31,64 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
 
   late final List<LiveChatMessage> _messages = [
     LiveChatMessage(
-      text: 'Halo! Selamat datang di Live Chat BGA Co. Customer Care. ☕',
+      text: 'Halo! Selamat datang di Live Support Cloud BGA Co. Customer Care.',
       isUser: false,
       time: '10:30',
     ),
     LiveChatMessage(
       text:
-          'Saya CS Agent Bot BGA. Silakan pilih topik kendala di bawah atau ketikkan pertanyaan Anda.',
+          'Saya CS Agent Bot BGA Co. Silakan pilih topik kendala di bawah atau ketikkan pesan kendala kasir Anda.',
       isUser: false,
       time: '10:30',
     ),
   ];
 
   final List<String> _quickTopics = [
+    'Sinkronisasi Firebase Cloud',
     'Printer POS Mati / Disconnected',
     'Cara Pembatalan Transaksi',
     'Lupa Kata Sandi Kasir',
     'Export Laporan ke Excel',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadChatHistoryFromFirebase();
+  }
+
+  Future<void> _loadChatHistoryFromFirebase() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('live_chats')
+          .doc(user.uid)
+          .collection('messages')
+          .orderBy('createdAt', descending: false)
+          .limit(25)
+          .get();
+
+      if (snapshot.docs.isNotEmpty && mounted) {
+        final loaded = snapshot.docs.map((doc) {
+          final data = doc.data();
+          return LiveChatMessage(
+            text: data['text'] ?? '',
+            isUser: data['isUser'] ?? false,
+            time: data['time'] ?? '10:30',
+          );
+        }).toList();
+
+        setState(() {
+          _messages.addAll(loaded);
+        });
+        _scrollToBottom();
+      }
+    } catch (e) {
+      debugPrint('Firestore load chat notice: $e');
+    }
+  }
 
   @override
   void dispose() {
@@ -67,6 +109,28 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
     });
   }
 
+  Future<void> _saveMessageToFirestore(LiveChatMessage msg) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('live_chats')
+          .doc(user.uid)
+          .collection('messages')
+          .add({
+        'text': msg.text,
+        'isUser': msg.isUser,
+        'time': msg.time,
+        'uid': user.uid,
+        'email': user.email ?? '',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Firestore save message notice: $e');
+    }
+  }
+
   void _sendMessage(String text) {
     if (text.trim().isEmpty) return;
 
@@ -74,45 +138,58 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
     final timeStr =
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
+    final userMsg = LiveChatMessage(
+      text: text.trim(),
+      isUser: true,
+      time: timeStr,
+    );
+
     setState(() {
-      _messages.add(
-        LiveChatMessage(text: text.trim(), isUser: true, time: timeStr),
-      );
+      _messages.add(userMsg);
       _chatController.clear();
       _isAgentTyping = true;
     });
 
+    _saveMessageToFirestore(userMsg);
     _scrollToBottom();
 
-    // Simulate CS bot / agent response after 1.2 seconds
-    Future.delayed(const Duration(milliseconds: 1200), () {
+    // Generate responsive bot reply
+    Future.delayed(const Duration(milliseconds: 1000), () {
       if (!mounted) return;
 
       String botReply =
-          'Terima kasih atas informasi Anda. Permintaan tiket Anda sedang diproses oleh tim spesialis teknis BGA Co. Apakah ada detail lain yang ingin disampaikan?';
+          'Terima kasih atas informasi Anda. Pesan ini telah diteruskan ke tim teknis BGA Cloud. Apakah ada hal lain yang dapat kami bantu?';
 
       final lower = text.toLowerCase();
-      if (lower.contains('printer') || lower.contains('cetak')) {
+      if (lower.contains('cloud') || lower.contains('firebase') || lower.contains('sinkron')) {
         botReply =
-            'Untuk kendala printer POS:\n1. Pastikan Bluetooth tablet/HP sudah aktif.\n2. Cek apakah kertas struk habis atau tersangkut.\n3. Matikan dan hidupkan kembali printer POS Anda.';
+            'Status Firebase Cloud: Terhubung secara realtime. Semua data staf, shift, dan transaksi disimpan otomatis di database Firestore.';
+      } else if (lower.contains('printer') || lower.contains('cetak')) {
+        botReply =
+            'Untuk kendala printer POS:\n1. Pastikan Bluetooth perangkat aktif.\n2. Pastikan kertas thermal terpasang rapi.\n3. Matikan dan nyalakan ulang printer POS Anda.';
       } else if (lower.contains('batal') || lower.contains('void')) {
         botReply =
-            'Untuk pembatalan transaksi yang sudah lunas, silakan buka menu Riwayat Transaksi -> Pilih No. Invois -> Tekan tombol Opsi & lakukan instruksi pengembalian.';
+            'Untuk pembatalan transaksi, buka menu Transaksi -> Pilih No. Struk -> Tekan tombol Batalkan / Refund.';
       } else if (lower.contains('password') || lower.contains('lupa')) {
         botReply =
-            'Reset kata sandi kasir dapat dilakukan oleh Akun Administrator atau menghubungi SPV Toko BGA Co.';
+            'Anda dapat melakukan reset password melalui menu Ganti Kata Sandi di Pengaturan atau fitur Lupa Kata Sandi pada halaman Login via email resmi Firebase.';
       } else if (lower.contains('excel') || lower.contains('laporan')) {
         botReply =
-            'Export Laporan Penjualan Excel dapat diakses langsung pada halaman Riwayat Transaksi dengan menekan tombol [Export Excel] di pojok kanan atas.';
+            'Export Laporan Penjualan dapat diakses pada halaman Riwayat Transaksi dengan menekan tombol Export Excel di bagian atas.';
       }
+
+      final botMsg = LiveChatMessage(
+        text: botReply,
+        isUser: false,
+        time: timeStr,
+      );
 
       setState(() {
         _isAgentTyping = false;
-        _messages.add(
-          LiveChatMessage(text: botReply, isUser: false, time: timeStr),
-        );
+        _messages.add(botMsg);
       });
 
+      _saveMessageToFirestore(botMsg);
       _scrollToBottom();
     });
   }
@@ -163,26 +240,28 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
                   ],
                 ),
                 const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Live Chat CS Agent',
-                      style: GoogleFonts.sourceSerif4(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: theme.primaryColor,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Live Support Cloud',
+                        style: GoogleFonts.sourceSerif4(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: theme.primaryColor,
+                        ),
                       ),
-                    ),
-                    Text(
-                      'Online 24/7 • Responsif',
-                      style: GoogleFonts.workSans(
-                        fontSize: 11,
-                        color: const Color(0xFF166534),
-                        fontWeight: FontWeight.w600,
+                      Text(
+                        'CS Agent • Online (Firebase Sync)',
+                        style: GoogleFonts.workSans(
+                          fontSize: 11,
+                          color: const Color(0xFF22C55E),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -194,31 +273,35 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
           body: SafeArea(
             child: Column(
               children: [
-                // Chat List
+                // Chat Message List
                 Expanded(
                   child: ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 16.0,
+                    ),
                     itemCount: _messages.length,
                     itemBuilder: (context, index) {
-                      final msg = _messages[index];
-                      return _buildMessageBubble(msg);
+                      return _buildMessageBubble(_messages[index]);
                     },
                   ),
                 ),
 
-                // Agent Typing Indicator
+                // Typing Indicator
                 if (_isAgentTyping)
-                  Padding(
+                  Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
+                      horizontal: 20,
+                      vertical: 6,
                     ),
+                    alignment: Alignment.centerLeft,
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         SizedBox(
-                          width: 14,
-                          height: 14,
+                          width: 12,
+                          height: 12,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(
@@ -228,7 +311,7 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'BGA Support Agent sedang mengetik...',
+                          'BGA Support Agent sedang memproses jawaban...',
                           style: GoogleFonts.workSans(
                             fontSize: 12,
                             fontStyle: FontStyle.italic,
@@ -289,7 +372,7 @@ class _LiveChatScreenState extends State<LiveChatScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text(
-                                'Lampiran file/screenshot dibuka...',
+                                'Lampiran tangkapan layar siap ditautkan...',
                               ),
                               behavior: SnackBarBehavior.floating,
                             ),

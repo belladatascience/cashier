@@ -40,6 +40,25 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
   Color get colorOnSurface => AppTheme.instance.onSurfaceColor;
   Color get colorOnSurfaceVariant => AppTheme.instance.onSurfaceVariant;
 
+  List<StoreModel> _existingStores = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStoresFromFirebase();
+  }
+
+  Future<void> _loadStoresFromFirebase() async {
+    try {
+      final stores = await DataBaseHelper().getAllStores();
+      if (mounted) {
+        setState(() {
+          _existingStores = stores;
+        });
+      }
+    } catch (_) {}
+  }
+
   @override
   void dispose() {
     storeNameC.dispose();
@@ -332,7 +351,56 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        // Quick Select Branch from Firestore
+                        if (_existingStores.isNotEmpty) ...[
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'PILIH CABANG DARI FIRESTORE',
+                                style: GoogleFonts.workSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorSecondary,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                              Icon(Icons.cloud_done_outlined, size: 16, color: colorSecondary),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: _existingStores.map((store) {
+                                final isSelected = storeNameC.text.trim() == store.name;
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: ChoiceChip(
+                                    label: Text(store.name),
+                                    selected: isSelected,
+                                    selectedColor: colorPrimary,
+                                    labelStyle: GoogleFonts.workSans(
+                                      color: isSelected ? Colors.white : colorOnSurface,
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                      fontSize: 12,
+                                    ),
+                                    onSelected: (selected) {
+                                      if (selected) {
+                                        setState(() {
+                                          storeNameC.text = store.name;
+                                          storeLocationC.text = store.location;
+                                          selectedShift = store.defaultShift;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
 
                         // Nama Toko Field
                         Text(

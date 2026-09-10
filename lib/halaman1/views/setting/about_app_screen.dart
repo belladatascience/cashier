@@ -1,6 +1,7 @@
-import 'package:cashier/extension/navigator.dart';
+﻿import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/widgets/animated_cartoon_logo.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -26,6 +27,7 @@ class AboutAppScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
+    final fbUser = FirebaseAuth.instance.currentUser;
 
     return ValueListenableBuilder<String>(
       valueListenable: theme.themeModeNotifier,
@@ -44,9 +46,9 @@ class AboutAppScreen extends StatelessWidget {
                 onPressed: () => context.pop(),
               ),
               title: Text(
-                'BGA Co.',
+                'Tentang Aplikasi',
                 style: GoogleFonts.sourceSerif4(
-                  fontSize: 24,
+                  fontSize: 22,
                   fontWeight: FontWeight.w600,
                   color: theme.primaryColor,
                 ),
@@ -82,9 +84,9 @@ class AboutAppScreen extends StatelessWidget {
 
                         // Title: CASHIER
                         Text(
-                          'CASHIER',
+                          'CASHIER BGA CO.',
                           style: GoogleFonts.sourceSerif4(
-                            fontSize: 42,
+                            fontSize: 36,
                             fontWeight: FontWeight.bold,
                             letterSpacing: -0.5,
                             color: theme.primaryColor,
@@ -94,25 +96,145 @@ class AboutAppScreen extends StatelessWidget {
 
                         // Subtitle: Cashier System v1.2.4
                         Text(
-                          'CASHIER SYSTEM V1.2.4',
+                          'FIREBASE CLOUD POWERED • V1.2.4',
                           style: GoogleFonts.workSans(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
                             letterSpacing: 2.0,
-                            color: theme.onSurfaceVariant,
+                            color: theme.secondaryColor,
                           ),
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Designed for Bella Gita Asmara',
+                          'Designed for Bella Gita Asmara, S.E., M.M.',
                           style: GoogleFonts.workSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.5,
-                            color: theme.secondaryColor,
+                            color: theme.onSurfaceVariant,
                           ),
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 28),
+
+                        // Section: Firebase Cloud Status Card
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: theme.surfaceColor,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: theme.secondaryColor.withValues(alpha: 0.3),
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: theme.secondaryColor.withValues(alpha: 0.06),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: theme.secondaryColor.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      Icons.cloud_done_rounded,
+                                      color: theme.secondaryColor,
+                                      size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Status Firebase Cloud',
+                                          style: GoogleFonts.sourceSerif4(
+                                            fontSize: 17,
+                                            fontWeight: FontWeight.bold,
+                                            color: theme.primaryColor,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Sistem Terhubung ke Google Cloud Firebase',
+                                          style: GoogleFonts.workSans(
+                                            fontSize: 12,
+                                            color: theme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF2E7D32).withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: const Color(0xFF2E7D32).withValues(alpha: 0.4),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 7,
+                                          height: 7,
+                                          decoration: const BoxDecoration(
+                                            color: Color(0xFF2E7D32),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'Online',
+                                          style: GoogleFonts.workSans(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(0xFF2E7D32),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              const Divider(height: 1),
+                              const SizedBox(height: 12),
+
+                              _buildCloudServiceRow(
+                                theme: theme,
+                                icon: Icons.security_rounded,
+                                title: 'Firebase Authentication',
+                                subtitle: fbUser != null
+                                    ? 'Login: ${fbUser.email ?? "Kasir"}'
+                                    : 'Sesi Kasir Aktif',
+                              ),
+                              const SizedBox(height: 10),
+                              _buildCloudServiceRow(
+                                theme: theme,
+                                icon: Icons.storage_rounded,
+                                title: 'Cloud Firestore Database',
+                                subtitle: 'Sinkronisasi Realtime Staff, Shift & Transaksi',
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
 
                         // Section 1: Our Story Card
                         Container(
@@ -168,11 +290,11 @@ class AboutAppScreen extends StatelessWidget {
                                   children: [
                                     const TextSpan(
                                       text:
-                                          'This app was created from a simple belief: ',
+                                          'BGA Co. was created with a simple purpose: ',
                                     ),
                                     TextSpan(
                                       text:
-                                          'every business, no matter how small, deserves an easy way to manage its daily operations.',
+                                          'to make small business management easier and more efficient.',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: theme.primaryColor,
@@ -184,12 +306,27 @@ class AboutAppScreen extends StatelessWidget {
                               const SizedBox(height: 14),
 
                               // Paragraph 2
-                              Text(
-                                'I saw many small business owners working hard to grow their businesses while still recording transactions manually, calculating sales by hand, and sometimes struggling to understand their business performance.',
-                                style: GoogleFonts.workSans(
-                                  fontSize: 15,
-                                  height: 1.6,
-                                  color: theme.onSurfaceVariant,
+                              RichText(
+                                text: TextSpan(
+                                  style: GoogleFonts.workSans(
+                                    fontSize: 15,
+                                    height: 1.6,
+                                    color: theme.onSurfaceVariant,
+                                  ),
+                                  children: [
+                                    const TextSpan(
+                                      text:
+                                          'Through years of experience helping entrepreneurs manage their daily operations, I realized that ',
+                                    ),
+                                    TextSpan(
+                                      text:
+                                          'many small businesses still struggle with manual recording, complex inventory tracking, and time-consuming cashier processes.',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: theme.primaryColor,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                               const SizedBox(height: 14),
@@ -205,11 +342,11 @@ class AboutAppScreen extends StatelessWidget {
                                   children: [
                                     const TextSpan(
                                       text:
-                                          'That inspired me to create this cashier app as a simple digital companion for small business owners—helping them ',
+                                          'This app was designed from the ground up to be ',
                                     ),
                                     TextSpan(
                                       text:
-                                          'record transactions, calculate sales, and manage their businesses more easily, quickly, and efficiently.',
+                                          'fast, intuitive, and practical for daily business activities.',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: theme.primaryColor,
@@ -380,6 +517,42 @@ class AboutAppScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildCloudServiceRow({
+    required AppTheme theme,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: theme.secondaryColor),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.workSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: theme.primaryColor,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: GoogleFonts.workSans(
+                  fontSize: 11.5,
+                  color: theme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

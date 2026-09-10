@@ -1,6 +1,8 @@
-import 'package:cashier/extension/navigator.dart';
+﻿import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -14,7 +16,7 @@ class NotificationSettingsScreen extends StatefulWidget {
 
 class _NotificationSettingsScreenState
     extends State<NotificationSettingsScreen> {
-  // Notification toggle states matching HTML defaults
+  // Notification toggle states
   bool _newOrders = true;
   bool _orderCancellations = true;
   bool _specialRequests = false;
@@ -25,6 +27,61 @@ class _NotificationSettingsScreenState
 
   bool _securityAlerts = true;
   bool _appUpdates = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationSettingsFromFirebase();
+  }
+
+  Future<void> _loadNotificationSettingsFromFirebase() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists && doc.data() != null) {
+        final notifData = doc.data()!['notifications'] as Map<String, dynamic>?;
+        if (notifData != null && mounted) {
+          setState(() {
+            _newOrders = notifData['newOrders'] ?? _newOrders;
+            _orderCancellations = notifData['orderCancellations'] ?? _orderCancellations;
+            _specialRequests = notifData['specialRequests'] ?? _specialRequests;
+            _scheduleChanges = notifData['scheduleChanges'] ?? _scheduleChanges;
+            _shiftReminders = notifData['shiftReminders'] ?? _shiftReminders;
+            _staffAnnouncements = notifData['staffAnnouncements'] ?? _staffAnnouncements;
+            _securityAlerts = notifData['securityAlerts'] ?? _securityAlerts;
+            _appUpdates = notifData['appUpdates'] ?? _appUpdates;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Firebase load notification settings notice: $e');
+    }
+  }
+
+  Future<void> _syncNotificationSettingsToFirebase() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'notifications': {
+          'newOrders': _newOrders,
+          'orderCancellations': _orderCancellations,
+          'specialRequests': _specialRequests,
+          'scheduleChanges': _scheduleChanges,
+          'shiftReminders': _shiftReminders,
+          'staffAnnouncements': _staffAnnouncements,
+          'securityAlerts': _securityAlerts,
+          'appUpdates': _appUpdates,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Firebase sync notification settings error: $e');
+    }
+  }
 
   void _showSnackBar(String title, bool isEnabled) {
     final theme = AppTheme.instance;
@@ -98,7 +155,7 @@ class _NotificationSettingsScreenState
                 activeTrackColor: theme.secondaryColor.withValues(alpha: 0.3),
                 activeThumbColor: theme.secondaryColor,
                 inactiveThumbColor: Colors.white,
-                inactiveTrackColor: theme.surfaceVariant,
+                inactiveTrackColor: theme.dividerColor,
                 onChanged: onChanged,
               ),
             ],
@@ -191,6 +248,7 @@ class _NotificationSettingsScreenState
                               value: _newOrders,
                               onChanged: (val) {
                                 setState(() => _newOrders = val);
+                                _syncNotificationSettingsToFirebase();
                                 _showSnackBar(
                                   loc.getText('item_new_orders'),
                                   val,
@@ -202,6 +260,7 @@ class _NotificationSettingsScreenState
                               value: _orderCancellations,
                               onChanged: (val) {
                                 setState(() => _orderCancellations = val);
+                                _syncNotificationSettingsToFirebase();
                                 _showSnackBar(
                                   loc.getText('item_order_cancellations'),
                                   val,
@@ -214,6 +273,7 @@ class _NotificationSettingsScreenState
                               showDivider: false,
                               onChanged: (val) {
                                 setState(() => _specialRequests = val);
+                                _syncNotificationSettingsToFirebase();
                                 _showSnackBar(
                                   loc.getText('item_special_requests'),
                                   val,
@@ -231,6 +291,7 @@ class _NotificationSettingsScreenState
                               value: _scheduleChanges,
                               onChanged: (val) {
                                 setState(() => _scheduleChanges = val);
+                                _syncNotificationSettingsToFirebase();
                                 _showSnackBar(
                                   loc.getText('item_schedule_changes'),
                                   val,
@@ -242,6 +303,7 @@ class _NotificationSettingsScreenState
                               value: _shiftReminders,
                               onChanged: (val) {
                                 setState(() => _shiftReminders = val);
+                                _syncNotificationSettingsToFirebase();
                                 _showSnackBar(
                                   loc.getText('item_shift_reminders'),
                                   val,
@@ -254,6 +316,7 @@ class _NotificationSettingsScreenState
                               showDivider: false,
                               onChanged: (val) {
                                 setState(() => _staffAnnouncements = val);
+                                _syncNotificationSettingsToFirebase();
                                 _showSnackBar(
                                   loc.getText('item_staff_announcements'),
                                   val,
@@ -271,6 +334,7 @@ class _NotificationSettingsScreenState
                               value: _securityAlerts,
                               onChanged: (val) {
                                 setState(() => _securityAlerts = val);
+                                _syncNotificationSettingsToFirebase();
                                 _showSnackBar(
                                   loc.getText('item_security_alerts'),
                                   val,
@@ -283,6 +347,7 @@ class _NotificationSettingsScreenState
                               showDivider: false,
                               onChanged: (val) {
                                 setState(() => _appUpdates = val);
+                                _syncNotificationSettingsToFirebase();
                                 _showSnackBar(
                                   loc.getText('item_app_updates'),
                                   val,

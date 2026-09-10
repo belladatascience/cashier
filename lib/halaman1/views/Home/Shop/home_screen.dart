@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:cashier/extension/navigator.dart';
+import 'package:cashier/halaman1/services/firebase_auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/models/transaction_model.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
@@ -49,17 +52,19 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime? _selectedTransactionDate;
 
   List<Map<String, dynamic>> _transactionHistory = [];
+  StreamSubscription<List<TransactionModel>>? _txSubscription;
 
   @override
   void initState() {
     super.initState();
-    _loadTransactionsFromDatabase();
+    _subscribeTransactions();
     MenuDataStore.instance.menuDataNotifier.addListener(_onMenuDataChanged);
     MenuDataStore.instance.categoriesNotifier.addListener(_onMenuDataChanged);
   }
 
   @override
   void dispose() {
+    _txSubscription?.cancel();
     MenuDataStore.instance.menuDataNotifier.removeListener(_onMenuDataChanged);
     MenuDataStore.instance.categoriesNotifier.removeListener(
       _onMenuDataChanged,
@@ -71,6 +76,19 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) {
       setState(() {});
     }
+  }
+
+  void _subscribeTransactions() {
+    _txSubscription = DataBaseHelper().streamTransactions().listen((txList) {
+      if (mounted) {
+        setState(() {
+          _transactionHistory = txList.map((tx) => tx.toLegacyMap()).toList();
+        });
+      }
+    }, onError: (e) {
+      debugPrint('Error streaming transactions from Firestore: $e');
+      _loadTransactionsFromDatabase();
+    });
   }
 
   Future<void> _loadTransactionsFromDatabase() async {
@@ -85,296 +103,6 @@ class _HomeScreenState extends State<HomeScreen> {
       debugPrint('Error loading transactions: $e');
     }
   }
-
-  final List<Map<String, dynamic>> _drinkMenuItems = [
-    {
-      'name': 'Ice Latte',
-      'price': 28000,
-      'priceText': 'Rp 28.000',
-      'desc':
-          'Es kopi latte segar dengan perpaduan espresso kaya rasa dan susu UHT dingin yang creamy.',
-      'image': 'assets/images/ice latte.jpg',
-      'category': 'Drink',
-    },
-    {
-      'name': 'Ice Americano',
-      'price': 24000,
-      'priceText': 'Rp 24.000',
-      'desc':
-          'Sajian es kopi hitam espresso murni dingin yang segar dan mantap.',
-      'image': 'assets/images/drink_latte.jpg',
-      'category': 'Drink',
-    },
-    {
-      'name': 'Ice Signature Chocolate',
-      'price': 35000,
-      'priceText': 'Rp 35.000',
-      'desc':
-          'Minuman es cokelat pekat premium dengan racikan susu segar manis lezat.',
-      'image': 'assets/images/Ice Chocolate.jpg',
-      'category': 'Drink',
-    },
-    {
-      'name': 'Ice Tuffenut Latte',
-      'price': 32000,
-      'priceText': 'Rp 32.000',
-      'desc':
-          'Es latte aroma toffee nut manis gurih dengan topping foam susu yang lembut.',
-      'image': 'assets/images/drink_latte.jpg',
-      'category': 'Drink',
-    },
-    {
-      'name': 'Ice Thai Tea',
-      'price': 22000,
-      'priceText': 'Rp 22.000',
-      'desc': 'Teh segar disajikan dingin manis creamy khas sajian thai tea.',
-      'image': 'assets/images/drink_lemontea.jpg',
-      'category': 'Drink',
-    },
-    {
-      'name': 'Ice Caramel Machiato',
-      'price': 32000,
-      'priceText': 'Rp 32.000',
-      'desc':
-          'Kopi susu dingin dengan syrup vanilla, foam lembut, dan siraman saus karamel manis di atasnya.',
-      'image': 'assets/images/Ice Caramel Machiato.jpg',
-      'category': 'Drink',
-    },
-    {
-      'name': 'Ice Tea',
-      'price': 15000,
-      'priceText': 'Rp 15.000',
-      'desc':
-          'Es teh manis dingin segar perasan lemon pilihan untuk penyegar dahaga.',
-      'image': 'assets/images/drink_lemontea.jpg',
-      'category': 'Drink',
-    },
-    {
-      'name': 'Ice Creamy Machiato',
-      'price': 30000,
-      'priceText': 'Rp 30.000',
-      'desc':
-          'Kopi macchiato dingin ekstra creamy dengan lapisan espresso dan susu lezat.',
-      'image': 'assets/images/drink_latte.jpg',
-      'category': 'Drink',
-    },
-    {
-      'name': 'Ice Matcha',
-      'price': 30000,
-      'priceText': 'Rp 30.000',
-      'desc':
-          'Seduhan teh hijau matcha jepang asli warna hijau segar dipadukan susu creamy dingin.',
-      'image': 'assets/images/drink_matcha.jpg',
-      'category': 'Drink',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _foodMenuItems = [
-    {
-      'name': 'Sourdough Loaf',
-      'price': 38000,
-      'priceText': 'Rp 38.000',
-      'desc':
-          'Roti artisan sourdough klasik berkulit renyah garing dengan bagian dalam yang empuk.',
-      'image': 'assets/images/food_sourdough.jpg',
-      'category': 'Food',
-    },
-    {
-      'name': 'Butter Croissant',
-      'price': 25000,
-      'priceText': 'Rp 25.000',
-      'desc':
-          'Pastry croissant khas Prancis yang renyah berlayer dengan aroma mentega gurih.',
-      'image': 'assets/images/food_croissant.jpg',
-      'category': 'Food',
-    },
-    {
-      'name': 'Avocado Toast',
-      'price': 45000,
-      'priceText': 'Rp 45.000',
-      'desc':
-          'Roti panggang dengan olesan alpukat segar, irisan buah, dan taburan bumbu halus.',
-      'image': 'assets/images/food_avocado.jpg',
-      'category': 'Food',
-    },
-    {
-      'name': 'Berry Tart',
-      'price': 35000,
-      'priceText': 'Rp 35.000',
-      'desc':
-          'Kue tart manis dengan topping buah beri segar dan krim custard lembut.',
-      'image': 'assets/images/food_tart.jpg',
-      'category': 'Food',
-    },
-    {
-      'name': 'Nasi Goreng Special',
-      'price': 35000,
-      'priceText': 'Rp 35.000',
-      'desc':
-          'Nasi goreng rempah khas cafe disajikan dengan telur ceplok, sate ayam, dan kerupuk.',
-      'image': 'assets/images/food_nasigoreng.jpg',
-      'category': 'Food',
-    },
-    {
-      'name': 'Spaghetti Carbonara',
-      'price': 42000,
-      'priceText': 'Rp 42.000',
-      'desc':
-          'Pasta spaghetti al dente dengan saus keju creamy, smoked beef, dan taburan keju parmesan.',
-      'image': 'assets/images/food_carbonara.jpg',
-      'category': 'Food',
-    },
-    {
-      'name': 'Chicken Club Sandwich',
-      'price': 38000,
-      'priceText': 'Rp 38.000',
-      'desc':
-          'Sandwich lapis tiga isi daging ayam panggang, keju cheddar, telur, dan kentang goreng.',
-      'image': 'assets/images/food_sandwich.jpg',
-      'category': 'Food',
-    },
-    {
-      'name': 'Beef Burger Deluxe',
-      'price': 48000,
-      'priceText': 'Rp 48.000',
-      'desc':
-          'Burger patty sapi juicy dengan keju leleh, caramelized onion, dan saus BBQ spesial.',
-      'image': 'assets/images/food_burger.jpg',
-      'category': 'Food',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _snackMenuItems = [
-    {
-      'name': 'Choco Chip Cookie',
-      'price': 18000,
-      'priceText': 'Rp 18.000',
-      'desc':
-          'Kue kering cokelat choco chip panggang renyah manis dengan potongan cokelat belgia.',
-      'image': 'assets/images/snack_cookie.jpg',
-      'category': 'Snack',
-    },
-    {
-      'name': 'Almond Muffin',
-      'price': 22000,
-      'priceText': 'Rp 22.000',
-      'desc':
-          'Muffin lembut hangat berbahan keju/almond dengan topping taburan kacang renyah.',
-      'image': 'assets/images/snack_muffin.jpg',
-      'category': 'Snack',
-    },
-    {
-      'name': 'Pisang Goreng',
-      'price': 15000,
-      'priceText': 'Rp 15.000',
-      'desc':
-          'Camilan pisang goreng crispy warna keemasan hangat renyah di luar, manis lembut di dalam.',
-      'image': 'assets/images/snack_pisanggoreng.jpg',
-      'category': 'Snack',
-    },
-    {
-      'name': 'Kentang Goreng',
-      'price': 18000,
-      'priceText': 'Rp 18.000',
-      'desc':
-          'Kentang goreng french fries potongan memanjang renyah gurih hangat disajikan dengan saus cocolan.',
-      'image': 'assets/images/snack_kentang.jpg',
-      'category': 'Snack',
-    },
-    {
-      'name': 'Jamur Goreng',
-      'price': 16000,
-      'priceText': 'Rp 16.000',
-      'desc':
-          'Jamur tiram/kancing crispy goreng tepung roti bumbu gurih yang renyah dan nagih.',
-      'image': 'assets/images/snack_jamur.jpg',
-      'category': 'Snack',
-    },
-    {
-      'name': 'Kebab',
-      'price': 22000,
-      'priceText': 'Rp 22.000',
-      'desc':
-          'Kebab gulung tortilla isi olahan daging sapi cincang, sayuran segar, dan saus spesial.',
-      'image': 'assets/images/snack_kebab.jpg',
-      'category': 'Snack',
-    },
-    {
-      'name': 'Bakwan Goreng Udang',
-      'price': 15000,
-      'priceText': 'Rp 15.000',
-      'desc':
-          'Gorengan bakwan sayur gurih renyah dengan topping udang utuh segar dan rempah.',
-      'image': 'assets/images/snack_bakwan.jpg',
-      'category': 'Snack',
-    },
-    {
-      'name': 'Cimol Keju',
-      'price': 14000,
-      'priceText': 'Rp 14.000',
-      'desc':
-          'Bola-bola cimol tapioka kenyal renyah dengan isian keju lumer dan taburan bumbu pedas gurih.',
-      'image': 'assets/images/snack_cimol.png',
-      'category': 'Snack',
-    },
-    {
-      'name': 'Donat Kentang',
-      'price': 12000,
-      'priceText': 'Rp 12.000',
-      'desc':
-          'Donat kentang empuk berbentuk cincin manis lezat dengan taburan gula halus putih.',
-      'image': 'assets/images/snack_donatkentang.jpg',
-      'category': 'Snack',
-    },
-    {
-      'name': 'Tahu Cabe Garam',
-      'price': 16000,
-      'priceText': 'Rp 16.000',
-      'desc':
-          'Potongan tahu crispy goreng bumbu pedas gurih taburan cabai rawit dan bawang garam melimpah.',
-      'image': 'assets/images/snack_tahucabegaram.jpg',
-      'category': 'Snack',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _newMenuItems = [
-    {
-      'name': 'Sparkling Citrus Water',
-      'price': 25000,
-      'priceText': 'Rp 25.000',
-      'desc': 'Crisp sparkling water served with fresh lime and lemon slices.',
-      'image': 'assets/images/drink_citrus.jpg',
-      'category': 'New',
-    },
-    {
-      'name': 'Artisan Matcha Latte',
-      'price': 35000,
-      'priceText': 'Rp 35.000',
-      'desc': 'Premium ceremonial grade matcha whisked with creamy milk.',
-      'image': 'assets/images/drink_matcha.jpg',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _dessertMenuItems = [
-    {
-      'name': 'Berry Cheesecake',
-      'price': 28000,
-      'priceText': 'Rp 28.000',
-      'desc':
-          'Kue keju cheesecake lembut ala New York disiram selai compote buah beri manis segar.',
-      'image': 'assets/images/dessert_cheesecake.jpg',
-      'category': 'Dessert',
-    },
-    {
-      'name': 'Tiramisu Cup',
-      'price': 30000,
-      'priceText': 'Rp 30.000',
-      'desc':
-          'Dessert tiramisu khas Italia dalam cup dengan biskuit ladyfinger siram espresso dan keju mascarpone.',
-      'image': 'assets/images/dessert_tiramisu.jpg',
-      'category': 'Dessert',
-    },
-  ];
 
   List<String> get _shopCategoryNames => MenuDataStore.instance.categories;
   Map<String, List<Map<String, dynamic>>> get _shopCategoryDataMap =>
@@ -421,9 +149,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ==================== DISCOVER SECURITY AUTH DIALOG ====================
   void _showDiscoverAuthDialog() {
-    final idController = TextEditingController();
+    final activeFbUser = FirebaseAuth.instance.currentUser;
+    final activeUserData = UserDataStore.instance.userDataNotifier.value;
+    final defaultId = activeFbUser?.email ??
+        activeUserData['email'] ??
+        activeUserData['cashierId'] ??
+        '';
+
+    final idController = TextEditingController(text: defaultId.toString());
     final passController = TextEditingController();
     bool isObscure = true;
+    bool isVerifying = false;
     String? errorMessage;
 
     showDialog(
@@ -523,47 +259,62 @@ class _HomeScreenState extends State<HomeScreen> {
                       // ID Akun Input Field
                       TextField(
                         controller: idController,
-                        style: GoogleFonts.workSans(
-                          fontSize: 14,
-                          color: colorPrimary,
-                        ),
+                        enabled: !isVerifying,
                         decoration: InputDecoration(
                           labelText: 'ID Akun / Email Kasir',
-                          hintText: 'Contoh: KASIR01',
+                          hintText: 'Contoh: 188889 atau kasir@bgaco.com',
                           prefixIcon: Icon(
                             Icons.person_outline,
-                            color: colorPrimary,
+                            color: colorSecondary,
                           ),
                           filled: true,
                           fillColor: colorSurfaceContainerLow,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
                           ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: colorOutlineVariant.withValues(alpha: 0.5),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: colorSecondary,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                        style: GoogleFonts.workSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 12),
 
                       // Password Input Field
                       TextField(
                         controller: passController,
                         obscureText: isObscure,
-                        style: GoogleFonts.workSans(
-                          fontSize: 14,
-                          color: colorPrimary,
-                        ),
+                        enabled: !isVerifying,
                         decoration: InputDecoration(
                           labelText: 'Password',
-                          hintText: 'Masukkan password akun',
+                          hintText: 'Masukkan password Anda',
                           prefixIcon: Icon(
                             Icons.lock_outline,
-                            color: colorPrimary,
+                            color: colorSecondary,
                           ),
                           suffixIcon: IconButton(
                             icon: Icon(
                               isObscure
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
                               color: colorOnSurfaceVariant,
                             ),
                             onPressed: () {
@@ -574,26 +325,47 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           filled: true,
                           fillColor: colorSurfaceContainerLow,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
                           ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: colorOutlineVariant.withValues(alpha: 0.5),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: colorSecondary,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                        style: GoogleFonts.workSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
 
-                      // Quick Hint Pill
+                      // Default Hint Card
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
+                          horizontal: 12,
+                          vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: colorSecondary.withValues(alpha: 0.1),
+                          color: colorSecondaryContainer.withValues(alpha: 0.4),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
                               Icons.info_outline,
@@ -603,7 +375,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(width: 6),
                             Flexible(
                               child: Text(
-                                'Default: KASIR01 • Pass: 123',
+                                'Gunakan Password Akun Firebase Anda',
                                 style: GoogleFonts.workSans(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
@@ -624,7 +396,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => Navigator.pop(dialogCtx),
+                        onPressed: isVerifying ? null : () => Navigator.pop(dialogCtx),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           side: BorderSide(color: colorOutlineVariant),
@@ -643,65 +415,124 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          final inputId = idController.text.trim();
-                          final inputPass = passController.text;
+                      child: ElevatedButton(
+                        onPressed: isVerifying
+                            ? null
+                            : () async {
+                                final inputId = idController.text.trim();
+                                final inputPass = passController.text;
 
-                          if (inputId.isEmpty || inputPass.isEmpty) {
-                            setDialogState(() {
-                              errorMessage =
-                                  'ID Akun dan Password wajib diisi!';
-                            });
-                            return;
-                          }
+                                if (inputId.isEmpty || inputPass.isEmpty) {
+                                  setDialogState(() {
+                                    errorMessage = 'ID Akun dan Password wajib diisi!';
+                                  });
+                                  return;
+                                }
 
-                          // Check SQLite Database
-                          final dbUser = await DataBaseHelper().loginUser(
-                            inputId,
-                            inputPass,
-                          );
+                                setDialogState(() {
+                                  isVerifying = true;
+                                  errorMessage = null;
+                                });
 
-                          final isFallbackValid =
-                              (inputId.toLowerCase() == 'kasir01' &&
-                                  inputPass == '123') ||
-                              (inputId.toLowerCase() == 'admin' &&
-                                  (inputPass == '123' ||
-                                      inputPass == 'admin123')) ||
-                              (inputId.toLowerCase() == 'bella' &&
-                                  (inputPass == '123' ||
-                                      inputPass == '123456'));
+                                bool isAuthSuccess = false;
 
-                          if (dbUser != null || isFallbackValid) {
-                            Navigator.pop(dialogCtx);
-                            setState(() {
-                              _isDiscoverUnlocked = true;
-                              _currentBottomTab = 0;
-                            });
-                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Akses Menu Discover berhasil dibuka! 🔓',
-                                  style: GoogleFonts.workSans(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                backgroundColor: const Color(0xFF166534),
-                                behavior: SnackBarBehavior.floating,
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                          } else {
-                            setDialogState(() {
-                              errorMessage =
-                                  'ID Akun atau Password salah! Akses ditolak.';
-                            });
-                          }
-                        },
-                        icon: const Icon(Icons.lock_open, size: 16),
-                        label: const Text('Buka Kunci'),
+                                // 1. Verifikasi langsung ke Firebase Authentication
+                                try {
+                                  final fbResult = await FirebaseAuthService.instance.loginUser(
+                                    identifier: inputId,
+                                    password: inputPass,
+                                  );
+                                  if (fbResult['success'] == true) {
+                                    isAuthSuccess = true;
+                                  }
+                                } catch (e) {
+                                  debugPrint('Discover Firebase Auth check error: $e');
+                                }
+
+                                // 2. Verifikasi dengan Sesi Firebase Aktif saat ini
+                                if (!isAuthSuccess && activeFbUser != null) {
+                                  final emailMatch = activeFbUser.email?.toLowerCase() == inputId.toLowerCase();
+                                  final cashierIdMatch = activeUserData['cashierId']?.toString() == inputId;
+                                  final emailStoredMatch = activeUserData['email']?.toString().toLowerCase() == inputId.toLowerCase();
+
+                                  if (emailMatch || cashierIdMatch || emailStoredMatch) {
+                                    try {
+                                      if (activeFbUser.email != null) {
+                                        final cred = EmailAuthProvider.credential(
+                                          email: activeFbUser.email!,
+                                          password: inputPass,
+                                        );
+                                        await activeFbUser.reauthenticateWithCredential(cred);
+                                        isAuthSuccess = true;
+                                      }
+                                    } catch (_) {}
+                                  }
+                                }
+
+                                // 3. Verifikasi dengan SQLite Database
+                                if (!isAuthSuccess) {
+                                  try {
+                                    final dbUser = await DataBaseHelper().loginUser(
+                                      inputId,
+                                      inputPass,
+                                    );
+                                    if (dbUser != null) {
+                                      isAuthSuccess = true;
+                                    }
+                                  } catch (_) {}
+                                }
+
+                                // 4. Verifikasi dengan Local UserDataStore
+                                if (!isAuthSuccess) {
+                                  final storedPass = activeUserData['password'];
+                                  final storedEmail = activeUserData['email'];
+                                  final storedCashierId = activeUserData['cashierId'];
+                                  if (storedPass != null && storedPass == inputPass) {
+                                    if (storedEmail == inputId || storedCashierId == inputId || inputId == '188889') {
+                                      isAuthSuccess = true;
+                                    }
+                                  }
+                                }
+
+                                // 5. Fallback Demo Default Credentials
+                                if (!isAuthSuccess) {
+                                  final isFallbackValid =
+                                      (inputId.toLowerCase() == 'kasir01' && inputPass == '123') ||
+                                      (inputId.toLowerCase() == 'admin' && (inputPass == '123' || inputPass == 'admin123')) ||
+                                      (inputId.toLowerCase() == 'bella' && (inputPass == '123' || inputPass == '123456'));
+                                  if (isFallbackValid) {
+                                    isAuthSuccess = true;
+                                  }
+                                }
+
+                                if (isAuthSuccess) {
+                                  Navigator.pop(dialogCtx);
+                                  setState(() {
+                                    _isDiscoverUnlocked = true;
+                                    _currentBottomTab = 0;
+                                  });
+                                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Akses Menu Discover berhasil dibuka! 🔓',
+                                        style: GoogleFonts.workSans(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      backgroundColor: const Color(0xFF166534),
+                                      behavior: SnackBarBehavior.floating,
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                } else {
+                                  setDialogState(() {
+                                    isVerifying = false;
+                                    errorMessage = 'ID Akun atau Password salah! Akses ditolak.';
+                                  });
+                                }
+                              },
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           backgroundColor: colorPrimary,
@@ -711,6 +542,23 @@ class _HomeScreenState extends State<HomeScreen> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
+                        child: isVerifying
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(Icons.lock_open, size: 16),
+                                  SizedBox(width: 6),
+                                  Text('Buka Kunci'),
+                                ],
+                              ),
                       ),
                     ),
                   ],
@@ -915,126 +763,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _loadTransactionsFromDatabase();
     });
   }
-
-  void _processCartPayment() {
-    final paidAmount = _cartTotalAmount;
-    _recordTransactionFromCart();
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: colorSurfaceContainerLowest,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE8F5E9),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.check_circle_rounded,
-                  color: Color(0xFF2E7D32),
-                  size: 48,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Pembayaran Berhasil! ☕',
-                style: GoogleFonts.sourceSerif4(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: colorPrimary,
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Transaksi POS kasir sebesar ${_formatCurrency(paidAmount)} telah berhasil diproses.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.workSans(
-                  fontSize: 14,
-                  color: colorOnSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: colorSurfaceContainerLow,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'No. Struk:',
-                      style: GoogleFonts.workSans(
-                        fontSize: 12,
-                        color: colorOnSurfaceVariant,
-                      ),
-                    ),
-                    Text(
-                      '#POS-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
-                      style: GoogleFonts.workSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: colorPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton.icon(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Struk pembayaran berhasil dicetak!'),
-                    backgroundColor: colorSecondary,
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-                setState(() {
-                  _cartItems.clear();
-                  _currentBottomTab = 3;
-                });
-              },
-              icon: const Icon(Icons.print_outlined),
-              label: const Text('Cetak Struk'),
-              style: TextButton.styleFrom(foregroundColor: colorSecondary),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                setState(() {
-                  _cartItems.clear();
-                  _currentBottomTab = 3;
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colorPrimary,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Selesai'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  static const String _defaultBannerUrl =
-      'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=600&q=80';
 
   Future<void> _pickBannerImage(ImageSource source) async {
     try {
@@ -1245,19 +973,6 @@ class _HomeScreenState extends State<HomeScreen> {
       defaultAssetPath: 'assets/animation/cafe.json',
       onChangeRequested: _showChangeBannerOptions,
       showEditButton: true,
-    );
-  }
-
-  Widget _buildBannerFallback() {
-    return Container(
-      color: colorSecondaryContainer,
-      child: Center(
-        child: Icon(
-          Icons.storefront,
-          size: 48,
-          color: colorOnSecondaryContainer,
-        ),
-      ),
     );
   }
 
@@ -1898,7 +1613,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final key = _shopCategoryNames[_selectedShopCategoryTab];
       currentList = _shopCategoryDataMap[key] ?? [];
     } else {
-      currentList = _foodMenuItems;
+      currentList = [];
     }
 
     return SingleChildScrollView(
@@ -2247,188 +1962,6 @@ class _HomeScreenState extends State<HomeScreen> {
       isSelected: isSelected,
       onTap: onTap,
       emoji: emoji,
-    );
-  }
-
-  Widget _buildStatCard({
-    required IconData icon,
-    required String title,
-    required String value,
-    required Color bgColor,
-    required Color textColor,
-    required Color iconBgColor,
-    required Color iconColor,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-        border: bgColor == colorSurfaceContainerLowest
-            ? Border.all(color: colorOutlineVariant.withValues(alpha: 0.4))
-            : null,
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: iconBgColor,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 20, color: iconColor),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.workSans(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.0,
-              color: textColor.withValues(alpha: 0.75),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.sourceSerif4(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: colorSurfaceContainerLowest,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: colorPrimary.withValues(alpha: 0.08)),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 6,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 26, color: colorSecondary),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.sourceSerif4(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: colorPrimary,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.workSans(
-                fontSize: 11,
-                color: colorOnSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTransactionRow(String orderId, String items, String price) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: colorSurfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorOutlineVariant.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: colorSurfaceContainerLow,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.receipt, size: 20, color: colorSecondary),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        orderId,
-                        style: GoogleFonts.workSans(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: colorPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        items,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.workSans(
-                          fontSize: 13,
-                          color: colorOnSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            price,
-            style: GoogleFonts.workSans(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: colorSecondary,
-            ),
-          ),
-        ],
-      ),
     );
   }
 

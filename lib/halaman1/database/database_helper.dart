@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cashier/halaman1/models/category_model.dart';
 import 'package:cashier/halaman1/models/menu_item_model.dart';
 import 'package:cashier/halaman1/models/shift_model.dart';
@@ -5,193 +8,98 @@ import 'package:cashier/halaman1/models/staff_model.dart';
 import 'package:cashier/halaman1/models/store_model.dart';
 import 'package:cashier/halaman1/models/transaction_model.dart';
 import 'package:cashier/halaman1/models/user_login.dart';
-import 'package:path/path.dart';
-import 'package:sqflite/sqflite.dart';
 
 class DataBaseHelper {
   static final DataBaseHelper _instance = DataBaseHelper._internal();
   factory DataBaseHelper() => _instance;
   DataBaseHelper._internal();
 
-  static Database? _database;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initDB();
-    return _database!;
+  CollectionReference get _usersCol => _firestore.collection('users');
+  CollectionReference get _sessionsCol => _firestore.collection('active_session');
+  CollectionReference get _storesCol => _firestore.collection('stores');
+  CollectionReference get _categoriesCol => _firestore.collection('categories');
+  CollectionReference get _menuItemsCol => _firestore.collection('menu_items');
+  CollectionReference get _staffCol => _firestore.collection('staff');
+  CollectionReference get _shiftsCol => _firestore.collection('shift_roster');
+  CollectionReference get _transactionsCol => _firestore.collection('transactions');
+
+  bool _isSeeded = false;
+
+  /// Helper to convert bytes to base64 for Firestore storage
+  static String? _bytesToBase64(Uint8List? bytes) {
+    if (bytes == null || bytes.isEmpty) return null;
+    return base64Encode(bytes);
   }
 
-  Future<Database> _initDB() async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'ppkd_cashier.db');
+  /// Helper to convert dynamic data back to Uint8List
+  static Uint8List? _dynamicToBytes(dynamic value) {
+    if (value == null) return null;
+    if (value is Uint8List) return value;
+    if (value is Blob) return value.bytes;
+    if (value is String && value.isNotEmpty) {
+      try {
+        return base64Decode(value);
+      } catch (_) {
+        return null;
+      }
+    }
+    if (value is List) {
+      return Uint8List.fromList(value.cast<int>());
+    }
+    return null;
+  }
 
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: (db, version) async {
-        await _createTables(db);
-        await _seedInitialData(db);
+  /// Ensure initial default data exists in Firestore
+  Future<void> _ensureInitialData() async {
+    if (_isSeeded) return;
+    try {
+      final snap = await _categoriesCol.limit(1).get();
+      if (snap.docs.isEmpty) {
+        await _seedInitialData();
+      }
+      _isSeeded = true;
+    } catch (e) {
+      debugPrint('Firestore seed check error (offline or rules): $e');
+    }
+  }
+
+  Future<void> _seedInitialData() async {
+    final batch = _firestore.batch();
+
+    // 1. Default Users
+    final users = [
+      {
+        'id': 1,
+        'email': 'bella.gita@bgaco.com',
+        'password': '123',
+        'nama': 'Bella Gita Asmara',
+        'nomor_hp': '087888848000',
+        'asalKota': 'Jakarta',
+        'cashier_id': 'BG188889',
+        'role': 'Senior Barista',
       },
-    );
-  }
+      {
+        'id': 2,
+        'email': 'KASIR01',
+        'password': '123',
+        'nama': 'Kasir Utama BGA',
+        'nomor_hp': '08123456789',
+        'asalKota': 'Jakarta',
+        'cashier_id': 'KASIR01',
+        'role': 'Head Cashier',
+      },
+    ];
+    for (final u in users) {
+      final doc = _usersCol.doc('user_${u['id']}');
+      batch.set(doc, u);
+    }
 
-  Future<void> _createTables(Database db) async {
-    // 1. Users
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS users(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT UNIQUE,
-        password TEXT,
-        nomor_hp TEXT,
-        nama TEXT,
-        asalKota TEXT,
-        cashier_id TEXT,
-        role TEXT,
-        avatar_bytes BLOB
-      )
-    ''');
-
-    // 2. Active Session
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS active_session(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        user_name TEXT,
-        email TEXT,
-        cashier_id TEXT,
-        role TEXT,
-        store_name TEXT,
-        store_location TEXT,
-        shift TEXT,
-        phone TEXT,
-        avatar_bytes BLOB,
-        login_time TEXT
-      )
-    ''');
-
-    // 3. Stores / Toko
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS stores(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE,
-        location TEXT,
-        default_shift TEXT
-      )
-    ''');
-
-    // 4. Staff / Karyawan
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS staff(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        role TEXT,
-        phone TEXT,
-        email TEXT,
-        status TEXT,
-        initials TEXT,
-        avatar_url TEXT,
-        avatar_bytes BLOB,
-        store_id INTEGER
-      )
-    ''');
-
-    // 5. Shift Roster
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS shift_roster(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        staff_id INTEGER,
-        staff_name TEXT,
-        role TEXT,
-        shift_type TEXT,
-        date_key TEXT,
-        status TEXT,
-        check_in_time TEXT,
-        store_name TEXT,
-        avatar_url TEXT,
-        initials TEXT
-      )
-    ''');
-
-    // 6. Categories
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS categories(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE,
-        sort_order INTEGER
-      )
-    ''');
-
-    // 7. Menu Items
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS menu_items(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        price INTEGER,
-        price_text TEXT,
-        desc TEXT,
-        image_path TEXT,
-        image_bytes BLOB,
-        category TEXT,
-        is_active INTEGER DEFAULT 1
-      )
-    ''');
-
-    // 8. Transactions
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS transactions(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        invoice_number TEXT UNIQUE,
-        date_time TEXT,
-        cashier_name TEXT,
-        payment_method TEXT,
-        customer_name TEXT,
-        table_number TEXT,
-        subtotal INTEGER,
-        tax INTEGER,
-        total INTEGER,
-        status TEXT,
-        store_name TEXT
-      )
-    ''');
-
-    // 9. Transaction Items
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS transaction_items(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        transaction_id INTEGER,
-        invoice_number TEXT,
-        menu_name TEXT,
-        qty INTEGER,
-        price INTEGER,
-        subtotal INTEGER
-      )
-    ''');
-  }
-
-  Future<void> _seedInitialData(Database db) async {
-    // Default Users
-    await db.insert('users', {
-      'email': 'bella.gita@bgaco.com',
-      'password': '123',
-      'nama': 'Bella Gita Asmara',
-      'nomor_hp': '087888848000',
-      'asalKota': 'Jakarta',
-      'cashier_id': 'BG188889',
-      'role': 'Senior Barista',
-    });
-
-    await db.insert('users', {
-      'email': 'KASIR01',
-      'password': '123',
-      'nama': 'Kasir Utama BGA',
-      'nomor_hp': '08123456789',
-      'asalKota': 'Jakarta',
-      'cashier_id': 'KASIR01',
-      'role': 'Head Cashier',
-    });
-
-    // Default Active Session
-    await db.insert('active_session', {
+    // 2. Default Active Session
+    final sessionDoc = _sessionsCol.doc('current_session');
+    batch.set(sessionDoc, {
+      'id': 1,
       'user_id': 1,
       'user_name': 'Bella Gita Asmara',
       'email': 'bella.gita@bgaco.com',
@@ -204,232 +112,241 @@ class DataBaseHelper {
       'login_time': DateTime.now().toIso8601String(),
     });
 
-    // Default Stores
+    // 3. Default Stores
     final defaultStores = [
-      {'name': 'Bella Cafe', 'location': 'Jakarta', 'default_shift': 'Pagi'},
-      {
-        'name': 'BGA Co. - Central Perk',
-        'location': 'Jakarta Pusat',
-        'default_shift': 'Pagi',
-      },
-      {
-        'name': 'BGA Co. - Downtown Latte',
-        'location': 'Jakarta Selatan',
-        'default_shift': 'Sore',
-      },
-      {
-        'name': 'BGA Co. - Westside Brew',
-        'location': 'Jakarta Barat',
-        'default_shift': 'Pagi',
-      },
+      {'id': 1, 'name': 'Bella Cafe', 'location': 'Jakarta', 'default_shift': 'Pagi'},
+      {'id': 2, 'name': 'BGA Co. - Central Perk', 'location': 'Jakarta Pusat', 'default_shift': 'Pagi'},
+      {'id': 3, 'name': 'BGA Co. - Downtown Latte', 'location': 'Jakarta Selatan', 'default_shift': 'Sore'},
+      {'id': 4, 'name': 'BGA Co. - Westside Brew', 'location': 'Jakarta Barat', 'default_shift': 'Pagi'},
     ];
     for (final s in defaultStores) {
-      await db.insert('stores', s);
+      final doc = _storesCol.doc('store_${s['id']}');
+      batch.set(doc, s);
     }
 
-    // Default Categories
+    // 4. Default Categories
     final defaultCats = ['Food', 'Drink', 'Snack', 'Dessert'];
     for (int i = 0; i < defaultCats.length; i++) {
-      await db.insert('categories', {'name': defaultCats[i], 'sort_order': i});
+      final doc = _categoriesCol.doc('cat_${i + 1}');
+      batch.set(doc, {'id': i + 1, 'name': defaultCats[i], 'sort_order': i});
     }
 
-    // Default Menu Items
+    // 5. Default Menu Items
     final defaultMenus = [
       // Food
       {
+        'id': 1,
         'name': 'Sourdough Loaf',
         'price': 38000,
         'price_text': 'Rp 38.000',
-        'desc':
-            'Roti artisan sourdough klasik berkulit renyah garing dengan bagian dalam yang empuk.',
+        'desc': 'Roti artisan sourdough klasik berkulit renyah garing dengan bagian dalam yang empuk.',
         'image_path': 'assets/images/food_sourdough.jpg',
         'category': 'Food',
+        'is_active': 1,
       },
       {
+        'id': 2,
         'name': 'Butter Croissant',
         'price': 25000,
         'price_text': 'Rp 25.000',
-        'desc':
-            'Pastry croissant khas Prancis yang renyah berlayer dengan aroma mentega gurih.',
+        'desc': 'Pastry croissant khas Prancis yang renyah berlayer dengan aroma mentega gurih.',
         'image_path': 'assets/images/food_croissant.jpg',
         'category': 'Food',
+        'is_active': 1,
       },
       {
+        'id': 3,
         'name': 'Berry Tart',
         'price': 35000,
         'price_text': 'Rp 35.000',
-        'desc':
-            'Kue tart manis dengan topping buah beri segar dan krim custard lembut.',
+        'desc': 'Kue tart manis dengan topping buah beri segar dan krim custard lembut.',
         'image_path': 'assets/images/food_tart.jpg',
         'category': 'Food',
+        'is_active': 1,
       },
       {
+        'id': 4,
         'name': 'Avocado Toast',
         'price': 45000,
         'price_text': 'Rp 45.000',
-        'desc':
-            'Roti panggang dengan olesan alpukat segar, irisan buah, dan taburan bumbu halus.',
+        'desc': 'Roti panggang dengan olesan alpukat segar, irisan buah, dan taburan bumbu halus.',
         'image_path': 'assets/images/food_avocado.jpg',
         'category': 'Food',
+        'is_active': 1,
       },
       {
+        'id': 5,
         'name': 'Nasi Goreng Special',
         'price': 35000,
         'price_text': 'Rp 35.000',
-        'desc':
-            'Nasi goreng rempah khas cafe disajikan dengan telur ceplok, sate ayam, dan kerupuk.',
+        'desc': 'Nasi goreng rempah khas cafe disajikan dengan telur ceplok, sate ayam, dan kerupuk.',
         'image_path': 'assets/images/food_nasigoreng.jpg',
         'category': 'Food',
+        'is_active': 1,
       },
       {
+        'id': 6,
         'name': 'Spaghetti Carbonara',
         'price': 42000,
         'price_text': 'Rp 42.000',
-        'desc':
-            'Pasta spaghetti al dente dengan saus keju creamy, smoked beef, dan taburan keju parmesan.',
+        'desc': 'Pasta spaghetti al dente dengan saus keju creamy, smoked beef, dan taburan keju parmesan.',
         'image_path': 'assets/images/food_carbonara.jpg',
         'category': 'Food',
+        'is_active': 1,
       },
       // Drink
       {
+        'id': 7,
         'name': 'Ice Latte',
         'price': 28000,
         'price_text': 'Rp 28.000',
-        'desc':
-            'Es kopi latte segar dengan perpaduan espresso kaya rasa dan susu UHT dingin yang creamy.',
+        'desc': 'Es kopi latte segar dengan perpaduan espresso kaya rasa dan susu UHT dingin yang creamy.',
         'image_path': 'assets/images/ice latte.jpg',
         'category': 'Drink',
+        'is_active': 1,
       },
       {
+        'id': 8,
         'name': 'Ice Americano',
         'price': 24000,
         'price_text': 'Rp 24.000',
-        'desc':
-            'Sajian es kopi hitam espresso murni dingin yang segar dan mantap.',
+        'desc': 'Sajian es kopi hitam espresso murni dingin yang segar dan mantap.',
         'image_path': 'assets/images/drink_latte.jpg',
         'category': 'Drink',
+        'is_active': 1,
       },
       {
+        'id': 9,
         'name': 'Ice Signature Chocolate',
         'price': 35000,
         'price_text': 'Rp 35.000',
-        'desc':
-            'Minuman es cokelat pekat premium dengan racikan susu segar manis lezat.',
+        'desc': 'Minuman es cokelat pekat premium dengan racikan susu segar manis lezat.',
         'image_path': 'assets/images/Ice Chocolate.jpg',
         'category': 'Drink',
+        'is_active': 1,
       },
       {
+        'id': 10,
         'name': 'Ice Caramel Machiato',
         'price': 32000,
         'price_text': 'Rp 32.000',
-        'desc':
-            'Kopi susu dingin dengan syrup vanilla, foam lembut, dan siraman saus karamel manis di atasnya.',
+        'desc': 'Kopi susu dingin dengan syrup vanilla, foam lembut, dan siraman saus karamel manis di atasnya.',
         'image_path': 'assets/images/Ice Caramel Machiato.jpg',
         'category': 'Drink',
+        'is_active': 1,
       },
       {
+        'id': 11,
         'name': 'Ice Matcha',
         'price': 30000,
         'price_text': 'Rp 30.000',
-        'desc':
-            'Seduhan teh hijau matcha jepang asli warna hijau segar dipadukan susu creamy dingin.',
+        'desc': 'Seduhan teh hijau matcha jepang asli warna hijau segar dipadukan susu creamy dingin.',
         'image_path': 'assets/images/drink_matcha.jpg',
         'category': 'Drink',
+        'is_active': 1,
       },
       // Snack
       {
+        'id': 12,
         'name': 'Choco Chip Cookie',
         'price': 18000,
         'price_text': 'Rp 18.000',
-        'desc':
-            'Kue kering cokelat choco chip panggang renyah manis dengan potongan cokelat belgia.',
+        'desc': 'Kue kering cokelat choco chip panggang renyah manis dengan potongan cokelat belgia.',
         'image_path': 'assets/images/snack_cookie.jpg',
         'category': 'Snack',
+        'is_active': 1,
       },
       {
+        'id': 13,
         'name': 'Pisang Goreng',
         'price': 15000,
         'price_text': 'Rp 15.000',
-        'desc':
-            'Camilan pisang goreng crispy warna keemasan hangat renyah di luar, manis lembut di dalam.',
+        'desc': 'Camilan pisang goreng crispy warna keemasan hangat renyah di luar, manis lembut di dalam.',
         'image_path': 'assets/images/snack_pisanggoreng.jpg',
         'category': 'Snack',
+        'is_active': 1,
       },
       {
+        'id': 14,
         'name': 'Kentang Goreng',
         'price': 18000,
         'price_text': 'Rp 18.000',
-        'desc':
-            'Kentang goreng french fries potongan memanjang renyah gurih hangat disajikan dengan saus cocolan.',
+        'desc': 'Kentang goreng french fries potongan memanjang renyah gurih hangat disajikan dengan saus cocolan.',
         'image_path': 'assets/images/snack_kentang.jpg',
         'category': 'Snack',
+        'is_active': 1,
       },
       {
+        'id': 15,
         'name': 'Cimol Keju',
         'price': 14000,
         'price_text': 'Rp 14.000',
-        'desc':
-            'Bola-bola cimol tapioka kenyal renyah dengan isian keju lumer dan taburan bumbu pedas gurih.',
+        'desc': 'Bola-bola cimol tapioka kenyal renyah dengan isian keju lumer dan taburan bumbu pedas gurih.',
         'image_path': 'assets/images/snack_cimol.png',
         'category': 'Snack',
+        'is_active': 1,
       },
       // Dessert
       {
+        'id': 16,
         'name': 'Berry Cheesecake',
         'price': 28000,
         'price_text': 'Rp 28.000',
-        'desc':
-            'Kue keju cheesecake lembut ala New York disiram selai compote buah beri manis segar.',
+        'desc': 'Kue keju cheesecake lembut ala New York disiram selai compote buah beri manis segar.',
         'image_path': 'assets/images/dessert_cheesecake.jpg',
         'category': 'Dessert',
+        'is_active': 1,
       },
       {
+        'id': 17,
         'name': 'Tiramisu Cup',
         'price': 30000,
         'price_text': 'Rp 30.000',
-        'desc':
-            'Dessert tiramisu khas Italia dalam cup dengan biskuit ladyfinger siram espresso dan keju mascarpone.',
+        'desc': 'Dessert tiramisu khas Italia dalam cup dengan biskuit ladyfinger siram espresso dan keju mascarpone.',
         'image_path': 'assets/images/dessert_tiramisu.jpg',
         'category': 'Dessert',
+        'is_active': 1,
       },
     ];
     for (final m in defaultMenus) {
-      await db.insert('menu_items', m);
+      final doc = _menuItemsCol.doc('menu_${m['id']}');
+      batch.set(doc, m);
     }
 
-    // Default Staff
+    // 6. Default Staff
     final defaultStaff = [
       {
+        'id': 1,
         'name': 'Siti Aminah',
         'role': 'Head Barista',
         'status': 'Hadir',
         'initials': 'SA',
-        'avatar_url':
-            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+        'avatar_url': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
         'phone': '081234567890',
         'email': 'siti.aminah@bgaco.com',
       },
       {
+        'id': 2,
         'name': 'Budi Santoso',
         'role': 'Pâtissier',
         'status': 'Hadir',
         'initials': 'BS',
-        'avatar_url':
-            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
+        'avatar_url': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
         'phone': '081234567891',
         'email': 'budi.santoso@bgaco.com',
       },
       {
+        'id': 3,
         'name': 'Rizky Pratama',
         'role': 'Kasir',
         'status': 'Istirahat',
         'initials': 'RP',
-        'avatar_url':
-            'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
+        'avatar_url': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
         'phone': '081234567892',
         'email': 'rizky.pratama@bgaco.com',
       },
       {
+        'id': 4,
         'name': 'Dewi Lestari',
         'role': 'Pelayan',
         'status': 'Hadir',
@@ -439,6 +356,7 @@ class DataBaseHelper {
         'email': 'dewi.lestari@bgaco.com',
       },
       {
+        'id': 5,
         'name': 'Andi Wijaya',
         'role': 'Kasir Utama',
         'status': 'Hadir',
@@ -449,15 +367,17 @@ class DataBaseHelper {
       },
     ];
     for (final st in defaultStaff) {
-      await db.insert('staff', st);
+      final doc = _staffCol.doc('staff_${st['id']}');
+      batch.set(doc, st);
     }
 
-    // Default Shift Roster for Today
+    // 7. Default Shift Roster
     final now = DateTime.now();
-    final todayKey =
-        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final todayKey = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     final defaultShifts = [
       {
+        'id': 1,
+        'staff_id': 1,
         'staff_name': 'Siti Aminah',
         'role': 'Head Barista',
         'shift_type': 'Pagi',
@@ -465,11 +385,12 @@ class DataBaseHelper {
         'status': 'Hadir',
         'check_in_time': 'In: 06:45',
         'store_name': 'Bella Cafe',
-        'avatar_url':
-            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+        'avatar_url': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
         'initials': 'SA',
       },
       {
+        'id': 2,
+        'staff_id': 2,
         'staff_name': 'Budi Santoso',
         'role': 'Pâtissier',
         'shift_type': 'Pagi',
@@ -477,11 +398,12 @@ class DataBaseHelper {
         'status': 'Hadir',
         'check_in_time': 'In: 06:50',
         'store_name': 'Bella Cafe',
-        'avatar_url':
-            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
+        'avatar_url': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
         'initials': 'BS',
       },
       {
+        'id': 3,
+        'staff_id': 3,
         'staff_name': 'Rizky Pratama',
         'role': 'Kasir',
         'shift_type': 'Pagi',
@@ -489,11 +411,12 @@ class DataBaseHelper {
         'status': 'Istirahat',
         'check_in_time': '12:00 - 13:00',
         'store_name': 'Bella Cafe',
-        'avatar_url':
-            'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
+        'avatar_url': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
         'initials': 'RP',
       },
       {
+        'id': 4,
+        'staff_id': 5,
         'staff_name': 'Andi Wijaya',
         'role': 'Kasir Utama',
         'shift_type': 'Sore',
@@ -506,13 +429,15 @@ class DataBaseHelper {
       },
     ];
     for (final sh in defaultShifts) {
-      await db.insert('shift_roster', sh);
+      final doc = _shiftsCol.doc('shift_${sh['id']}');
+      batch.set(doc, sh);
     }
 
-    // Default Seed Transaction
-    final initialInvoice =
-        '#INV-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-001';
-    final txId = await db.insert('transactions', {
+    // 8. Default Transaction
+    final initialInvoice = '#INV-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-001';
+    final txDoc = _transactionsCol.doc('tx_1');
+    batch.set(txDoc, {
+      'id': 1,
       'invoice_number': initialInvoice,
       'date_time': '${now.day} Aug ${now.year}, 11:45',
       'cashier_name': 'Bella Gita Asmara',
@@ -524,40 +449,46 @@ class DataBaseHelper {
       'total': 107800,
       'status': 'LUNAS',
       'store_name': 'Bella Cafe',
+      'items': [
+        {
+          'id': 1,
+          'invoice_number': initialInvoice,
+          'menu_name': 'Artisan Matcha Latte',
+          'qty': 2,
+          'price': 35000,
+          'subtotal': 70000,
+        },
+        {
+          'id': 2,
+          'invoice_number': initialInvoice,
+          'menu_name': 'Berry Cheesecake',
+          'qty': 1,
+          'price': 28000,
+          'subtotal': 28000,
+        },
+      ],
     });
 
-    await db.insert('transaction_items', {
-      'transaction_id': txId,
-      'invoice_number': initialInvoice,
-      'menu_name': 'Artisan Matcha Latte',
-      'qty': 2,
-      'price': 35000,
-      'subtotal': 70000,
-    });
-
-    await db.insert('transaction_items', {
-      'transaction_id': txId,
-      'invoice_number': initialInvoice,
-      'menu_name': 'Berry Cheesecake',
-      'qty': 1,
-      'price': 28000,
-      'subtotal': 28000,
-    });
+    try {
+      await batch.commit();
+      debugPrint('Firestore seeded with default data successfully.');
+    } catch (e) {
+      debugPrint('Error committing seed batch to Firestore: $e');
+    }
   }
 
   // ===================== USER & SESSION CRUD =====================
 
   Future<bool> registerUser(UserModelSQL pengguna) async {
-    final db = await database;
     try {
       final userMap = pengguna.toMap();
-      if (userMap['cashier_id'] == null ||
-          (userMap['cashier_id'] as String).isEmpty) {
+      final emailLower = pengguna.email.trim().toLowerCase();
+
+      if (userMap['cashier_id'] == null || (userMap['cashier_id'] as String).isEmpty) {
         if (!pengguna.email.contains('@')) {
           userMap['cashier_id'] = pengguna.email;
         } else {
-          final prefix =
-              'BG${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+          final prefix = 'BG${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
           userMap['cashier_id'] = prefix;
         }
       }
@@ -565,308 +496,478 @@ class DataBaseHelper {
         userMap['role'] = 'Barista / Kasir';
       }
 
-      // Check if user with same email or cashier_id already exists
-      final existing = await db.query(
-        'users',
-        where:
-            'LOWER(email) = LOWER(?) OR LOWER(cashier_id) = LOWER(?) OR cashier_id LIKE ?',
-        whereArgs: [
-          pengguna.email.trim(),
-          (userMap['cashier_id'] as String).trim(),
-          '%${pengguna.email.trim()}%',
-        ],
-      );
+      // Convert avatar bytes to base64 if present
+      if (pengguna.avatarBytes != null) {
+        userMap['avatar_bytes'] = _bytesToBase64(pengguna.avatarBytes);
+      }
 
-      if (existing.isNotEmpty) {
-        final existingId = existing.first['id'] as int;
-        userMap['id'] = existingId;
-        await db.update(
-          'users',
-          userMap,
-          where: 'id = ?',
-          whereArgs: [existingId],
-        );
+      // Check if user already exists
+      final querySnapshot = await _usersCol.get();
+      QueryDocumentSnapshot? existingDoc;
+
+      for (final doc in querySnapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final docEmail = (data['email'] as String? ?? '').toLowerCase();
+        final docCashierId = (data['cashier_id'] as String? ?? '').toLowerCase();
+        final cashierIdInput = (userMap['cashier_id'] as String? ?? '').toLowerCase();
+
+        if (docEmail == emailLower || docCashierId == cashierIdInput || (cashierIdInput.isNotEmpty && docCashierId.contains(cashierIdInput))) {
+          existingDoc = doc;
+          break;
+        }
+      }
+
+      if (existingDoc != null) {
+        final existingData = existingDoc.data() as Map<String, dynamic>;
+        userMap['id'] = existingData['id'] ?? DateTime.now().millisecondsSinceEpoch;
+        await _usersCol.doc(existingDoc.id).update(userMap);
       } else {
-        await db.insert(
-          'users',
-          userMap,
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
+        final newId = userMap['id'] ?? DateTime.now().millisecondsSinceEpoch;
+        userMap['id'] = newId;
+        await _usersCol.doc('user_$newId').set(userMap);
       }
       return true;
     } catch (e) {
+      debugPrint('Error in registerUser Firestore: $e');
       return false;
     }
   }
 
   Future<UserModelSQL?> loginUser(String emailOrId, String password) async {
-    final db = await database;
-    final cleanInput = emailOrId.trim();
-    final cleanPass = password.trim();
+    await _ensureInitialData();
+    try {
+      final cleanInput = emailOrId.trim().toLowerCase();
+      final cleanPass = password.trim();
 
-    // 1. Direct match with password
-    List<Map<String, dynamic>> results = await db.query(
-      'users',
-      where:
-          '(LOWER(email) = LOWER(?) OR LOWER(cashier_id) = LOWER(?) OR nomor_hp = ? OR cashier_id LIKE ? OR email LIKE ? OR LOWER(nama) = LOWER(?)) AND password = ?',
-      whereArgs: [
-        cleanInput,
-        cleanInput,
-        cleanInput,
-        '%$cleanInput%',
-        '%$cleanInput%',
-        cleanInput,
-        cleanPass,
-      ],
-    );
+      final snapshot = await _usersCol.get();
+      for (final doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final docEmail = (data['email'] as String? ?? '').toLowerCase();
+        final docCashierId = (data['cashier_id'] as String? ?? '').toLowerCase();
+        final docPhone = (data['nomor_hp'] as String? ?? '').trim();
+        final docNama = (data['nama'] as String? ?? '').toLowerCase();
+        final docPass = (data['password'] as String? ?? '').trim();
 
-    if (results.isNotEmpty) {
-      return UserModelSQL.fromMap(results.first);
-    }
+        final matchesIdentifier = docEmail == cleanInput ||
+            docCashierId == cleanInput ||
+            docPhone == cleanInput ||
+            docNama == cleanInput ||
+            docCashierId.contains(cleanInput) ||
+            docEmail.contains(cleanInput);
 
-    // 2. Lookup user by identifier
-    results = await db.query(
-      'users',
-      where:
-          'LOWER(email) = LOWER(?) OR LOWER(cashier_id) = LOWER(?) OR nomor_hp = ? OR cashier_id LIKE ? OR email LIKE ? OR LOWER(nama) LIKE ?',
-      whereArgs: [
-        cleanInput,
-        cleanInput,
-        cleanInput,
-        '%$cleanInput%',
-        '%$cleanInput%',
-        '%$cleanInput%',
-      ],
-    );
+        if (matchesIdentifier) {
+          final matchesPass = docPass == cleanPass ||
+              cleanPass == '123' ||
+              cleanPass == '123456' ||
+              cleanPass == '188889' ||
+              cleanInput.contains('188889') ||
+              cleanInput.contains('bella');
 
-    if (results.isNotEmpty) {
-      for (final r in results) {
-        final dbPass = (r['password'] as String?) ?? '';
-        if (dbPass.trim() == cleanPass ||
-            dbPass == password ||
-            cleanPass == '123' ||
-            cleanPass == '123456' ||
-            cleanPass == '188889' ||
-            cleanInput.contains('188889') ||
-            cleanInput.toLowerCase().contains('bella')) {
-          return UserModelSQL.fromMap(r);
+          if (matchesPass) {
+            final rawBytes = data['avatar_bytes'];
+            final mapCopy = Map<String, dynamic>.from(data);
+            mapCopy['avatar_bytes'] = _dynamicToBytes(rawBytes);
+            return UserModelSQL.fromMap(mapCopy);
+          }
         }
       }
-      // If found matching user and it's demo/seeded user, return it
-      return UserModelSQL.fromMap(results.first);
+      return null;
+    } catch (e) {
+      debugPrint('Error in loginUser Firestore: $e');
+      return null;
     }
-
-    return null;
   }
 
   Future<List<UserModelSQL>> getAllUsers() async {
-    final db = await database;
-    final List<Map<String, dynamic>> results = await db.query('users');
-    return results.map((map) => UserModelSQL.fromMap(map)).toList();
+    await _ensureInitialData();
+    try {
+      final snapshot = await _usersCol.get();
+      return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        final mapCopy = Map<String, dynamic>.from(data);
+        mapCopy['avatar_bytes'] = _dynamicToBytes(data['avatar_bytes']);
+        return UserModelSQL.fromMap(mapCopy);
+      }).toList();
+    } catch (e) {
+      debugPrint('Error in getAllUsers Firestore: $e');
+      return [];
+    }
+  }
+
+  Stream<List<UserModelSQL>> streamUsers() {
+    return _usersCol.snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        final mapCopy = Map<String, dynamic>.from(data);
+        mapCopy['avatar_bytes'] = _dynamicToBytes(data['avatar_bytes']);
+        return UserModelSQL.fromMap(mapCopy);
+      }).toList();
+    });
   }
 
   Future<void> deleteUser(int id) async {
-    final db = await database;
-    await db.delete('users', where: 'id = ?', whereArgs: [id]);
+    try {
+      final snapshot = await _usersCol.where('id', isEqualTo: id).get();
+      for (final doc in snapshot.docs) {
+        await doc.reference.delete();
+      }
+    } catch (e) {
+      debugPrint('Error in deleteUser Firestore: $e');
+    }
   }
 
   Future<bool> updateUser(UserModelSQL pengguna) async {
-    final db = await database;
     try {
-      int count = await db.update(
-        'users',
-        pengguna.toMap(),
-        where: 'id = ?',
-        whereArgs: [pengguna.id],
-      );
-      return count > 0;
+      final userMap = pengguna.toMap();
+      if (pengguna.avatarBytes != null) {
+        userMap['avatar_bytes'] = _bytesToBase64(pengguna.avatarBytes);
+      }
+
+      if (pengguna.id != null) {
+        final snapshot = await _usersCol.where('id', isEqualTo: pengguna.id).get();
+        if (snapshot.docs.isNotEmpty) {
+          await snapshot.docs.first.reference.update(userMap);
+          return true;
+        }
+      }
+
+      // Fallback by email
+      final snapshot = await _usersCol.where('email', isEqualTo: pengguna.email).get();
+      if (snapshot.docs.isNotEmpty) {
+        await snapshot.docs.first.reference.update(userMap);
+        return true;
+      }
+      return false;
     } catch (e) {
+      debugPrint('Error in updateUser Firestore: $e');
       return false;
     }
   }
 
   Future<Map<String, dynamic>?> getActiveSession() async {
-    final db = await database;
-    final results = await db.query(
-      'active_session',
-      orderBy: 'id DESC',
-      limit: 1,
-    );
-    if (results.isNotEmpty) {
-      return results.first;
+    try {
+      final doc = await _sessionsCol.doc('current_session').get();
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data() as Map<String, dynamic>;
+        final mapCopy = Map<String, dynamic>.from(data);
+        mapCopy['avatar_bytes'] = _dynamicToBytes(data['avatar_bytes']);
+        return mapCopy;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error in getActiveSession Firestore: $e');
+      return null;
     }
-    return null;
   }
 
   Future<void> saveActiveSession(Map<String, dynamic> sessionData) async {
-    final db = await database;
-    await db.delete('active_session'); // Keep 1 active session
-    await db.insert('active_session', sessionData);
+    try {
+      final copy = Map<String, dynamic>.from(sessionData);
+      if (copy['avatar_bytes'] is Uint8List) {
+        copy['avatar_bytes'] = _bytesToBase64(copy['avatar_bytes'] as Uint8List);
+      }
+      await _sessionsCol.doc('current_session').set(copy);
+    } catch (e) {
+      debugPrint('Error in saveActiveSession Firestore: $e');
+    }
   }
 
   Future<void> clearActiveSession() async {
-    final db = await database;
-    await db.delete('active_session');
+    try {
+      await _sessionsCol.doc('current_session').delete();
+    } catch (e) {
+      debugPrint('Error in clearActiveSession Firestore: $e');
+    }
   }
 
   // ===================== CATEGORY CRUD =====================
 
   Future<List<CategoryModel>> getCategories() async {
-    final db = await database;
-    final results = await db.query(
-      'categories',
-      orderBy: 'sort_order ASC, id ASC',
-    );
-    return results.map((m) => CategoryModel.fromMap(m)).toList();
+    await _ensureInitialData();
+    try {
+      final snapshot = await _categoriesCol.orderBy('sort_order').get();
+      return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return CategoryModel.fromMap(data);
+      }).toList();
+    } catch (e) {
+      debugPrint('Error in getCategories Firestore: $e');
+      return [];
+    }
   }
 
   Future<int> insertCategory(String name) async {
-    final db = await database;
     final trimmed = name.trim();
     if (trimmed.isEmpty) return -1;
-    final existing = await db.query(
-      'categories',
-      where: 'name = ?',
-      whereArgs: [trimmed],
-    );
-    if (existing.isNotEmpty) return existing.first['id'] as int;
-    final count =
-        Sqflite.firstIntValue(
-          await db.rawQuery('SELECT COUNT(*) FROM categories'),
-        ) ??
-        0;
-    return await db.insert('categories', {
-      'name': trimmed,
-      'sort_order': count,
-    });
+    try {
+      final existing = await _categoriesCol.where('name', isEqualTo: trimmed).get();
+      if (existing.docs.isNotEmpty) {
+        final data = existing.docs.first.data() as Map<String, dynamic>;
+        return (data['id'] as num?)?.toInt() ?? 1;
+      }
+
+      final allSnap = await _categoriesCol.get();
+      final newId = DateTime.now().millisecondsSinceEpoch;
+      final sortOrder = allSnap.docs.length;
+
+      final data = {
+        'id': newId,
+        'name': trimmed,
+        'sort_order': sortOrder,
+      };
+      await _categoriesCol.doc('cat_$newId').set(data);
+      return newId;
+    } catch (e) {
+      debugPrint('Error in insertCategory Firestore: $e');
+      return -1;
+    }
   }
 
   Future<bool> updateCategory(String oldName, String newName) async {
-    final db = await database;
     final newTrimmed = newName.trim();
+    final oldTrimmed = oldName.trim();
     if (newTrimmed.isEmpty) return false;
-    await db.update(
-      'categories',
-      {'name': newTrimmed},
-      where: 'name = ?',
-      whereArgs: [oldName.trim()],
-    );
-    // Also update all menu items under this category
-    await db.update(
-      'menu_items',
-      {'category': newTrimmed},
-      where: 'category = ?',
-      whereArgs: [oldName.trim()],
-    );
-    return true;
+    try {
+      final existing = await _categoriesCol.where('name', isEqualTo: oldTrimmed).get();
+      for (final doc in existing.docs) {
+        await doc.reference.update({'name': newTrimmed});
+      }
+
+      // Also update menu items with this category
+      final menuItemsSnap = await _menuItemsCol.where('category', isEqualTo: oldTrimmed).get();
+      for (final doc in menuItemsSnap.docs) {
+        await doc.reference.update({'category': newTrimmed});
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Error in updateCategory Firestore: $e');
+      return false;
+    }
   }
 
   Future<bool> deleteCategory(String name) async {
-    final db = await database;
     final trimmed = name.trim();
-    await db.delete('categories', where: 'name = ?', whereArgs: [trimmed]);
-    await db.delete('menu_items', where: 'category = ?', whereArgs: [trimmed]);
-    return true;
+    try {
+      final existing = await _categoriesCol.where('name', isEqualTo: trimmed).get();
+      for (final doc in existing.docs) {
+        await doc.reference.delete();
+      }
+
+      final menuItemsSnap = await _menuItemsCol.where('category', isEqualTo: trimmed).get();
+      for (final doc in menuItemsSnap.docs) {
+        await doc.reference.delete();
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Error in deleteCategory Firestore: $e');
+      return false;
+    }
   }
 
   // ===================== MENU ITEMS CRUD =====================
 
   Future<List<MenuItemModel>> getAllMenuItems() async {
-    final db = await database;
-    final results = await db.query(
-      'menu_items',
-      where: 'is_active = 1',
-      orderBy: 'id ASC',
-    );
-    return results.map((m) => MenuItemModel.fromMap(m)).toList();
+    await _ensureInitialData();
+    try {
+      final snapshot = await _menuItemsCol.where('is_active', isEqualTo: 1).get();
+      final items = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        final mapCopy = Map<String, dynamic>.from(data);
+        mapCopy['image_bytes'] = _dynamicToBytes(data['image_bytes']);
+        return MenuItemModel.fromMap(mapCopy);
+      }).toList();
+      items.sort((a, b) => (a.id ?? 0).compareTo(b.id ?? 0));
+      return items;
+    } catch (e) {
+      debugPrint('Error in getAllMenuItems Firestore: $e');
+      return [];
+    }
   }
 
   Future<List<MenuItemModel>> getMenuItemsByCategory(String category) async {
-    final db = await database;
-    final results = await db.query(
-      'menu_items',
-      where: 'category = ? AND is_active = 1',
-      whereArgs: [category.trim()],
-      orderBy: 'id ASC',
-    );
-    return results.map((m) => MenuItemModel.fromMap(m)).toList();
+    await _ensureInitialData();
+    try {
+      final snapshot = await _menuItemsCol
+          .where('category', isEqualTo: category.trim())
+          .where('is_active', isEqualTo: 1)
+          .get();
+      final items = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        final mapCopy = Map<String, dynamic>.from(data);
+        mapCopy['image_bytes'] = _dynamicToBytes(data['image_bytes']);
+        return MenuItemModel.fromMap(mapCopy);
+      }).toList();
+      items.sort((a, b) => (a.id ?? 0).compareTo(b.id ?? 0));
+      return items;
+    } catch (e) {
+      debugPrint('Error in getMenuItemsByCategory Firestore: $e');
+      return [];
+    }
   }
 
   Future<int> insertMenuItem(MenuItemModel item) async {
-    final db = await database;
-    return await db.insert('menu_items', item.toMap());
+    try {
+      final map = item.toMap();
+      final newId = item.id ?? DateTime.now().millisecondsSinceEpoch;
+      map['id'] = newId;
+      if (item.imageBytes != null) {
+        map['image_bytes'] = _bytesToBase64(item.imageBytes);
+      }
+      await _menuItemsCol.doc('menu_$newId').set(map);
+      return newId;
+    } catch (e) {
+      debugPrint('Error in insertMenuItem Firestore: $e');
+      return -1;
+    }
   }
 
   Future<bool> updateMenuItem(MenuItemModel item) async {
-    final db = await database;
     if (item.id == null) return false;
-    final count = await db.update(
-      'menu_items',
-      item.toMap(),
-      where: 'id = ?',
-      whereArgs: [item.id],
-    );
-    return count > 0;
+    try {
+      final map = item.toMap();
+      if (item.imageBytes != null) {
+        map['image_bytes'] = _bytesToBase64(item.imageBytes);
+      }
+
+      final snapshot = await _menuItemsCol.where('id', isEqualTo: item.id).get();
+      if (snapshot.docs.isNotEmpty) {
+        await snapshot.docs.first.reference.update(map);
+        return true;
+      } else {
+        await _menuItemsCol.doc('menu_${item.id}').set(map);
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Error in updateMenuItem Firestore: $e');
+      return false;
+    }
   }
 
   Future<bool> deleteMenuItem(int id) async {
-    final db = await database;
-    final count = await db.delete(
-      'menu_items',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-    return count > 0;
+    try {
+      final snapshot = await _menuItemsCol.where('id', isEqualTo: id).get();
+      for (final doc in snapshot.docs) {
+        await doc.reference.delete();
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Error in deleteMenuItem Firestore: $e');
+      return false;
+    }
   }
 
   // ===================== STORES CRUD =====================
 
   Future<List<StoreModel>> getAllStores() async {
-    final db = await database;
-    final results = await db.query('stores', orderBy: 'id ASC');
-    return results.map((m) => StoreModel.fromMap(m)).toList();
+    await _ensureInitialData();
+    try {
+      final snapshot = await _storesCol.get();
+      final items = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return StoreModel.fromMap(data);
+      }).toList();
+      items.sort((a, b) => (a.id ?? 0).compareTo(b.id ?? 0));
+      return items;
+    } catch (e) {
+      debugPrint('Error in getAllStores Firestore: $e');
+      return [];
+    }
   }
 
   Future<int> insertStore(StoreModel store) async {
-    final db = await database;
-    return await db.insert('stores', store.toMap());
+    try {
+      final map = store.toMap();
+      final newId = store.id ?? DateTime.now().millisecondsSinceEpoch;
+      map['id'] = newId;
+      await _storesCol.doc('store_$newId').set(map);
+      return newId;
+    } catch (e) {
+      debugPrint('Error in insertStore Firestore: $e');
+      return -1;
+    }
   }
 
   Future<bool> deleteStore(int id) async {
-    final db = await database;
-    final count = await db.delete('stores', where: 'id = ?', whereArgs: [id]);
-    return count > 0;
+    try {
+      final snapshot = await _storesCol.where('id', isEqualTo: id).get();
+      for (final doc in snapshot.docs) {
+        await doc.reference.delete();
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Error in deleteStore Firestore: $e');
+      return false;
+    }
   }
 
   // ===================== STAFF / KARYAWAN CRUD =====================
 
   Future<List<StaffModel>> getAllStaff() async {
-    final db = await database;
-    final results = await db.query('staff', orderBy: 'id ASC');
-    return results.map((m) => StaffModel.fromMap(m)).toList();
+    await _ensureInitialData();
+    try {
+      final snapshot = await _staffCol.get();
+      final items = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        final mapCopy = Map<String, dynamic>.from(data);
+        mapCopy['avatar_bytes'] = _dynamicToBytes(data['avatar_bytes']);
+        return StaffModel.fromMap(mapCopy);
+      }).toList();
+      items.sort((a, b) => (a.id ?? 0).compareTo(b.id ?? 0));
+      return items;
+    } catch (e) {
+      debugPrint('Error in getAllStaff Firestore: $e');
+      return [];
+    }
   }
 
   Future<int> insertStaff(StaffModel staff) async {
-    final db = await database;
-    return await db.insert('staff', staff.toMap());
+    try {
+      final map = staff.toMap();
+      final newId = staff.id ?? DateTime.now().millisecondsSinceEpoch;
+      map['id'] = newId;
+      if (staff.avatarBytes != null) {
+        map['avatar_bytes'] = _bytesToBase64(staff.avatarBytes);
+      }
+      await _staffCol.doc('staff_$newId').set(map);
+      return newId;
+    } catch (e) {
+      debugPrint('Error in insertStaff Firestore: $e');
+      return -1;
+    }
   }
 
   Future<bool> updateStaff(StaffModel staff) async {
-    final db = await database;
     if (staff.id == null) return false;
-    final count = await db.update(
-      'staff',
-      staff.toMap(),
-      where: 'id = ?',
-      whereArgs: [staff.id],
-    );
-    return count > 0;
+    try {
+      final map = staff.toMap();
+      if (staff.avatarBytes != null) {
+        map['avatar_bytes'] = _bytesToBase64(staff.avatarBytes);
+      }
+      final snapshot = await _staffCol.where('id', isEqualTo: staff.id).get();
+      if (snapshot.docs.isNotEmpty) {
+        await snapshot.docs.first.reference.update(map);
+        return true;
+      } else {
+        await _staffCol.doc('staff_${staff.id}').set(map);
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Error in updateStaff Firestore: $e');
+      return false;
+    }
   }
 
   Future<bool> deleteStaff(int id) async {
-    final db = await database;
-    final count = await db.delete('staff', where: 'id = ?', whereArgs: [id]);
-    return count > 0;
+    try {
+      final snapshot = await _staffCol.where('id', isEqualTo: id).get();
+      for (final doc in snapshot.docs) {
+        await doc.reference.delete();
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Error in deleteStaff Firestore: $e');
+      return false;
+    }
   }
 
   // ===================== SHIFT ROSTER CRUD =====================
@@ -876,127 +977,157 @@ class DataBaseHelper {
     String? storeName,
     String? shiftType,
   }) async {
-    final db = await database;
-    String whereClause = 'date_key = ?';
-    List<dynamic> args = [dateKey];
+    await _ensureInitialData();
+    try {
+      Query query = _shiftsCol.where('date_key', isEqualTo: dateKey);
+      if (storeName != null && storeName.isNotEmpty && storeName != 'Semua') {
+        query = query.where('store_name', isEqualTo: storeName);
+      }
+      if (shiftType != null && shiftType.isNotEmpty && shiftType != 'Semua') {
+        query = query.where('shift_type', isEqualTo: shiftType);
+      }
 
-    if (storeName != null && storeName.isNotEmpty && storeName != 'Semua') {
-      whereClause += ' AND store_name = ?';
-      args.add(storeName);
+      final snapshot = await query.get();
+      final list = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return ShiftModel.fromMap(data);
+      }).toList();
+      list.sort((a, b) => (a.id ?? 0).compareTo(b.id ?? 0));
+      return list;
+    } catch (e) {
+      debugPrint('Error in getShiftsForDate Firestore: $e');
+      return [];
     }
-    if (shiftType != null && shiftType.isNotEmpty && shiftType != 'Semua') {
-      whereClause += ' AND shift_type = ?';
-      args.add(shiftType);
-    }
-
-    final results = await db.query(
-      'shift_roster',
-      where: whereClause,
-      whereArgs: args,
-      orderBy: 'id ASC',
-    );
-    return results.map((m) => ShiftModel.fromMap(m)).toList();
   }
 
   Future<int> insertShift(ShiftModel shift) async {
-    final db = await database;
-    return await db.insert('shift_roster', shift.toMap());
+    try {
+      final map = shift.toMap();
+      final newId = shift.id ?? DateTime.now().millisecondsSinceEpoch;
+      map['id'] = newId;
+      await _shiftsCol.doc('shift_$newId').set(map);
+      return newId;
+    } catch (e) {
+      debugPrint('Error in insertShift Firestore: $e');
+      return -1;
+    }
   }
 
   Future<bool> updateShift(ShiftModel shift) async {
-    final db = await database;
     if (shift.id == null) return false;
-    final count = await db.update(
-      'shift_roster',
-      shift.toMap(),
-      where: 'id = ?',
-      whereArgs: [shift.id],
-    );
-    return count > 0;
+    try {
+      final map = shift.toMap();
+      final snapshot = await _shiftsCol.where('id', isEqualTo: shift.id).get();
+      if (snapshot.docs.isNotEmpty) {
+        await snapshot.docs.first.reference.update(map);
+        return true;
+      } else {
+        await _shiftsCol.doc('shift_${shift.id}').set(map);
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Error in updateShift Firestore: $e');
+      return false;
+    }
   }
 
   Future<bool> deleteShift(int id) async {
-    final db = await database;
-    final count = await db.delete(
-      'shift_roster',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-    return count > 0;
+    try {
+      final snapshot = await _shiftsCol.where('id', isEqualTo: id).get();
+      for (final doc in snapshot.docs) {
+        await doc.reference.delete();
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Error in deleteShift Firestore: $e');
+      return false;
+    }
   }
 
   // ===================== TRANSACTIONS & INVOICES CRUD =====================
 
   Future<int> insertTransaction(TransactionModel tx) async {
-    final db = await database;
-    final txId = await db.insert('transactions', tx.toMap());
+    try {
+      final newId = tx.id ?? DateTime.now().millisecondsSinceEpoch;
+      final txMap = tx.toMap();
+      txMap['id'] = newId;
 
-    for (final item in tx.items) {
-      await db.insert('transaction_items', {
-        'transaction_id': txId,
-        'invoice_number': tx.invoiceNumber,
-        'menu_name': item.menuName,
-        'qty': item.qty,
-        'price': item.price,
-        'subtotal': item.subtotal,
-      });
+      final itemsMapList = tx.items.map((item) {
+        final itemMap = item.toMap();
+        itemMap['transaction_id'] = newId;
+        return itemMap;
+      }).toList();
+
+      txMap['items'] = itemsMapList;
+
+      await _transactionsCol.doc('tx_$newId').set(txMap);
+      return newId;
+    } catch (e) {
+      debugPrint('Error in insertTransaction Firestore: $e');
+      return -1;
     }
-    return txId;
   }
 
   Future<List<TransactionModel>> getAllTransactions({String? storeName}) async {
-    final db = await database;
-    String? whereClause;
-    List<dynamic>? whereArgs;
+    await _ensureInitialData();
+    try {
+      Query query = _transactionsCol;
+      if (storeName != null && storeName.isNotEmpty && storeName != 'Semua') {
+        query = query.where('store_name', isEqualTo: storeName);
+      }
 
-    if (storeName != null && storeName.isNotEmpty && storeName != 'Semua') {
-      whereClause = 'store_name = ?';
-      whereArgs = [storeName];
+      final snapshot = await query.get();
+      List<TransactionModel> list = [];
+      for (final doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final rawItems = data['items'] as List<dynamic>? ?? [];
+        final items = rawItems
+            .map((i) => TransactionItemModel.fromMap(Map<String, dynamic>.from(i as Map)))
+            .toList();
+        list.add(TransactionModel.fromMap(data, items));
+      }
+      list.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+      return list;
+    } catch (e) {
+      debugPrint('Error in getAllTransactions Firestore: $e');
+      return [];
     }
-
-    final txResults = await db.query(
-      'transactions',
-      where: whereClause,
-      whereArgs: whereArgs,
-      orderBy: 'id DESC',
-    );
-
-    List<TransactionModel> list = [];
-    for (final txMap in txResults) {
-      final txId = txMap['id'] as int;
-      final itemResults = await db.query(
-        'transaction_items',
-        where: 'transaction_id = ?',
-        whereArgs: [txId],
-      );
-      final items = itemResults
-          .map((i) => TransactionItemModel.fromMap(i))
-          .toList();
-      list.add(TransactionModel.fromMap(txMap, items));
-    }
-    return list;
   }
 
-  Future<TransactionModel?> getTransactionByInvoice(
-    String invoiceNumber,
-  ) async {
-    final db = await database;
-    final results = await db.query(
-      'transactions',
-      where: 'invoice_number = ?',
-      whereArgs: [invoiceNumber],
-    );
-    if (results.isEmpty) return null;
-    final txMap = results.first;
-    final txId = txMap['id'] as int;
-    final itemResults = await db.query(
-      'transaction_items',
-      where: 'transaction_id = ?',
-      whereArgs: [txId],
-    );
-    final items = itemResults
-        .map((i) => TransactionItemModel.fromMap(i))
-        .toList();
-    return TransactionModel.fromMap(txMap, items);
+  Stream<List<TransactionModel>> streamTransactions({String? storeName}) {
+    Query query = _transactionsCol;
+    if (storeName != null && storeName.isNotEmpty && storeName != 'Semua') {
+      query = query.where('store_name', isEqualTo: storeName);
+    }
+    return query.snapshots().map((snapshot) {
+      List<TransactionModel> list = [];
+      for (final doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final rawItems = data['items'] as List<dynamic>? ?? [];
+        final items = rawItems
+            .map((i) => TransactionItemModel.fromMap(Map<String, dynamic>.from(i as Map)))
+            .toList();
+        list.add(TransactionModel.fromMap(data, items));
+      }
+      list.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+      return list;
+    });
+  }
+
+  Future<TransactionModel?> getTransactionByInvoice(String invoiceNumber) async {
+    await _ensureInitialData();
+    try {
+      final snapshot = await _transactionsCol.where('invoice_number', isEqualTo: invoiceNumber).get();
+      if (snapshot.docs.isEmpty) return null;
+      final data = snapshot.docs.first.data() as Map<String, dynamic>;
+      final rawItems = data['items'] as List<dynamic>? ?? [];
+      final items = rawItems
+          .map((i) => TransactionItemModel.fromMap(Map<String, dynamic>.from(i as Map)))
+          .toList();
+      return TransactionModel.fromMap(data, items);
+    } catch (e) {
+      debugPrint('Error in getTransactionByInvoice Firestore: $e');
+      return null;
+    }
   }
 }

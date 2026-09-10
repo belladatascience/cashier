@@ -1,11 +1,11 @@
-import 'package:cashier/extension/navigator.dart';
-import 'package:cashier/halaman1/database/database_helper.dart';
+﻿import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/services/firebase_auth_service.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:cashier/halaman1/views/Home/Shift/store_showcase_screen.dart';
 import 'package:cashier/halaman1/views/Home/register_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
@@ -91,7 +91,7 @@ class _cashierLogin1State extends State<cashierlogin1> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Login Berhasil! 🎉',
+                  'Login Berhasil!',
                   style: GoogleFonts.sourceSerif4(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -160,7 +160,7 @@ class _cashierLogin1State extends State<cashierlogin1> {
     });
 
     try {
-      // 1. First attempt Firebase Authentication
+      // Login via Firebase Authentication Service
       final firebaseResult = await FirebaseAuthService.instance.loginUser(
         identifier: user,
         password: pass,
@@ -194,65 +194,12 @@ class _cashierLogin1State extends State<cashierlogin1> {
         });
 
         await _showSuccessAnimationAndNavigate(displayName);
-        return;
-      }
-
-      // 2. Secondary fallback: Local SQLite database or Demo logins
-      final pengguna = await DataBaseHelper().loginUser(user, pass);
-
-      final isDemoLogin =
-          (user.toLowerCase() == 'admin' &&
-              (pass == '123456' || pass == '123')) ||
-          (user.toUpperCase() == 'KASIR01') ||
-          (user == '188889' ||
-              user.toUpperCase() == 'BG188889' ||
-              user.toLowerCase().contains('bella') ||
-              user.toLowerCase() == 'bella.gita@bgaco.com');
-
-      if (pengguna != null || isDemoLogin) {
-        final displayName =
-            pengguna?.nama ??
-            (user.toLowerCase() == 'admin'
-                ? 'Administrator'
-                : 'Bella Gita Asmara');
-        final displayEmail =
-            pengguna?.email ??
-            (user.toLowerCase() == 'admin'
-                ? 'admin@bgaco.com'
-                : 'bella.gita@bgaco.com');
-        final displayCashierId =
-            pengguna?.cashierId ??
-            (user.toLowerCase() == 'admin' ? 'ADM-001' : 'BG188889');
-        final displayPhone = pengguna?.nomor_hp ?? '087888848000';
-        final displayRole =
-            pengguna?.role ??
-            (user.toLowerCase() == 'admin'
-                ? 'Store Manager'
-                : 'Senior Barista');
-
-        await UserDataStore.instance.updateUserData({
-          'userId': pengguna?.id ?? 1,
-          'accountName': displayName,
-          'cashierName': displayName,
-          'email': displayEmail,
-          'cashierId': displayCashierId,
-          'phone': displayPhone,
-          'accountRole': displayRole,
-          'cashierRole': displayRole,
-        });
-
-        setState(() {
-          _isLoading = false;
-        });
-
-        await _showSuccessAnimationAndNavigate(displayName);
       } else {
         setState(() {
           _isLoading = false;
         });
         _showSnackBar(
-          firebaseResult['message'] ??
-              'Login gagal! ID Kasir / Email atau Kata Sandi salah.',
+          firebaseResult['message'] ?? 'Login gagal! Periksa email/ID dan kata sandi.',
           isError: true,
         );
       }
@@ -287,34 +234,110 @@ class _cashierLogin1State extends State<cashierlogin1> {
   }
 
   void _showForgotPasswordDialog() {
+    final resetEmailController = TextEditingController(
+      text: cashierIdC.text.contains('@') ? cashierIdC.text.trim() : '',
+    );
+    bool isSending = false;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: colorSurfaceContainerLowest,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Lupa Kata Sandi?',
-          style: GoogleFonts.sourceSerif4(
-            color: colorPrimary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Text(
-          'Silakan hubungi administrator sistem BGA Co. untuk mereset kata sandi ID Kasir Anda.',
-          style: GoogleFonts.workSans(color: colorOnSurfaceVariant),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Mengerti',
-              style: GoogleFonts.workSans(
-                color: colorSecondary,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: colorSurfaceContainerLowest,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text(
+              'Reset Kata Sandi Firebase',
+              style: GoogleFonts.sourceSerif4(
+                color: colorPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),
-          ),
-        ],
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Masukkan email akun kasir Anda. Link reset kata sandi akan dikirim langsung oleh Firebase ke email tersebut.',
+                  style: GoogleFonts.workSans(
+                    color: colorOnSurfaceVariant,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: resetEmailController,
+                  keyboardType: TextInputType.emailAddress,
+                  style: GoogleFonts.workSans(color: colorOnSurface),
+                  decoration: InputDecoration(
+                    labelText: 'Alamat Email',
+                    hintText: 'nama@domain.com',
+                    prefixIcon: const Icon(Icons.email_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSending ? null : () => Navigator.pop(dialogCtx),
+                child: Text(
+                  'Batal',
+                  style: GoogleFonts.workSans(color: colorOutline),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: isSending
+                    ? null
+                    : () async {
+                        final email = resetEmailController.text.trim();
+                        if (email.isEmpty || !email.contains('@')) {
+                          _showSnackBar('Masukkan format email yang valid!', isError: true);
+                          return;
+                        }
+
+                        setDialogState(() => isSending = true);
+
+                        try {
+                          await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+                          if (dialogCtx.mounted) {
+                            Navigator.pop(dialogCtx);
+                          }
+                          _showSnackBar('Link reset kata sandi telah dikirim ke $email');
+                        } on FirebaseAuthException catch (e) {
+                          setDialogState(() => isSending = false);
+                          String err = 'Gagal mengirim email reset';
+                          if (e.code == 'user-not-found') {
+                            err = 'Email tidak terdaftar di Firebase.';
+                          } else if (e.code == 'invalid-email') {
+                            err = 'Format email tidak valid.';
+                          }
+                          _showSnackBar(err, isError: true);
+                        } catch (e) {
+                          setDialogState(() => isSending = false);
+                          _showSnackBar('Error: $e', isError: true);
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colorPrimary,
+                  foregroundColor: colorOnPrimaryContainer,
+                ),
+                child: isSending
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : Text(
+                        'Kirim Link',
+                        style: GoogleFonts.workSans(fontWeight: FontWeight.bold),
+                      ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -349,51 +372,36 @@ class _cashierLogin1State extends State<cashierlogin1> {
               SafeArea(
                 child: Center(
                   child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24.0,
-                      vertical: 20.0,
+                      vertical: 32.0,
                     ),
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 440),
+                      constraints: const BoxConstraints(maxWidth: 420),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Header Section
-                          Text(
-                            'CASHIER',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.sourceSerif4(
-                              fontSize: 48,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: -0.96,
-                              color: colorPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'BGA Co.',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.workSans(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w400,
-                              color: colorOnSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Cashier Logo Container
+                          // Brand Icon & Header Title
                           Center(
                             child: Container(
-                              width: 180,
-                              height: 180,
+                              width: 120,
+                              height: 120,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: colorPrimary.withValues(alpha: 0.05),
+                                color: colorSurfaceContainerLowest,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: colorPrimary.withValues(alpha: 0.12),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
                               ),
                               child: ClipOval(
                                 child: Image.asset(
-                                  "assets/images/cashier_logo.png",
+                                  'assets/img/bga_bulat.png',
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) {
                                     return Center(
@@ -516,7 +524,7 @@ class _cashierLogin1State extends State<cashierlogin1> {
                                       color: colorOnSurface,
                                     ),
                                     decoration: InputDecoration(
-                                      hintText: '••••••••',
+                                      hintText: '•••••••••',
                                       hintStyle: GoogleFonts.workSans(
                                         color: colorOutlineVariant,
                                         fontSize: 16,

@@ -1,11 +1,14 @@
 import 'dart:io';
-import 'package:firebase_core/firebase_core.dart';
+
 import 'package:cashier/firebase_options.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/menu_data_store.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:cashier/halaman1/views/Home/splash_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -13,19 +16,60 @@ import 'package:video_player_win/video_player_win.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inisialisasi plugin khusus Windows desktop
   if (!kIsWeb && Platform.isWindows) {
-    WindowsVideoPlayer.registerWith();
+    try {
+      WindowsVideoPlayer.registerWith();
+    } catch (e) {
+      debugPrint('WindowsVideoPlayer initialization skipped/error: $e');
+    }
   }
+
+  // Format tanggal bahasa Indonesia
   await initializeDateFormatting("id_ID", null);
+
+  // Inisialisasi Firebase Core & Cloud Firestore
   try {
     await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
+      options: DefaultFirebaseOptions.currentPlatformSafe,
+    );
+    debugPrint(
+      'Firebase successfully initialized for project: ${DefaultFirebaseOptions.projectId}',
+    );
+
+    // Konfigurasi Firestore offline persistence
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
     );
   } catch (e) {
-    debugPrint('Firebase initialization error: $e');
+    debugPrint('Firebase initialization warning/error: $e');
   }
-  await MenuDataStore.instance.initFromDatabase();
-  await UserDataStore.instance.initFromDatabase();
+
+  // Global Error Handler untuk Firebase & Flutter Framework
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint(
+      'Flutter/Firebase Unhandled Error: ${details.exceptionAsString()}',
+    );
+  };
+
+  // Inisialisasi Data Stores Lokal & Sinkronisasi Sesi Firebase
+  try {
+    await MenuDataStore.instance.initFromDatabase();
+    await UserDataStore.instance.initFromDatabase();
+
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      debugPrint(
+        'Active Firebase Session Detected: ${currentUser.email} (${currentUser.uid})',
+      );
+    }
+  } catch (e) {
+    debugPrint('DataStore initialization error: $e');
+  }
+
   runApp(const MyApp());
 }
 
@@ -110,7 +154,7 @@ class MyApp extends StatelessWidget {
                           data: MediaQuery.of(
                             context,
                           ).copyWith(textScaler: TextScaler.linear(textScale)),
-                          child: childWidget!,
+                          child: childWidget ?? const SizedBox.shrink(),
                         );
                       },
                       home: const SplashScreen(),

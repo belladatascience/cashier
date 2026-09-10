@@ -1,6 +1,10 @@
+import 'dart:typed_data';
+import 'package:cashier/halaman1/database/database_helper.dart';
+import 'package:cashier/halaman1/models/staff_model.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 class AddStaffScreen extends StatefulWidget {
   const AddStaffScreen({super.key});
@@ -11,10 +15,16 @@ class AddStaffScreen extends StatefulWidget {
 
 class _AddStaffScreenState extends State<AddStaffScreen> {
   final TextEditingController _namaC = TextEditingController();
+  final TextEditingController _emailC = TextEditingController();
+  final TextEditingController _phoneC = TextEditingController();
   final TextEditingController _jamC = TextEditingController();
 
   String? _selectedPosisi;
   String? _selectedShift;
+  Uint8List? _avatarBytes;
+  bool _isLoading = false;
+
+  final ImagePicker _picker = ImagePicker();
 
   // Dynamic Color Tokens linked to AppTheme
   Color get colorPrimary => AppTheme.instance.primaryColor;
@@ -31,19 +41,124 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
   @override
   void dispose() {
     _namaC.dispose();
+    _emailC.dispose();
+    _phoneC.dispose();
     _jamC.dispose();
     super.dispose();
   }
 
-  void _handleSave() {
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picked = await _picker.pickImage(
+        source: source,
+        maxWidth: 600,
+        maxHeight: 600,
+        imageQuality: 85,
+      );
+      if (picked != null) {
+        final bytes = await picked.readAsBytes();
+        setState(() {
+          _avatarBytes = bytes;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memilih gambar: $e'),
+            backgroundColor: const Color(0xFFBA1A1A),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showImagePickerModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colorSurfaceContainerLowest,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Pilih Sumber Foto',
+                  style: GoogleFonts.sourceSerif4(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: colorPrimary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: Icon(Icons.camera_alt_outlined, color: colorPrimary),
+                  title: Text(
+                    'Ambil Foto dari Kamera',
+                    style: GoogleFonts.workSans(color: colorOnSurface),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
+                ListTile(
+                  leading: Icon(
+                    Icons.photo_library_outlined,
+                    color: colorPrimary,
+                  ),
+                  title: Text(
+                    'Pilih dari Galeri',
+                    style: GoogleFonts.workSans(color: colorOnSurface),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage(ImageSource.gallery);
+                  },
+                ),
+                if (_avatarBytes != null)
+                  ListTile(
+                    leading: const Icon(
+                      Icons.delete_outline,
+                      color: Color(0xFFBA1A1A),
+                    ),
+                    title: Text(
+                      'Hapus Foto',
+                      style: GoogleFonts.workSans(
+                        color: const Color(0xFFBA1A1A),
+                      ),
+                    ),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      setState(() {
+                        _avatarBytes = null;
+                      });
+                    },
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleSave() async {
     final nama = _namaC.text.trim();
+    final email = _emailC.text.trim();
+    final phone = _phoneC.text.trim();
     final jam = _jamC.text.trim();
 
     if (nama.isEmpty || _selectedPosisi == null || _selectedShift == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Harap lengkapi semua informasi staf!',
+            'Harap lengkapi nama staf, posisi, dan shift!',
             style: GoogleFonts.workSans(color: Colors.white),
           ),
           backgroundColor: const Color(0xFFBA1A1A),
@@ -53,20 +168,51 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
       return;
     }
 
+    setState(() => _isLoading = true);
+
+    final roleName = _getRoleDisplayName(_selectedPosisi!);
+    final initials = nama.length >= 2
+        ? nama.substring(0, 2).toUpperCase()
+        : nama.toUpperCase();
+
+    // 1. Create Staff Model for Firestore
+    final staffModel = StaffModel(
+      name: nama,
+      role: roleName,
+      phone: phone.isNotEmpty ? phone : null,
+      email: email.isNotEmpty ? email : null,
+      status: 'Hadir',
+      initials: initials,
+      avatarBytes: _avatarBytes,
+    );
+
+    int newStaffId = DateTime.now().millisecondsSinceEpoch;
+    try {
+      newStaffId = await DataBaseHelper().insertStaff(staffModel);
+    } catch (e) {
+      debugPrint('Firestore insertStaff error: $e');
+    }
+
     final newStaff = {
+      'id': newStaffId,
       'name': nama,
-      'role': _getRoleDisplayName(_selectedPosisi!),
-      'status': 'Belum Hadir',
-      'time': '-',
+      'role': roleName,
+      'status': 'Hadir',
+      'time': _selectedShift == 'pagi' ? 'In: 07:00' : 'In: 15:00',
       'shiftTime': _selectedShift,
       'hours': jam.isNotEmpty ? jam : '40',
+      'phone': phone,
+      'email': email,
       'imageUrl': null,
-      'initials': nama.length >= 2
-          ? nama.substring(0, 2).toUpperCase()
-          : nama.toUpperCase(),
+      'avatarBytes': _avatarBytes,
+      'initials': initials,
     };
 
-    Navigator.pop(context, newStaff);
+    setState(() => _isLoading = false);
+
+    if (mounted) {
+      Navigator.pop(context, newStaff);
+    }
   }
 
   String _getRoleDisplayName(String value) {
@@ -103,7 +249,7 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
               onPressed: () => Navigator.pop(context),
             ),
             title: Text(
-              'Tambah Staf',
+              'Tambah Staf Firebase',
               style: GoogleFonts.sourceSerif4(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -127,7 +273,7 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
                     children: [
                       // Subtitle Header
                       Text(
-                        'Tambahkan anggota tim baru ke dalam jadwal operasional kafe.',
+                        'Tambahkan anggota tim baru ke dalam database Cloud Firestore kafe.',
                         style: GoogleFonts.workSans(
                           fontSize: 14,
                           color: colorOnSurfaceVariant,
@@ -157,40 +303,60 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
                               child: Column(
                                 children: [
                                   GestureDetector(
-                                    onTap: () {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Pilih foto profil dari galeri',
-                                            style: GoogleFonts.workSans(),
+                                    onTap: _showImagePickerModal,
+                                    child: Stack(
+                                      children: [
+                                        Container(
+                                          width: 104,
+                                          height: 104,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: colorSurfaceContainerLow,
+                                            border: Border.all(
+                                              color: colorPrimary.withValues(
+                                                alpha: 0.5,
+                                              ),
+                                              width: 2.5,
+                                            ),
+                                            image: _avatarBytes != null
+                                                ? DecorationImage(
+                                                    image: MemoryImage(
+                                                      _avatarBytes!,
+                                                    ),
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : null,
                                           ),
-                                          behavior: SnackBarBehavior.floating,
+                                          child: _avatarBytes == null
+                                              ? Icon(
+                                                  Icons.add_a_photo_outlined,
+                                                  size: 34,
+                                                  color: colorPrimary,
+                                                )
+                                              : null,
                                         ),
-                                      );
-                                    },
-                                    child: Container(
-                                      width: 96,
-                                      height: 96,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: colorSurfaceContainerLow,
-                                        border: Border.all(
-                                          color: colorOutlineVariant,
-                                          width: 2,
+                                        Positioned(
+                                          bottom: 0,
+                                          right: 0,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: colorPrimary,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.camera_alt,
+                                              color: Colors.white,
+                                              size: 16,
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                      child: Icon(
-                                        Icons.add_a_photo_outlined,
-                                        size: 32,
-                                        color: colorOutline,
-                                      ),
+                                      ],
                                     ),
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
-                                    'UNGGAH FOTO PROFIL',
+                                    'FOTO PROFIL KARYAWAN',
                                     style: GoogleFonts.workSans(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
@@ -200,7 +366,7 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Format JPG atau PNG, maks. 2MB',
+                                    'Tersimpan otomatis di Firestore',
                                     style: GoogleFonts.workSans(
                                       fontSize: 12,
                                       color: colorOnSurfaceVariant,
@@ -222,10 +388,11 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
                                 color: colorPrimary,
                               ),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 16),
 
+                            // Field: Nama Lengkap
                             Text(
-                              'NAMA LENGKAP',
+                              'NAMA LENGKAP *',
                               style: GoogleFonts.workSans(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -234,39 +401,54 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
                               ),
                             ),
                             const SizedBox(height: 6),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: colorSurfaceContainerLow,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: colorOutlineVariant),
+                            _buildInputField(
+                              controller: _namaC,
+                              hint: 'Masukkan nama staf',
+                              icon: Icons.person_outline,
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Field: Email
+                            Text(
+                              'EMAIL STAF (OPSIONAL)',
+                              style: GoogleFonts.workSans(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.0,
+                                color: colorOnSurface,
                               ),
-                              child: TextField(
-                                controller: _namaC,
-                                style: GoogleFonts.workSans(
-                                  color: colorOnSurface,
-                                ),
-                                decoration: InputDecoration(
-                                  hintText: 'Masukkan nama staf',
-                                  hintStyle: GoogleFonts.workSans(
-                                    color: colorOutlineVariant,
-                                  ),
-                                  prefixIcon: Icon(
-                                    Icons.person_outline,
-                                    color: colorOutline,
-                                  ),
-                                  border: InputBorder.none,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 14,
-                                  ),
-                                ),
+                            ),
+                            const SizedBox(height: 6),
+                            _buildInputField(
+                              controller: _emailC,
+                              hint: 'staf@bgaco.com',
+                              icon: Icons.email_outlined,
+                              inputType: TextInputType.emailAddress,
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Field: Nomor HP
+                            Text(
+                              'NOMOR TELEPON / WHATSAPP',
+                              style: GoogleFonts.workSans(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.0,
+                                color: colorOnSurface,
                               ),
+                            ),
+                            const SizedBox(height: 6),
+                            _buildInputField(
+                              controller: _phoneC,
+                              hint: '08123456789',
+                              icon: Icons.phone_outlined,
+                              inputType: TextInputType.phone,
                             ),
                             const SizedBox(height: 24),
 
                             // Section 2: Peran & Jadwal
                             Text(
-                              'Peran & Jadwal',
+                              'Peran & Jadwal Shift',
                               style: GoogleFonts.sourceSerif4(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -314,34 +496,11 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
                               ),
                             ),
                             const SizedBox(height: 6),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: colorSurfaceContainerLow,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: colorOutlineVariant),
-                              ),
-                              child: TextField(
-                                controller: _jamC,
-                                keyboardType: TextInputType.number,
-                                style: GoogleFonts.workSans(
-                                  color: colorOnSurface,
-                                ),
-                                decoration: InputDecoration(
-                                  hintText: 'Contoh: 40',
-                                  hintStyle: GoogleFonts.workSans(
-                                    color: colorOutlineVariant,
-                                  ),
-                                  prefixIcon: Icon(
-                                    Icons.timer_outlined,
-                                    color: colorOutline,
-                                  ),
-                                  border: InputBorder.none,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 14,
-                                  ),
-                                ),
-                              ),
+                            _buildInputField(
+                              controller: _jamC,
+                              hint: 'Contoh: 40',
+                              icon: Icons.timer_outlined,
+                              inputType: TextInputType.number,
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -389,14 +548,25 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
                                 const SizedBox(width: 12),
 
                                 ElevatedButton.icon(
-                                  onPressed: _handleSave,
-                                  icon: const Icon(
-                                    Icons.add_circle_outline,
-                                    size: 18,
-                                    color: Colors.white,
-                                  ),
+                                  onPressed: _isLoading ? null : _handleSave,
+                                  icon: _isLoading
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.cloud_upload_outlined,
+                                          size: 18,
+                                          color: Colors.white,
+                                        ),
                                   label: Text(
-                                    'SIMPAN STAF',
+                                    _isLoading
+                                        ? 'MENYIMPAN...'
+                                        : 'SIMPAN KE FIRESTORE',
                                     style: GoogleFonts.workSans(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
@@ -431,12 +601,42 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
     );
   }
 
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    TextInputType inputType = TextInputType.text,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: colorSurfaceContainerLow,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorOutlineVariant),
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: inputType,
+        style: GoogleFonts.workSans(color: colorOnSurface),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: GoogleFonts.workSans(color: colorOutlineVariant),
+          prefixIcon: Icon(icon, color: colorOutline),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildPosisiDropdown() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'POSISI',
+          'POSISI *',
           style: GoogleFonts.workSans(
             fontSize: 11,
             fontWeight: FontWeight.bold,
@@ -489,7 +689,7 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'WAKTU SHIFT',
+          'WAKTU SHIFT *',
           style: GoogleFonts.workSans(
             fontSize: 11,
             fontWeight: FontWeight.bold,

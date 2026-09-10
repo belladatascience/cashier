@@ -1,8 +1,12 @@
-import 'package:cashier/extension/navigator.dart';
+﻿import 'package:cashier/extension/navigator.dart';
+import 'package:cashier/halaman1/services/firebase_auth_service.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/user_data_store.dart';
+import 'package:cashier/halaman1/views/Home/data_user.dart';
 import 'package:cashier/halaman1/views/Home/login.dart';
 import 'package:cashier/halaman1/views/Profile/cashier_profile_screen.dart';
 import 'package:cashier/halaman1/widgets/animated_cartoon_logo.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -27,6 +31,7 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
 
   // Dynamic Color Tokens from AppTheme
   Color get colorPrimary => AppTheme.instance.primaryColor;
+  Color get colorSecondary => AppTheme.instance.secondaryColor;
   Color get colorBackground => AppTheme.instance.backgroundColor;
   Color get colorSurfaceContainerLowest => AppTheme.instance.surfaceColor;
   Color get colorSurfaceContainerLow => AppTheme.instance.surfaceContainerLow;
@@ -45,41 +50,52 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
   @override
   void initState() {
     super.initState();
-    // Auto-open drawer after build to showcase the drawer UI as shown in HTML design
+    // Auto-open drawer after build to showcase the drawer UI
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scaffoldKey.currentState?.openDrawer();
     });
   }
 
-  void _handleLogout() {
+  Future<void> _handleLogout() async {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogCtx) => AlertDialog(
         backgroundColor: colorSurfaceContainerLowest,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          'Konfirmasi Logout',
+          'Konfirmasi Logout Firebase',
           style: GoogleFonts.sourceSerif4(
             color: colorPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
         content: Text(
-          'Apakah Anda yakin ingin keluar dari sistem kasir?',
+          'Apakah Anda yakin ingin keluar dari akun Firebase kasir ini?',
           style: GoogleFonts.literata(color: colorOnSurfaceVariant),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogCtx),
             child: Text(
               'Batal',
               style: GoogleFonts.literata(color: colorOutline),
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              context.pushAndRemoveAll(const cashierlogin1());
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+
+              // Sign out from Firebase Auth
+              try {
+                await FirebaseAuthService.instance.signOut();
+                await FirebaseAuth.instance.signOut();
+              } catch (e) {
+                debugPrint('Firebase signOut error: $e');
+              }
+
+              if (mounted) {
+                context.pushAndRemoveAll(const cashierlogin1());
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: colorError,
@@ -106,312 +122,371 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
         return ValueListenableBuilder<String>(
           valueListenable: AppTheme.instance.themePaletteNotifier,
           builder: (context, palette, child) {
-            return Scaffold(
-              key: _scaffoldKey,
-              backgroundColor: colorBackground,
+            return ValueListenableBuilder<Map<String, dynamic>>(
+              valueListenable: UserDataStore.instance.userDataNotifier,
+              builder: (context, userData, child) {
+                final currentFirebaseUser = FirebaseAuth.instance.currentUser;
 
-              // Left Navigation Drawer Component
-              drawer: Drawer(
-                width: 320,
-                backgroundColor: colorSurfaceContainerLowest,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.horizontal(
-                    right: Radius.circular(24),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    // Header Card Section
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        left: 24,
-                        right: 24,
-                        top: 40,
-                        bottom: 16,
+                final storeDisplayName = (userData['storeName'] as String?)?.isNotEmpty == true
+                    ? userData['storeName'] as String
+                    : widget.storeName;
+
+                final storeLocation = (userData['location'] as String?)?.isNotEmpty == true
+                    ? userData['location'] as String
+                    : widget.storeLocation;
+
+                final currentShift = (userData['shift'] as String?)?.isNotEmpty == true
+                    ? userData['shift'] as String
+                    : widget.shift;
+
+                final cashierName = (userData['cashierName'] as String?)?.isNotEmpty == true
+                    ? userData['cashierName'] as String
+                    : (currentFirebaseUser?.displayName ?? 'Kasir');
+
+                final cashierRole = (userData['cashierRole'] as String?)?.isNotEmpty == true
+                    ? userData['cashierRole'] as String
+                    : 'Barista / Kasir';
+
+                final userEmail = currentFirebaseUser?.email ?? (userData['email'] as String? ?? '');
+
+                return Scaffold(
+                  key: _scaffoldKey,
+                  backgroundColor: colorBackground,
+
+                  // Left Navigation Drawer Component
+                  drawer: Drawer(
+                    width: 320,
+                    backgroundColor: colorSurfaceContainerLowest,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.horizontal(
+                        right: Radius.circular(24),
                       ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: colorSurfaceContainerLow,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: colorOutlineVariant.withValues(alpha: 0.3),
-                            width: 1,
+                    ),
+                    child: Column(
+                      children: [
+                        // Header Card Section
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            left: 24,
+                            right: 24,
+                            top: 40,
+                            bottom: 16,
                           ),
-                        ),
-                        padding: const EdgeInsets.all(20.0),
-                        child: Stack(
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: colorSurfaceContainerLow,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: colorOutlineVariant.withValues(alpha: 0.3),
+                                width: 1,
+                              ),
+                            ),
+                            padding: const EdgeInsets.all(20.0),
+                            child: Stack(
                               children: [
-                                Text(
-                                  widget.storeName.isNotEmpty
-                                      ? widget.storeName
-                                      : 'Bella Cafe',
-                                  style: GoogleFonts.sourceSerif4(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w600,
-                                    color: colorOnSurfaceVariant,
-                                  ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      storeDisplayName,
+                                      style: GoogleFonts.sourceSerif4(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w600,
+                                        color: colorOnSurfaceVariant,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      storeLocation,
+                                      style: GoogleFonts.literata(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: colorOutline,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Shift: $currentShift',
+                                      style: GoogleFonts.literata(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: colorOnSurfaceVariant,
+                                      ),
+                                    ),
+                                    if (userEmail.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        userEmail,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.workSans(
+                                          fontSize: 12,
+                                          color: colorOutline,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  widget.storeLocation.isNotEmpty
-                                      ? widget.storeLocation
-                                      : 'Jakarta',
-                                  style: GoogleFonts.literata(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: colorOutline,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Shift: ${widget.shift.isNotEmpty ? widget.shift : 'Pagi'}',
-                                  style: GoogleFonts.literata(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: colorOnSurfaceVariant,
+                                Positioned(
+                                  top: 0,
+                                  right: 0,
+                                  child: InkWell(
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      context.push(const CashierProfileScreen());
+                                    },
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(4.0),
+                                      child: Icon(
+                                        Icons.edit_outlined,
+                                        size: 20,
+                                        color: colorOutline,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                            Positioned(
-                              top: 0,
-                              right: 0,
-                              child: InkWell(
-                                onTap: () {},
-                                borderRadius: BorderRadius.circular(20),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: Icon(
-                                    Icons.edit_outlined,
-                                    size: 20,
-                                    color: colorOutline,
-                                  ),
-                                ),
-                              ),
+                          ),
+                        ),
+
+                        // Animated Cartoon Logo Banner Section
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24.0,
+                            vertical: 4.0,
+                          ),
+                          child: const AnimatedCartoonLogo(
+                            height: 120,
+                            borderRadius: 12,
+                            showEditButton: false,
+                          ),
+                        ),
+
+                        const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 24.0,
+                            vertical: 8.0,
+                          ),
+                          child: Divider(color: Color(0x33D4C3BE), height: 1),
+                        ),
+
+                        // Navigation Links Section
+                        Expanded(
+                          child: ListView(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
                             ),
-                          ],
+                            children: [
+                              _buildDrawerNavItem(
+                                icon: Icons.person_outline,
+                                title: 'Profile Kasir',
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  context.push(const CashierProfileScreen());
+                                },
+                              ),
+                              _buildDrawerNavItem(
+                                icon: Icons.manage_accounts_outlined,
+                                title: 'Kelola Pengguna',
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  context.push(const DataUserCashier());
+                                },
+                              ),
+                              _buildDrawerNavItem(
+                                icon: Icons.calendar_today_outlined,
+                                title: 'Shift & Jadwal',
+                                onTap: () {
+                                  Navigator.pop(context);
+                                },
+                              ),
+                              _buildDrawerNavItem(
+                                icon: Icons.cloud_done_outlined,
+                                title: 'Status Firebase: Terhubung',
+                                onTap: () {},
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ),
 
-                    // Animated Cartoon Logo Banner Section
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24.0,
-                        vertical: 4.0,
-                      ),
-                      child: const AnimatedCartoonLogo(
-                        height: 120,
-                        borderRadius: 12,
-                        showEditButton: false,
-                      ),
-                    ),
-
-                    const Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 24.0,
-                        vertical: 8.0,
-                      ),
-                      child: Divider(color: Color(0x33D4C3BE), height: 1),
-                    ),
-
-                    // Navigation Links Section
-                    Expanded(
-                      child: ListView(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        children: [
-                          _buildDrawerNavItem(
-                            icon: Icons.person_outline,
-                            title: 'Profile',
-                            onTap: () {
-                              Navigator.pop(context);
-                              context.push(const CashierProfileScreen());
-                            },
-                          ),
-                          _buildDrawerNavItem(
-                            icon: Icons.calendar_today_outlined,
-                            title: 'Shift',
-                            onTap: () {},
-                          ),
-                          _buildDrawerNavItem(
-                            icon: Icons.settings_outlined,
-                            title: 'Setting',
-                            onTap: () {},
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Logout Section at Bottom
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
-                      ),
-                      child: InkWell(
-                        onTap: _handleLogout,
-                        borderRadius: BorderRadius.circular(12),
-                        hoverColor: colorErrorContainer.withValues(alpha: 0.5),
-                        child: Container(
+                        // Logout Section at Bottom
+                        Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
-                            vertical: 14,
+                            vertical: 16,
                           ),
-                          decoration: BoxDecoration(
+                          child: InkWell(
+                            onTap: _handleLogout,
                             borderRadius: BorderRadius.circular(12),
+                            hoverColor: colorErrorContainer.withValues(alpha: 0.5),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.logout, size: 22, color: colorError),
+                                  const SizedBox(width: 16),
+                                  Text(
+                                    'Logout Akun',
+                                    style: GoogleFonts.literata(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: colorError,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                          child: Row(
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Main Dashboard View (Behind Scrim)
+                  appBar: AppBar(
+                    backgroundColor: colorBackground,
+                    elevation: 0,
+                    leading: IconButton(
+                      icon: Icon(Icons.menu, color: colorPrimary, size: 28),
+                      onPressed: () {
+                        _scaffoldKey.currentState?.openDrawer();
+                      },
+                    ),
+                    title: Text(
+                      'Dashboard Kasir',
+                      style: GoogleFonts.sourceSerif4(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: colorPrimary,
+                      ),
+                    ),
+                    actions: [
+                      IconButton(
+                        icon: Icon(Icons.search, color: colorOnSurfaceVariant),
+                        onPressed: () {},
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.notifications_none,
+                          color: colorOnSurfaceVariant,
+                        ),
+                        onPressed: () {},
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                  ),
+
+                  body: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Welcome Card Banner
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: colorSurfaceContainerLow,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: colorOutline.withValues(alpha: 0.1),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.logout, size: 22, color: colorError),
-                              const SizedBox(width: 16),
                               Text(
-                                'Logout',
-                                style: GoogleFonts.literata(
+                                'Selamat Datang, $cashierName!',
+                                style: GoogleFonts.sourceSerif4(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Peran: $cashierRole',
+                                style: GoogleFonts.workSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: colorSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Toko: $storeDisplayName ($storeLocation)',
+                                style: GoogleFonts.oswald(
                                   fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: colorError,
-                                  letterSpacing: 0.3,
+                                  color: colorOnSurfaceVariant,
+                                ),
+                              ),
+                              Text(
+                                'Shift Aktif: $currentShift',
+                                style: GoogleFonts.oswald(
+                                  fontSize: 15,
+                                  color: colorPrimary,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                        const SizedBox(height: 20),
 
-              // Main Dashboard View (Behind Scrim)
-              appBar: AppBar(
-                backgroundColor: colorBackground,
-                elevation: 0,
-                leading: IconButton(
-                  icon: Icon(Icons.menu, color: colorPrimary, size: 28),
-                  onPressed: () {
-                    _scaffoldKey.currentState?.openDrawer();
-                  },
-                ),
-                title: Text(
-                  'Discover',
-                  style: GoogleFonts.sourceSerif4(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: colorPrimary,
-                  ),
-                ),
-                actions: [
-                  IconButton(
-                    icon: Icon(Icons.search, color: colorOnSurfaceVariant),
-                    onPressed: () {},
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.notifications_none,
-                      color: colorOnSurfaceVariant,
-                    ),
-                    onPressed: () {},
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              ),
-
-              body: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Welcome Card Banner
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: colorSurfaceContainerLow,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: colorOutline.withValues(alpha: 0.1),
+                        Text(
+                          'Menu Kasir & Statistik',
+                          style: GoogleFonts.sourceSerif4(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: colorPrimary,
+                          ),
                         ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Selamat Datang, Kasir!',
-                            style: GoogleFonts.sourceSerif4(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: colorPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Toko: ${widget.storeName.isNotEmpty ? widget.storeName : 'Bella Cafe'} (${widget.storeLocation.isNotEmpty ? widget.storeLocation : 'Jakarta'})',
-                            style: GoogleFonts.oswald(
-                              fontSize: 16,
-                              color: colorOnSurfaceVariant,
-                            ),
-                          ),
-                          Text(
-                            'Shift Aktif: ${widget.shift.isNotEmpty ? widget.shift : 'Pagi'}',
-                            style: GoogleFonts.oswald(
-                              fontSize: 16,
-                              color: colorPrimary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
+                        const SizedBox(height: 12),
 
-                    Text(
-                      'Menu Kasir & Statistik',
-                      style: GoogleFonts.sourceSerif4(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: colorPrimary,
-                      ),
+                        Expanded(
+                          child: GridView.count(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                            children: [
+                              _buildDashboardCard(
+                                icon: Icons.point_of_sale,
+                                title: 'POS Kasir',
+                                color: const Color(0xFF7D562D),
+                              ),
+                              _buildDashboardCard(
+                                icon: Icons.receipt_long,
+                                title: 'Transaksi',
+                                color: const Color(0xFF45492D),
+                              ),
+                              _buildDashboardCard(
+                                icon: Icons.inventory_2_outlined,
+                                title: 'Stok Produk',
+                                color: const Color(0xFF5D4037),
+                              ),
+                              _buildDashboardCard(
+                                icon: Icons.bar_chart,
+                                title: 'Laporan Shift',
+                                color: const Color(0xFF303030),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-
-                    Expanded(
-                      child: GridView.count(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        children: [
-                          _buildDashboardCard(
-                            icon: Icons.point_of_sale,
-                            title: 'POS Kasir',
-                            color: const Color(0xFF7D562D),
-                          ),
-                          _buildDashboardCard(
-                            icon: Icons.receipt_long,
-                            title: 'Transaksi',
-                            color: const Color(0xFF45492D),
-                          ),
-                          _buildDashboardCard(
-                            icon: Icons.inventory_2_outlined,
-                            title: 'Stok Produk',
-                            color: const Color(0xFF5D4037),
-                          ),
-                          _buildDashboardCard(
-                            icon: Icons.bar_chart,
-                            title: 'Laporan Shift',
-                            color: const Color(0xFF303030),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             );
           },
         );

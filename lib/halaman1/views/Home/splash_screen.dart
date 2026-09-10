@@ -1,8 +1,11 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/user_data_store.dart';
+import 'package:cashier/halaman1/views/Home/Shift/store_showcase_screen.dart';
 import 'package:cashier/halaman1/views/Home/login.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
@@ -38,9 +41,9 @@ class _SplashScreenState extends State<SplashScreen>
 
   final List<String> _loadingSteps = [
     'Memuat konfigurasi sistem...',
+    'Menghubungkan ke Firebase Cloud...',
+    'Memeriksa status sesi kasir...',
     'Menyiapkan tema & antarmuka...',
-    'Menginisialisasi data kasir...',
-    'Menghubungkan ke layanan BGA Co...',
     'Selamat datang di BGA Co. Cashier!',
   ];
 
@@ -79,7 +82,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _entranceController.forward();
 
-    // 3. Initialize Video Player
+    // 3. Initialize Video Player & Firebase Session Check
     _initializeVideo();
   }
 
@@ -111,7 +114,7 @@ class _SplashScreenState extends State<SplashScreen>
 
       _navigationTimer?.cancel();
       _navigationTimer = Timer(totalWait, () {
-        _navigateToLogin();
+        _checkSessionAndNavigate();
       });
     } catch (e) {
       debugPrint('Error loading video: $e');
@@ -123,7 +126,7 @@ class _SplashScreenState extends State<SplashScreen>
       // If video fails to load, fallback to timer of 3.5 seconds
       _navigationTimer?.cancel();
       _navigationTimer = Timer(const Duration(milliseconds: 3500), () {
-        _navigateToLogin();
+        _checkSessionAndNavigate();
       });
     }
   }
@@ -156,7 +159,7 @@ class _SplashScreenState extends State<SplashScreen>
       if (value.position >= value.duration &&
           value.position > const Duration(milliseconds: 1500) &&
           !value.isPlaying) {
-        _navigateToLogin();
+        _checkSessionAndNavigate();
       }
     }
   }
@@ -174,15 +177,37 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
-  void _navigateToLogin() {
+  Future<void> _checkSessionAndNavigate() async {
     if (_hasNavigated || !mounted) return;
     _hasNavigated = true;
+
+    // Check Firebase Auth Session
+    final currentFirebaseUser = FirebaseAuth.instance.currentUser;
+
+    Widget targetScreen;
+    if (currentFirebaseUser != null) {
+      // User is already logged in to Firebase, restore session and proceed to store showcase
+      final displayName = currentFirebaseUser.displayName ?? 'Kasir';
+      final email = currentFirebaseUser.email ?? '';
+
+      await UserDataStore.instance.updateUserData({
+        'accountName': displayName,
+        'cashierName': displayName,
+        'email': email,
+      });
+
+      targetScreen = const StoreShowcaseScreen();
+    } else {
+      // User not logged in, go to Login Screen
+      targetScreen = const cashierlogin1();
+    }
+
+    if (!mounted) return;
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 700),
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const cashierlogin1(),
+        pageBuilder: (context, animation, secondaryAnimation) => targetScreen,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           final fadeTransition = CurvedAnimation(
             parent: animation,
@@ -232,11 +257,11 @@ class _SplashScreenState extends State<SplashScreen>
                       decoration: BoxDecoration(
                         gradient: RadialGradient(
                           center: const Alignment(0.0, -0.2),
-                          radius: 1.15,
+                          radius: 1.1,
                           colors: [
-                            secondary.withValues(alpha: isDark ? 0.22 : 0.16),
-                            primary.withValues(alpha: isDark ? 0.08 : 0.05),
-                            Colors.transparent,
+                            secondary.withValues(alpha: isDark ? 0.22 : 0.14),
+                            primary.withValues(alpha: isDark ? 0.12 : 0.06),
+                            background,
                           ],
                           stops: const [0.0, 0.55, 1.0],
                         ),
@@ -244,26 +269,7 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                   ),
 
-                  // Bottom subtle glow
-                  Positioned(
-                    bottom: -80,
-                    left: -40,
-                    right: -40,
-                    height: 240,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            secondary.withValues(alpha: isDark ? 0.15 : 0.10),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // 2. Rotating Ambient Accent Ring
+                  // 2. Animated Rotating Glow Ring
                   Center(
                     child: AnimatedBuilder(
                       animation: _rotateController,
@@ -271,57 +277,23 @@ class _SplashScreenState extends State<SplashScreen>
                         return Transform.rotate(
                           angle: _rotateController.value * 2 * math.pi,
                           child: Container(
-                            width: 330,
-                            height: 330,
+                            width: 320,
+                            height: 320,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              border: Border.all(
-                                color: secondary.withValues(
-                                  alpha: isDark ? 0.14 : 0.18,
-                                ),
-                                width: 1.5,
+                              gradient: SweepGradient(
+                                colors: [
+                                  Colors.transparent,
+                                  secondary.withValues(
+                                    alpha: isDark ? 0.25 : 0.18,
+                                  ),
+                                  primary.withValues(
+                                    alpha: isDark ? 0.35 : 0.25,
+                                  ),
+                                  Colors.transparent,
+                                ],
+                                stops: const [0.0, 0.45, 0.75, 1.0],
                               ),
-                            ),
-                            child: Stack(
-                              children: [
-                                Positioned(
-                                  top: 20,
-                                  left: 70,
-                                  child: Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: secondary.withValues(alpha: 0.85),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: secondary,
-                                          blurRadius: 8,
-                                          spreadRadius: 1,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                Positioned(
-                                  bottom: 30,
-                                  right: 80,
-                                  child: Container(
-                                    width: 6,
-                                    height: 6,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: primary.withValues(alpha: 0.75),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: primary,
-                                          blurRadius: 6,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
                             ),
                           ),
                         );
@@ -329,169 +301,75 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                   ),
 
-                  // 3. Skip Button (Top Right)
-                  SafeArea(
-                    child: Align(
-                      alignment: Alignment.topRight,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 12.0, right: 16.0),
-                        child: TextButton.icon(
-                          onPressed: _navigateToLogin,
-                          style: TextButton.styleFrom(
-                            backgroundColor: surfaceColor.withValues(
-                              alpha: 0.75,
-                            ),
-                            foregroundColor: onSurfaceVariant,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              side: BorderSide(
-                                color: theme.outlineVariant.withValues(
-                                  alpha: 0.4,
-                                ),
-                              ),
-                            ),
-                          ),
-                          icon: Text(
-                            'Lewati',
-                            style: GoogleFonts.workSans(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          label: const Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            size: 11,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // 4. Main Center Content (Video + Branding + Progress)
-                  SafeArea(
-                    child: Center(
-                      child: SingleChildScrollView(
-                        physics: const NeverScrollableScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                        child: AnimatedBuilder(
-                          animation: _entranceController,
-                          builder: (context, child) {
-                            return FadeTransition(
-                              opacity: _fadeAnimation,
-                              child: SlideTransition(
-                                position: _slideAnimation,
-                                child: ScaleTransition(
-                                  scale: _scaleAnimation,
-                                  child: child,
-                                ),
-                              ),
-                            );
-                          },
+                  // 3. Central Brand Content
+                  Center(
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: ScaleTransition(
+                        scale: _scaleAnimation,
+                        child: SlideTransition(
+                          position: _slideAnimation,
                           child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              // Video Player Card Container
+                              // Video Preview / Branding Container
                               _buildVideoContainer(
                                 primary: primary,
                                 secondary: secondary,
                                 surface: surfaceColor,
                                 isDark: isDark,
                               ),
+                              const SizedBox(height: 32),
 
-                              const SizedBox(height: 28),
-
-                              // App Title: CASHIER
+                              // App Title & Tagline
                               Text(
-                                'CASHIER',
+                                'BGA Co. Cashier',
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.sourceSerif4(
-                                  fontSize: 42,
+                                  fontSize: 28,
                                   fontWeight: FontWeight.bold,
-                                  letterSpacing: 2.0,
+                                  letterSpacing: 0.5,
                                   color: primary,
-                                  shadows: [
-                                    Shadow(
-                                      color: primary.withValues(alpha: 0.15),
-                                      offset: const Offset(0, 4),
-                                      blurRadius: 12,
-                                    ),
-                                  ],
                                 ),
                               ),
-
                               const SizedBox(height: 6),
-
-                              // Brand Badge & Subtitle
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: secondary.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: secondary.withValues(alpha: 0.4),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'BGA Co.',
-                                      style: GoogleFonts.workSans(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: 1.2,
-                                        color: secondary,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Point of Sale & Management',
-                                    style: GoogleFonts.workSans(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      letterSpacing: 0.3,
-                                      color: onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
+                              Text(
+                                'Professional Point of Sale System',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.workSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: 0.3,
+                                  color: onSurfaceVariant,
+                                ),
                               ),
+                              const SizedBox(height: 36),
 
-                              const SizedBox(height: 40),
-
-                              // Progress Bar & Dynamic Status
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 320,
+                              // 4. Elegant Progress Bar & Status Text
+                              Container(
+                                width: 260,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
                                 ),
                                 child: Column(
                                   children: [
-                                    // Progress Bar
-                                    Container(
-                                      height: 6,
-                                      width: double.infinity,
-                                      decoration: BoxDecoration(
-                                        color: secondary.withValues(
-                                          alpha: isDark ? 0.18 : 0.12,
-                                        ),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: FractionallySizedBox(
-                                          widthFactor: _currentProgress.clamp(
-                                            0.0,
-                                            1.0,
-                                          ),
-                                          child: Container(
+                                    // Smooth Gradient Progress Bar
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Container(
+                                        height: 6,
+                                        width: double.infinity,
+                                        color: isDark
+                                            ? const Color(0xFF38231E)
+                                            : const Color(0xFFF1E5E1),
+                                        child: Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: AnimatedContainer(
+                                            duration: const Duration(
+                                              milliseconds: 120,
+                                            ),
+                                            width: 260 * _currentProgress,
+                                            height: 6,
                                             decoration: BoxDecoration(
                                               borderRadius:
                                                   BorderRadius.circular(10),

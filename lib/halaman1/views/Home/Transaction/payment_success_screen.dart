@@ -2,6 +2,8 @@ import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/models/transaction_model.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -29,10 +31,12 @@ class PaymentSuccessScreen extends StatefulWidget {
 
 class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
   late final String _formattedTime;
+  bool _isCloudSynced = false;
 
   // Dynamic Color Tokens
   Color get colorPrimary => AppTheme.instance.primaryColor;
   Color get colorSecondary => AppTheme.instance.secondaryColor;
+  Color get colorSecondaryContainer => AppTheme.instance.secondaryContainer;
   Color get colorBackground => AppTheme.instance.backgroundColor;
   Color get colorSurface => AppTheme.instance.backgroundColor;
   Color get colorSurfaceContainerLowest => AppTheme.instance.surfaceColor;
@@ -47,30 +51,64 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
     if (widget.cashierName != null && widget.cashierName!.trim().isNotEmpty) {
       return widget.cashierName!.trim();
     }
+    final fbUser = FirebaseAuth.instance.currentUser;
+    if (fbUser?.displayName != null && fbUser!.displayName!.trim().isNotEmpty) {
+      return fbUser.displayName!.trim();
+    }
     final stored =
         UserDataStore.instance.userDataNotifier.value['cashierName'] ??
         UserDataStore.instance.userDataNotifier.value['name'] ??
         UserDataStore.instance.userDataNotifier.value['accountName'];
     return stored != null && stored.toString().trim().isNotEmpty
         ? stored.toString().trim()
-        : 'Bella Saputra';
+        : 'Bella Gita Asmara';
   }
 
   @override
   void initState() {
     super.initState();
     _formattedTime = _getFormattedCurrentTime();
-    _saveTransactionToDatabase();
+    _saveTransactionToDatabaseAndCloud();
   }
 
-  Future<void> _saveTransactionToDatabase() async {
-    try {
-      final activeStore =
-          UserDataStore.instance.userDataNotifier.value['storeName'] ??
-          'Bella Cafe';
-      final subtotal = (widget.totalAmount / 1.1).round();
-      final tax = widget.totalAmount - subtotal;
+  Future<void> _saveTransactionToDatabaseAndCloud() async {
+    final activeStore =
+        UserDataStore.instance.userDataNotifier.value['storeName'] ??
+        'Bella Cafe';
+    final subtotal = (widget.totalAmount / 1.1).round();
+    final tax = widget.totalAmount - subtotal;
+    final fbUser = FirebaseAuth.instance.currentUser;
 
+    // 1. Simpan ke Cloud Firestore
+    try {
+      final docId = widget.transactionId.replaceAll('#', '').trim();
+      await FirebaseFirestore.instance.collection('transactions').doc(docId).set({
+        'invoiceNumber': widget.transactionId,
+        'orderId': docId,
+        'totalAmount': widget.totalAmount,
+        'subtotal': subtotal,
+        'tax': tax,
+        'paymentMethod': widget.paymentMethod,
+        'customerName': widget.customerName,
+        'cashierName': _activeCashierName,
+        'cashierUid': fbUser?.uid ?? 'guest',
+        'cashierEmail': fbUser?.email ?? 'anonymous',
+        'storeName': activeStore.toString(),
+        'status': 'LUNAS',
+        'dateTime': _formattedTime,
+        'timestamp': FieldValue.serverTimestamp(),
+        'createdAt': DateTime.now().toIso8601String(),
+      }, SetOptions(merge: true));
+
+      if (mounted) {
+        setState(() => _isCloudSynced = true);
+      }
+    } catch (e) {
+      debugPrint('Firestore write error in PaymentSuccessScreen: $e');
+    }
+
+    // 2. Simpan ke SQLite Database Lokal sebagai cadangan
+    try {
       final txModel = TransactionModel(
         invoiceNumber: widget.transactionId,
         dateTime: _formattedTime,
@@ -95,7 +133,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
 
       await DataBaseHelper().insertTransaction(txModel);
     } catch (e) {
-      debugPrint('Error saving transaction in success screen: $e');
+      debugPrint('SQLite write error in PaymentSuccessScreen: $e');
     }
   }
 
@@ -117,12 +155,10 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
     ];
     final month = months[now.month - 1];
     final day = now.day;
-    final hour = now.hour > 12
-        ? now.hour - 12
-        : (now.hour == 0 ? 12 : now.hour);
-    final minute = now.minute.toString().padLeft(2, '0');
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
     final period = now.hour >= 12 ? 'PM' : 'AM';
-    return '$month $day, $hour:$minute $period';
+    final minute = now.minute.toString().padLeft(2, '0');
+    return '$month $day, ${now.year} • $hour:$minute $period';
   }
 
   String _formatCurrency(int amount) {
@@ -133,212 +169,166 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
   }
 
   void _handleReturnHome() {
-    if (widget.onOrderCompleted != null) {
-      widget.onOrderCompleted!();
-    }
-    // Return to main app screen (HomeScreen)
-    Navigator.popUntil(
-      context,
-      (route) =>
-          route.settings.name == 'HomeScreen' ||
-          route.settings.name == '/HomeScreen' ||
-          route.isFirst,
-    );
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    widget.onOrderCompleted?.call();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppTheme.instance;
-
-    return ValueListenableBuilder<String>(
-      valueListenable: theme.themeModeNotifier,
-      builder: (context, themeMode, child) {
-        return Scaffold(
-          backgroundColor: colorBackground,
-          appBar: AppBar(
-            backgroundColor: colorBackground,
-            elevation: 0,
-            leading: IconButton(
-              icon: Icon(Icons.menu, color: colorPrimary),
-              onPressed: () {},
-            ),
-            title: Text(
-              'BGA Co.',
-              style: GoogleFonts.sourceSerif4(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: colorPrimary,
-              ),
-            ),
-            centerTitle: true,
-            actions: [
-              IconButton(
-                icon: Icon(Icons.account_circle, color: colorOnSurfaceVariant),
-                onPressed: () {},
-              ),
-              const SizedBox(width: 8),
-            ],
-          ),
-          body: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: Container(
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
-                    color: colorSurfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: colorSurfaceContainerHigh),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color.fromRGBO(68, 42, 34, 0.08),
-                        blurRadius: 24,
-                        offset: Offset(0, 8),
+    return Scaffold(
+      backgroundColor: colorBackground,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Animated Success Icon with Cloud Badge
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFDCFCE7),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.check_circle_rounded,
+                        color: Color(0xFF166534),
+                        size: 46,
                       ),
-                    ],
+                    ),
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Animated Success Icon Circle
-                      Container(
-                        width: 96,
-                        height: 96,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFE3E9C2),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Color.fromRGBO(69, 73, 45, 0.15),
-                              blurRadius: 10,
-                              offset: Offset(0, 4),
+                  const SizedBox(height: 16),
+
+                  // Cloud Firestore Sync Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _isCloudSynced
+                          ? Colors.green.withValues(alpha: 0.12)
+                          : colorSecondaryContainer,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _isCloudSynced
+                            ? Colors.green.shade600
+                            : colorSecondary.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _isCloudSynced ? Icons.cloud_done : Icons.cloud_upload_outlined,
+                          size: 14,
+                          color: _isCloudSynced ? Colors.green.shade800 : colorSecondary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _isCloudSynced
+                              ? 'Tersinkronisasi ke Cloud Firestore'
+                              : 'Menyinkronkan ke Firebase...',
+                          style: GoogleFonts.workSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: _isCloudSynced ? Colors.green.shade800 : colorSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  Text(
+                    'Pembayaran Diterima!',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.sourceSerif4(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: colorPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Dana pembayaran telah berhasil dicatat dan masuk ke sistem toko.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.workSans(
+                      fontSize: 13,
+                      color: colorOnSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Transaction Details Card
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: colorSurfaceContainerLow,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: colorOutlineVariant.withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        // Amount Paid Row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Total Dibayar',
+                              style: GoogleFonts.workSans(
+                                fontSize: 13,
+                                color: colorOnSurfaceVariant,
+                              ),
+                            ),
+                            Text(
+                              'Rp ${_formatCurrency(widget.totalAmount)}',
+                              style: GoogleFonts.sourceSerif4(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: colorPrimary,
+                              ),
                             ),
                           ],
                         ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.check,
-                            color: Color(0xFF45492D),
-                            size: 48,
-                          ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          child: Divider(),
                         ),
-                      ),
-                      const SizedBox(height: 20),
 
-                      // Header Text
-                      Text(
-                        'Payment Received!',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.sourceSerif4(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: colorPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'The funds have been successfully credited to your shop account.',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.workSans(
-                          fontSize: 14,
-                          color: colorOnSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
+                        // Cashier
+                        _buildDetailRow('Kasir', _activeCashierName),
+                        const SizedBox(height: 12),
 
-                      // Transaction Details Card
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: colorSurfaceContainerLow,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: colorOutlineVariant.withValues(alpha: 0.5),
-                          ),
-                        ),
-                        child: Column(
+                        // Customer
+                        _buildDetailRow('Pelanggan', widget.customerName),
+                        const SizedBox(height: 12),
+
+                        // Method
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Amount Paid Row
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Amount Paid',
-                                  style: GoogleFonts.workSans(
-                                    fontSize: 14,
-                                    color: colorOnSurfaceVariant,
-                                  ),
-                                ),
-                                Text(
-                                  'Rp ${_formatCurrency(widget.totalAmount)}',
-                                  style: GoogleFonts.sourceSerif4(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    color: colorPrimary,
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              'Metode',
+                              style: GoogleFonts.workSans(
+                                fontSize: 12,
+                                color: colorOnSurfaceVariant,
+                              ),
                             ),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 14),
-                              child: Divider(),
-                            ),
-
-                            // Cashier
-                            _buildDetailRow('Cashier', _activeCashierName),
-                            const SizedBox(height: 12),
-
-                            // Customer
-                            _buildDetailRow('Customer', widget.customerName),
-                            const SizedBox(height: 12),
-
-                            // Method
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  'Method',
-                                  style: GoogleFonts.workSans(
-                                    fontSize: 12,
-                                    color: colorOnSurfaceVariant,
-                                  ),
+                                Icon(
+                                  Icons.payment,
+                                  size: 16,
+                                  color: colorSecondary,
                                 ),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.qr_code_scanner,
-                                      size: 18,
-                                      color: colorSecondary,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      widget.paymentMethod,
-                                      style: GoogleFonts.workSans(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: colorPrimary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-
-                            // Transaction ID
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
+                                const SizedBox(width: 4),
                                 Text(
-                                  'Transaction ID',
-                                  style: GoogleFonts.workSans(
-                                    fontSize: 12,
-                                    color: colorOnSurfaceVariant,
-                                  ),
-                                ),
-                                Text(
-                                  widget.transactionId,
+                                  widget.paymentMethod,
                                   style: GoogleFonts.workSans(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
@@ -347,54 +337,77 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
-
-                            // Time
-                            _buildDetailRow('Time', _formattedTime),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 28),
+                        const SizedBox(height: 12),
 
-                      // Return Home Action Button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: ElevatedButton(
-                          onPressed: _handleReturnHome,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: colorPrimary,
-                            foregroundColor: Colors.white,
-                            elevation: 4,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.receipt_long, size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                'LIHAT TRANSAKSI',
-                                style: GoogleFonts.workSans(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.0,
-                                ),
+                        // Transaction ID
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'No. Transaksi',
+                              style: GoogleFonts.workSans(
+                                fontSize: 12,
+                                color: colorOnSurfaceVariant,
                               ),
-                            ],
-                          ),
+                            ),
+                            Text(
+                              widget.transactionId,
+                              style: GoogleFonts.workSans(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: colorPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Time
+                        _buildDetailRow('Waktu', _formattedTime),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // Return Home Action Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _handleReturnHome,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorSecondary,
+                        foregroundColor: Colors.white,
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                    ],
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.home, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            'KEMBALI KE BERANDA KASIR',
+                            style: GoogleFonts.workSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -412,7 +425,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
         Text(
           value,
           style: GoogleFonts.workSans(
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: FontWeight.w600,
             color: colorPrimary,
           ),

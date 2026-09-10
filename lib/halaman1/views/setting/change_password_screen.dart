@@ -1,6 +1,7 @@
-import 'package:cashier/extension/navigator.dart';
+﻿import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -21,6 +22,15 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   bool _obscureCurrentPassword = true;
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    newPasswordC.addListener(() {
+      setState(() {});
+    });
+  }
 
   @override
   void dispose() {
@@ -35,35 +45,105 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   bool get _hasUppercase => newPasswordC.text.contains(RegExp(r'[A-Z]'));
   bool get _hasNumber => newPasswordC.text.contains(RegExp(r'[0-9]'));
 
-  void _savePassword() {
-    if (_formKey.currentState!.validate()) {
-      if (!_hasMinLength || !_hasUppercase || !_hasNumber) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalization.instance.getText('password_req_title'),
-              style: GoogleFonts.workSans(color: Colors.white),
-            ),
-            backgroundColor: Colors.red.shade700,
-            behavior: SnackBarBehavior.floating,
-          ),
+  Future<void> _savePassword() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    if (!_hasMinLength || !_hasUppercase || !_hasNumber) {
+      _showSnackBar(
+        'Kata sandi baru harus memenuhi semua persyaratan keamanan!',
+        isError: true,
+      );
+      return;
+    }
+
+    final currentPass = currentPasswordC.text.trim();
+    final newPass = newPasswordC.text.trim();
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      _showSnackBar(
+        'Sesi kasir tidak ditemukan. Harap login ulang terlebih dahulu.',
+        isError: true,
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final email = user.email;
+      if (email != null && email.isNotEmpty) {
+        // 1. Re-authenticate user with current password
+        final cred = EmailAuthProvider.credential(
+          email: email,
+          password: currentPass,
         );
-        return;
+        await user.reauthenticateWithCredential(cred);
       }
 
-      final theme = AppTheme.instance;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppLocalization.instance.getText('saved'),
-            style: GoogleFonts.workSans(color: Colors.white),
-          ),
-          backgroundColor: theme.secondaryColor,
-          behavior: SnackBarBehavior.floating,
-        ),
+      // 2. Update to new password in Firebase Auth
+      await user.updatePassword(newPass);
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      _showSnackBar(
+        'Kata sandi Firebase berhasil diubah!',
+        isError: false,
       );
-      context.pop();
+
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (mounted) {
+        context.pop();
+      }
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+
+      String errorMessage = 'Gagal mengubah kata sandi.';
+      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+        errorMessage = 'Kata sandi saat ini salah. Periksa kembali!';
+      } else if (e.code == 'weak-password') {
+        errorMessage = 'Kata sandi baru terlalu lemah untuk Firebase.';
+      } else if (e.code == 'requires-recent-login') {
+        errorMessage = 'Sesi Anda telah kedaluwarsa. Silakan logout dan login ulang.';
+      } else if (e.code == 'network-request-failed') {
+        errorMessage = 'Koneksi internet bermasalah. Periksa jaringan Anda.';
+      }
+
+      _showSnackBar(errorMessage, isError: true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+      _showSnackBar('Terjadi kesalahan: $e', isError: true);
     }
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    final theme = AppTheme.instance;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.workSans(color: Colors.white),
+        ),
+        backgroundColor: isError ? Colors.red.shade700 : theme.secondaryColor,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   InputDecoration _buildInputDecoration({
@@ -174,6 +254,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     color: theme.primaryColor,
                   ),
                 ),
+                centerTitle: true,
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(1.0),
                   child: Container(color: theme.dividerColor, height: 1.0),
@@ -183,6 +264,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               body: SafeArea(
                 child: Column(
                   children: [
+                    // Scrollable Form Fields
                     Expanded(
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.symmetric(
@@ -195,19 +277,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                             child: Form(
                               key: _formKey,
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Subtitle Description
-                                  Text(
-                                    loc.getText('change_password_desc'),
-                                    style: GoogleFonts.workSans(
-                                      fontSize: 15,
-                                      height: 1.5,
-                                      color: theme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 28),
-
                                   // Current Password Field
                                   _buildFieldLabel(
                                     loc.getText('current_password'),
@@ -246,22 +317,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                                   ),
                                   const SizedBox(height: 20),
 
-                                  // Divider
-                                  Container(
-                                    height: 1,
-                                    color: theme.dividerColor,
-                                    margin: const EdgeInsets.symmetric(
-                                      vertical: 4,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 20),
-
                                   // New Password Field
                                   _buildFieldLabel(loc.getText('new_password')),
                                   TextFormField(
                                     controller: newPasswordC,
                                     obscureText: _obscureNewPassword,
-                                    onChanged: (_) => setState(() {}),
                                     style: GoogleFonts.workSans(
                                       fontSize: 16,
                                       color: theme.primaryColor,
@@ -419,7 +479,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                             width: double.infinity,
                             height: 52,
                             child: ElevatedButton(
-                              onPressed: _savePassword,
+                              onPressed: _isLoading ? null : _savePassword,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: theme.primaryColor,
                                 foregroundColor: theme.surfaceColor,
@@ -428,13 +488,24 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
-                              child: Text(
-                                loc.getText('save_password_btn'),
-                                style: GoogleFonts.workSans(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                              child: _isLoading
+                                  ? SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                          theme.surfaceColor,
+                                        ),
+                                      ),
+                                    )
+                                  : Text(
+                                      loc.getText('save_password_btn'),
+                                      style: GoogleFonts.workSans(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                             ),
                           ),
                         ),

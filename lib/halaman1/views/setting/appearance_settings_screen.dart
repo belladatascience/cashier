@@ -1,6 +1,8 @@
-import 'package:cashier/extension/navigator.dart';
+﻿import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -30,6 +32,64 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
       _textSizeValue = 2.0;
     } else {
       _textSizeValue = 1.0;
+    }
+    _loadFromFirebase();
+  }
+
+  Future<void> _loadFromFirebase() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        if (doc.exists && doc.data() != null) {
+          final appearance = doc.data()!['appearance'] as Map<String, dynamic>?;
+          if (appearance != null) {
+            final mode = appearance['themeMode'] as String?;
+            final palette = appearance['themePalette'] as String?;
+            final textScale = appearance['textScaleFactor'] as num?;
+
+            if (mode != null) await AppTheme.instance.setThemeMode(mode);
+            if (palette != null) await AppTheme.instance.setThemePalette(palette);
+            if (textScale != null) {
+              AppTheme.instance.setTextScaleFactor(textScale.toDouble());
+              if (mounted) {
+                setState(() {
+                  if (textScale < 0.9) {
+                    _textSizeValue = 0.0;
+                  } else if (textScale > 1.1) {
+                    _textSizeValue = 2.0;
+                  } else {
+                    _textSizeValue = 1.0;
+                  }
+                });
+              }
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('Firebase appearance load error: ');
+      }
+    }
+  }
+
+  Future<void> _syncToFirebase({String? themeMode, String? themePalette, double? textScale}) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final updateMap = <String, dynamic>{
+          'updatedAt': FieldValue.serverTimestamp(),
+        };
+        if (themeMode != null) updateMap['themeMode'] = themeMode;
+        if (themePalette != null) updateMap['themePalette'] = themePalette;
+        if (textScale != null) updateMap['textScaleFactor'] = textScale;
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .set({'appearance': updateMap}, SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('Firebase appearance sync error: ');
+      }
     }
   }
 
@@ -328,7 +388,7 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                                     title: loc.getText('theme_light'),
                                     isSelected: activeThemeMode == 'light',
                                     onTap: () async {
-                                      await theme.setThemeMode('light');
+                                      await theme.setThemeMode('light'); _syncToFirebase(themeMode: 'light');
                                       _showSnackBar(loc.getText('theme_light'));
                                     },
                                   ),
@@ -339,7 +399,7 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                                     title: loc.getText('theme_dark'),
                                     isSelected: activeThemeMode == 'dark',
                                     onTap: () async {
-                                      await theme.setThemeMode('dark');
+                                      await theme.setThemeMode('dark'); _syncToFirebase(themeMode: 'dark');
                                       _showSnackBar(loc.getText('theme_dark'));
                                     },
                                   ),
@@ -351,7 +411,7 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                                     subtitle: loc.getText('follow_device'),
                                     isSelected: activeThemeMode == 'system',
                                     onTap: () async {
-                                      await theme.setThemeMode('system');
+                                      await theme.setThemeMode('system'); _syncToFirebase(themeMode: 'system');
                                       _showSnackBar(
                                         loc.getText('theme_system'),
                                       );
@@ -380,7 +440,7 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                                     ],
                                     isSelected: activePalette == 'coffee',
                                     onTap: () async {
-                                      await theme.setThemePalette('coffee');
+                                      await theme.setThemePalette('coffee'); _syncToFirebase(themePalette: 'coffee');
                                       _showSnackBar(
                                         loc.getText('palette_coffee_title'),
                                       );
@@ -400,7 +460,7 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                                     ],
                                     isSelected: activePalette == 'emerald',
                                     onTap: () async {
-                                      await theme.setThemePalette('emerald');
+                                      await theme.setThemePalette('emerald'); _syncToFirebase(themePalette: 'emerald');
                                       _showSnackBar(
                                         loc.getText('palette_emerald_title'),
                                       );
@@ -420,7 +480,7 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                                     ],
                                     isSelected: activePalette == 'berry',
                                     onTap: () async {
-                                      await theme.setThemePalette('berry');
+                                      await theme.setThemePalette('berry'); _syncToFirebase(themePalette: 'berry');
                                       _showSnackBar(
                                         loc.getText('palette_berry_title'),
                                       );
@@ -442,7 +502,7 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
                                     ],
                                     isSelected: activePalette == 'obsidian',
                                     onTap: () async {
-                                      await theme.setThemePalette('obsidian');
+                                      await theme.setThemePalette('obsidian'); _syncToFirebase(themePalette: 'obsidian');
                                       _showSnackBar(
                                         loc.getText('palette_obsidian_title'),
                                       );

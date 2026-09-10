@@ -3,6 +3,7 @@ import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/models/transaction_model.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/menu_data_store.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -276,10 +277,70 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadProductsFromFirebase();
+    MenuDataStore.instance.menuDataNotifier.addListener(_onMenuDataUpdated);
+  }
+
+  void _onMenuDataUpdated() {
+    if (mounted) {
+      _loadProductsFromFirebase();
+    }
+  }
+
+  void _loadProductsFromFirebase() {
+    final catMap = MenuDataStore.instance.categoryDataMap;
+    final List<ProductItem> dynamicProducts = [];
+
+    catMap.forEach((category, items) {
+      for (final item in items) {
+        final name = item['name'] as String? ?? 'Item';
+        final price = item['price'] is int
+            ? item['price'] as int
+            : int.tryParse(item['price']?.toString() ?? '0') ?? 0;
+        final id = item['id']?.toString() ?? 'item_${name.hashCode}';
+        final image = item['imagePath'] as String? ??
+            item['image'] as String? ??
+            'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=300&q=80';
+
+        IconData icon = Icons.restaurant;
+        final catLower = category.toLowerCase();
+        if (catLower.contains('drink') ||
+            catLower.contains('minuman') ||
+            catLower.contains('kopi') ||
+            catLower.contains('coffee')) {
+          icon = Icons.local_cafe;
+        } else if (catLower.contains('snack') || catLower.contains('camilan')) {
+          icon = Icons.fastfood;
+        } else if (catLower.contains('dessert') || catLower.contains('cake')) {
+          icon = Icons.cake;
+        }
+
+        dynamicProducts.add(
+          ProductItem(
+            id: id,
+            name: name,
+            price: price,
+            category: category,
+            icon: icon,
+            imageUrl: image.startsWith('http')
+                ? image
+                : 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=300&q=80',
+          ),
+        );
+      }
+    });
+
+    if (dynamicProducts.isNotEmpty) {
+      setState(() {
+        _products.clear();
+        _products.addAll(dynamicProducts);
+      });
+    }
   }
 
   @override
   void dispose() {
+    MenuDataStore.instance.menuDataNotifier.removeListener(_onMenuDataUpdated);
     _tabController.dispose();
     _searchController.dispose();
     _cashInputController.dispose();

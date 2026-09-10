@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,6 +14,12 @@ class UserDataStore {
   UserDataStore._internal();
 
   bool _isInitialized = false;
+  StreamSubscription? _staffSubscription;
+  StreamSubscription? _shiftsSubscription;
+  DateTime _currentActiveDate = DateTime.now();
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   final ValueNotifier<Map<String, dynamic>> userDataNotifier = ValueNotifier({
     // Profile Akun Data
@@ -59,12 +66,47 @@ class UserDataStore {
     return '$y-$m-$d';
   }
 
+  /// Initialize user, staff, and shifts from Firebase
   Future<void> initFromDatabase() async {
     if (_isInitialized) return;
     await reloadUserData();
     await reloadStaffList();
     await reloadShiftsForDate(DateTime.now());
+    _startRealtimeListeners();
     _isInitialized = true;
+  }
+
+  /// Alias for initFromDatabase
+  Future<void> initFromFirebase() async => initFromDatabase();
+
+  /// Real-time listeners for Staff and Shift changes in Firestore
+  void _startRealtimeListeners() {
+    try {
+      _staffSubscription?.cancel();
+      _shiftsSubscription?.cancel();
+
+      // Listen to staff collection
+      _staffSubscription = _firestore.collection('staff').snapshots().listen(
+        (snap) {
+          if (snap.docs.isNotEmpty) {
+            reloadStaffList();
+          }
+        },
+        onError: (e) => debugPrint('Firestore staff stream error: $e'),
+      );
+
+      // Listen to shift_roster collection
+      _shiftsSubscription = _firestore.collection('shift_roster').snapshots().listen(
+        (snap) {
+          if (snap.docs.isNotEmpty) {
+            reloadShiftsForDate(_currentActiveDate);
+          }
+        },
+        onError: (e) => debugPrint('Firestore shift stream error: $e'),
+      );
+    } catch (e) {
+      debugPrint('Error attaching realtime staff/shift listeners: $e');
+    }
   }
 
   Future<void> reloadUserData() async {
@@ -88,7 +130,7 @@ class UserDataStore {
         userDataNotifier.value = current;
       }
     } catch (e) {
-      debugPrint('Error loading active session: $e');
+      debugPrint('Error loading active session from Firebase: $e');
     }
   }
 
@@ -98,11 +140,12 @@ class UserDataStore {
       final list = staffList.map((s) => s.toLegacyMap()).toList();
       cafeStaffListNotifier.value = list;
     } catch (e) {
-      debugPrint('Error loading staff list: $e');
+      debugPrint('Error loading staff list from Firebase: $e');
     }
   }
 
   Future<void> reloadShiftsForDate(DateTime date) async {
+    _currentActiveDate = date;
     try {
       final key = formatDateKey(date);
       final shifts = await DataBaseHelper().getShiftsForDate(key);
@@ -127,7 +170,7 @@ class UserDataStore {
       history[key] = {'pagi': pagi, 'sore': sore};
       shiftCalendarHistoryNotifier.value = history;
     } catch (e) {
-      debugPrint('Error loading shifts for date: $e');
+      debugPrint('Error loading shifts for date from Firebase: $e');
     }
   }
 
@@ -358,7 +401,7 @@ class UserDataStore {
     });
     userDataNotifier.value = current;
 
-    // Persist to active_session in SQLite
+    // 1. Persist to active_session in Firestore
     final sessionData = {
       'user_id': current['userId'] ?? 1,
       'user_name':
@@ -379,7 +422,7 @@ class UserDataStore {
 
     await DataBaseHelper().saveActiveSession(sessionData);
 
-    // Update users table in SQLite
+    // 2. Update users collection in Firestore
     if (current['userId'] != null) {
       final userModel = UserModelSQL(
         id: current['userId'] as int?,
@@ -394,12 +437,17 @@ class UserDataStore {
       await DataBaseHelper().updateUser(userModel);
     }
 
-    // Sync to Firestore if Firebase user is logged in
+    // 3. Sync to Firebase Auth & user doc if currentUser is logged in
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final user = _auth.currentUser;
       if (user != null) {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-          'nama': current['accountName'] ?? current['cashierName'],
+        final profileName = current['accountName'] ?? current['cashierName'];
+        if (profileName != null && profileName.toString().isNotEmpty) {
+          await user.updateDisplayName(profileName.toString());
+        }
+
+        await _firestore.collection('users').doc(user.uid).set({
+          'nama': profileName,
           'email': current['email'],
           'cashierId': current['cashierId'],
           'role': current['accountRole'] ?? current['cashierRole'],
@@ -408,7 +456,12 @@ class UserDataStore {
         }, SetOptions(merge: true));
       }
     } catch (e) {
-      debugPrint('Firestore profile sync error (non-fatal): $e');
+      debugPrint('Firestore profile sync info: $e');
     }
+  }
+
+  void dispose() {
+    _staffSubscription?.cancel();
+    _shiftsSubscription?.cancel();
   }
 }

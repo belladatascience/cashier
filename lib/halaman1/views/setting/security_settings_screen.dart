@@ -1,6 +1,8 @@
-import 'package:cashier/extension/navigator.dart';
+﻿import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -14,8 +16,52 @@ class SecuritySettingsScreen extends StatefulWidget {
 class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
   bool _is2faEnabled = true;
   bool _isBiometricEnabled = true;
+  bool _isSendingVerification = false;
 
-  void _showSnackBar(String message) {
+  @override
+  void initState() {
+    super.initState();
+    _loadSecuritySettingsFromFirebase();
+  }
+
+  Future<void> _loadSecuritySettingsFromFirebase() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists && doc.data() != null) {
+        final secData = doc.data()!['security'] as Map<String, dynamic>?;
+        if (secData != null && mounted) {
+          setState(() {
+            _is2faEnabled = secData['is2faEnabled'] ?? _is2faEnabled;
+            _isBiometricEnabled = secData['isBiometricEnabled'] ?? _isBiometricEnabled;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Firebase load security settings notice: $e');
+    }
+  }
+
+  Future<void> _syncSecuritySettingsToFirebase() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'security': {
+          'is2faEnabled': _is2faEnabled,
+          'isBiometricEnabled': _isBiometricEnabled,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Firebase sync security settings error: $e');
+    }
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
     final theme = AppTheme.instance;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -24,16 +70,40 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
           message,
           style: GoogleFonts.workSans(color: Colors.white),
         ),
-        backgroundColor: theme.secondaryColor,
+        backgroundColor: isError ? Colors.red.shade700 : theme.secondaryColor,
         behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 1),
+        duration: const Duration(seconds: 2),
       ),
     );
+  }
+
+  Future<void> _sendEmailVerification() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() => _isSendingVerification = true);
+    try {
+      await user.sendEmailVerification();
+      _showSnackBar('Email verifikasi resmi Firebase telah dikirim ke ${user.email}!');
+    } on FirebaseAuthException catch (e) {
+      _showSnackBar('Gagal mengirim verifikasi: ${e.message}', isError: true);
+    } catch (e) {
+      _showSnackBar('Error: $e', isError: true);
+    } finally {
+      if (mounted) {
+        setState(() => _isSendingVerification = false);
+      }
+    }
   }
 
   void _showLoginActivityBottomSheet() {
     final theme = AppTheme.instance;
     final loc = AppLocalization.instance;
+    final user = FirebaseAuth.instance.currentUser;
+
+    final creationDate = user?.metadata.creationTime != null
+        ? '${user!.metadata.creationTime!.day}/${user.metadata.creationTime!.month}/${user.metadata.creationTime!.year}'
+        : '2026';
 
     showModalBottomSheet(
       context: context,
@@ -65,17 +135,17 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                     color: theme.surfaceContainerLow,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.laptop_mac, color: theme.primaryColor),
+                  child: Icon(Icons.cloud_done, color: theme.secondaryColor),
                 ),
                 title: Text(
-                  'macOS - Chrome Browser',
+                  'Sesi Firebase Authentication Aktif',
                   style: GoogleFonts.workSans(
                     fontWeight: FontWeight.w600,
                     color: theme.primaryColor,
                   ),
                 ),
                 subtitle: Text(
-                  'Jakarta, Indonesia • Sesi Saat Ini',
+                  'UID: ${user?.uid ?? "Anonymous"} • Sesi Saat Ini',
                   style: GoogleFonts.workSans(
                     fontSize: 12,
                     color: theme.onSurfaceVariant,
@@ -101,14 +171,14 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                   child: Icon(Icons.phone_iphone, color: theme.primaryColor),
                 ),
                 title: Text(
-                  'iPhone 14 Pro - POS App',
+                  'BGA POS App - Terminal Kasir',
                   style: GoogleFonts.workSans(
                     fontWeight: FontWeight.w600,
                     color: theme.primaryColor,
                   ),
                 ),
                 subtitle: Text(
-                  'Jakarta, Indonesia • 2 jam yang lalu',
+                  'Akun Dibuat: $creationDate',
                   style: GoogleFonts.workSans(
                     fontSize: 12,
                     color: theme.onSurfaceVariant,
@@ -152,17 +222,30 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.verified_user, color: theme.secondaryColor),
                 title: Text(
-                  'BGA Co. POS Terminal #01',
+                  'BGA Co. POS Terminal #01 (Cloud Linked)',
                   style: GoogleFonts.workSans(
                     fontWeight: FontWeight.w600,
                     color: theme.primaryColor,
                   ),
                 ),
                 subtitle: Text(
-                  'Ditambahkan pada 10 Aug 2026',
+                  'Perangkat Kasir Utama Toko',
                   style: GoogleFonts.workSans(
-                    fontSize: 12,
+                    fontSize: 13,
                     color: theme.onSurfaceVariant,
+                  ),
+                ),
+                trailing: TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _showSnackBar('Perangkat terpercaya dikelola via Firebase Cloud');
+                  },
+                  child: Text(
+                    'Kelola',
+                    style: GoogleFonts.workSans(
+                      color: theme.secondaryColor,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -170,6 +253,124 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildFirebaseAuthCard() {
+    final theme = AppTheme.instance;
+    final user = FirebaseAuth.instance.currentUser;
+    final isVerified = user?.emailVerified ?? false;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.surfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.secondaryColor.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.secondaryColor.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: theme.secondaryColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.shield_outlined, color: theme.secondaryColor, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Status Keamanan Akun Firebase',
+                      style: GoogleFonts.sourceSerif4(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: theme.primaryColor,
+                      ),
+                    ),
+                    Text(
+                      user?.email ?? 'Kasir Terautentikasi',
+                      style: GoogleFonts.workSans(
+                        fontSize: 13,
+                        color: theme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isVerified
+                      ? const Color(0xFF2E7D32).withValues(alpha: 0.15)
+                      : const Color(0xFFE65100).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  isVerified ? 'Verified' : 'Unverified',
+                  style: GoogleFonts.workSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: isVerified ? const Color(0xFF2E7D32) : const Color(0xFFE65100),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (!isVerified && user?.email != null) ...[
+            const SizedBox(height: 14),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Verifikasi email Anda untuk perlindungan akun maksimal.',
+                    style: GoogleFonts.workSans(
+                      fontSize: 12.5,
+                      color: theme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                TextButton(
+                  onPressed: _isSendingVerification ? null : _sendEmailVerification,
+                  child: _isSendingVerification
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          'Kirim Verifikasi',
+                          style: GoogleFonts.workSans(
+                            fontWeight: FontWeight.bold,
+                            color: theme.secondaryColor,
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -184,35 +385,29 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Expanded(
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: iconBg,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: iconColor, size: 24),
+        Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: iconBg,
+                shape: BoxShape.circle,
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  title,
-                  style: GoogleFonts.sourceSerif4(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: theme.primaryColor,
-                  ),
-                ),
+              child: Icon(icon, color: iconColor, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: GoogleFonts.sourceSerif4(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: theme.primaryColor,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
         trailingWidget,
       ],
     );
@@ -239,27 +434,28 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildCardHeader(
-            icon: Icons.vpn_key_outlined,
-            title: loc.getText('two_fa_title'),
+            icon: Icons.shield_outlined,
+            title: loc.getText('two_factor_title'),
             iconBg: theme.surfaceContainerLow,
             iconColor: theme.primaryColor,
             trailingWidget: Switch(
               value: _is2faEnabled,
-              activeTrackColor: theme.secondaryContainer,
+              activeTrackColor: theme.secondaryColor.withValues(alpha: 0.3),
               activeThumbColor: theme.secondaryColor,
               onChanged: (val) {
                 setState(() {
                   _is2faEnabled = val;
                 });
+                _syncSecuritySettingsToFirebase();
                 _showSnackBar(
-                  '${loc.getText("two_fa_title")}: ${val ? loc.getText("status_on") : loc.getText("status_off")}',
+                  '${loc.getText("two_factor_title")}: ${val ? loc.getText("status_on") : loc.getText("status_off")}',
                 );
               },
             ),
           ),
           const SizedBox(height: 12),
           Text(
-            loc.getText('two_fa_desc'),
+            loc.getText('two_factor_desc'),
             style: GoogleFonts.workSans(
               fontSize: 14,
               color: theme.onSurfaceVariant,
@@ -271,7 +467,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
               text: '${loc.getText("status_label")}: ',
               style: GoogleFonts.workSans(
                 fontSize: 12,
-                color: theme.outlineColor,
+                color: theme.onSurfaceVariant,
               ),
               children: [
                 TextSpan(
@@ -314,60 +510,57 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
         ],
       ),
       padding: const EdgeInsets.all(20),
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildCardHeader(
-                icon: Icons.fingerprint,
-                title: loc.getText('biometric_title'),
-                iconBg: theme.secondaryContainer,
-                iconColor: theme.onSecondaryContainer,
-                trailingWidget: Switch(
-                  value: _isBiometricEnabled,
-                  activeTrackColor: theme.secondaryContainer,
-                  activeThumbColor: theme.secondaryColor,
-                  onChanged: (val) {
-                    setState(() {
-                      _isBiometricEnabled = val;
-                    });
-                    _showSnackBar(
-                      '${loc.getText("biometric_title")}: ${val ? loc.getText("status_on") : loc.getText("status_off")}',
-                    );
-                  },
-                ),
+          _buildCardHeader(
+            icon: Icons.fingerprint,
+            title: loc.getText('biometric_title'),
+            iconBg: theme.secondaryContainer,
+            iconColor: theme.onSecondaryContainer,
+            trailingWidget: Switch(
+              value: _isBiometricEnabled,
+              activeTrackColor: theme.secondaryContainer,
+              activeThumbColor: theme.secondaryColor,
+              onChanged: (val) {
+                setState(() {
+                  _isBiometricEnabled = val;
+                });
+                _syncSecuritySettingsToFirebase();
+                _showSnackBar(
+                  '${loc.getText("biometric_title")}: ${val ? loc.getText("status_on") : loc.getText("status_off")}',
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            loc.getText('biometric_desc'),
+            style: GoogleFonts.workSans(
+              fontSize: 14,
+              color: theme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          RichText(
+            text: TextSpan(
+              text: '${loc.getText("status_label")}: ',
+              style: GoogleFonts.workSans(
+                fontSize: 12,
+                color: theme.secondaryColor,
               ),
-              const SizedBox(height: 12),
-              Text(
-                loc.getText('biometric_desc'),
-                style: GoogleFonts.workSans(
-                  fontSize: 14,
-                  color: theme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 12),
-              RichText(
-                text: TextSpan(
-                  text: '${loc.getText("status_label")}: ',
+              children: [
+                TextSpan(
+                  text: _isBiometricEnabled
+                      ? loc.getText('status_on')
+                      : loc.getText('status_off'),
                   style: GoogleFonts.workSans(
-                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
                     color: theme.secondaryColor,
                   ),
-                  children: [
-                    TextSpan(
-                      text: _isBiometricEnabled
-                          ? loc.getText('status_on')
-                          : loc.getText('status_off'),
-                      style: GoogleFonts.workSans(
-                        fontWeight: FontWeight.bold,
-                        color: theme.secondaryColor,
-                      ),
-                    ),
-                  ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -488,6 +681,8 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                       constraints: const BoxConstraints(maxWidth: 900),
                       child: Column(
                         children: [
+                          _buildFirebaseAuthCard(),
+                          const SizedBox(height: 16),
                           _build2FaCard(),
                           const SizedBox(height: 16),
                           _buildBiometricCard(),

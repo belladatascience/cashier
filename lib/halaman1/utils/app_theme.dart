@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -11,6 +13,9 @@ class AppTheme {
   static const String _themeModeKey = 'app_theme_mode';
   static const String _textScaleKey = 'app_text_scale';
   static const String _themePaletteKey = 'app_theme_palette';
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // ValueNotifier holding current theme mode string: 'light', 'dark', 'system'
   final ValueNotifier<String> themeModeNotifier = ValueNotifier<String>(
@@ -39,42 +44,117 @@ class AppTheme {
   }
 
   Future<void> _loadThemeMode() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedMode = prefs.getString(_themeModeKey);
-    if (savedMode != null && ['light', 'dark', 'system'].contains(savedMode)) {
-      themeModeNotifier.value = savedMode;
-    }
-    final savedPalette = prefs.getString(_themePaletteKey);
-    if (savedPalette != null &&
-        ['coffee', 'emerald', 'berry', 'obsidian'].contains(savedPalette)) {
-      themePaletteNotifier.value = savedPalette;
-    }
-    final savedScale = prefs.getDouble(_textScaleKey);
-    if (savedScale != null) {
-      textScaleNotifier.value = savedScale;
+    // 1. Fast load from local storage
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedMode = prefs.getString(_themeModeKey);
+      if (savedMode != null && ['light', 'dark', 'system'].contains(savedMode)) {
+        themeModeNotifier.value = savedMode;
+      }
+      final savedPalette = prefs.getString(_themePaletteKey);
+      if (savedPalette != null &&
+          ['coffee', 'emerald', 'berry', 'obsidian'].contains(savedPalette)) {
+        themePaletteNotifier.value = savedPalette;
+      }
+      final savedScale = prefs.getDouble(_textScaleKey);
+      if (savedScale != null) {
+        textScaleNotifier.value = savedScale;
+      }
+    } catch (_) {}
+
+    // 2. Fetch and sync with Firebase Firestore
+    await syncWithFirebase();
+  }
+
+  /// Sync theme settings from Cloud Firestore
+  Future<void> syncWithFirebase() async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser != null) {
+        final userDoc = await _firestore.collection('users').doc(currentUser.uid).get();
+        if (userDoc.exists && userDoc.data() != null) {
+          final data = userDoc.data()!;
+          _applyThemeData(data);
+          return;
+        }
+      }
+
+      // Fallback global settings
+      final globalDoc = await _firestore.collection('settings').doc('theme').get();
+      if (globalDoc.exists && globalDoc.data() != null) {
+        _applyThemeData(globalDoc.data()!);
+      }
+    } catch (e) {
+      debugPrint('Firestore theme sync info: $e');
     }
   }
 
-  Future<void> setThemeMode(String mode) async {
-    if (['light', 'dark', 'system'].contains(mode)) {
+  void _applyThemeData(Map<String, dynamic> data) async {
+    final mode = data['theme_mode'] as String?;
+    final palette = data['theme_palette'] as String?;
+    final scale = (data['text_scale'] as num?)?.toDouble();
+
+    final prefs = await SharedPreferences.getInstance();
+
+    if (mode != null && ['light', 'dark', 'system'].contains(mode)) {
       themeModeNotifier.value = mode;
-      final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_themeModeKey, mode);
     }
-  }
-
-  Future<void> setThemePalette(String palette) async {
-    if (['coffee', 'emerald', 'berry', 'obsidian'].contains(palette)) {
+    if (palette != null && ['coffee', 'emerald', 'berry', 'obsidian'].contains(palette)) {
       themePaletteNotifier.value = palette;
-      final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_themePaletteKey, palette);
+    }
+    if (scale != null && scale > 0.5 && scale < 2.0) {
+      textScaleNotifier.value = scale;
+      await prefs.setDouble(_textScaleKey, scale);
     }
   }
 
-  Future<void> setTextScaleFactor(double scale) async {
+  Future<void> setThemeMode(String mode, {String? userId}) async {
+    if (['light', 'dark', 'system'].contains(mode)) {
+      themeModeNotifier.value = mode;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_themeModeKey, mode);
+      } catch (_) {}
+      _saveThemeToFirestore({'theme_mode': mode}, userId);
+    }
+  }
+
+  Future<void> setThemePalette(String palette, {String? userId}) async {
+    if (['coffee', 'emerald', 'berry', 'obsidian'].contains(palette)) {
+      themePaletteNotifier.value = palette;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_themePaletteKey, palette);
+      } catch (_) {}
+      _saveThemeToFirestore({'theme_palette': palette}, userId);
+    }
+  }
+
+  Future<void> setTextScaleFactor(double scale, {String? userId}) async {
     textScaleNotifier.value = scale;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble(_textScaleKey, scale);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble(_textScaleKey, scale);
+    } catch (_) {}
+    _saveThemeToFirestore({'text_scale': scale}, userId);
+  }
+
+  Future<void> _saveThemeToFirestore(Map<String, dynamic> data, String? userId) async {
+    try {
+      final uid = userId ?? _auth.currentUser?.uid;
+      final payload = Map<String, dynamic>.from(data);
+      payload['updatedAt'] = FieldValue.serverTimestamp();
+
+      if (uid != null && uid.isNotEmpty) {
+        await _firestore.collection('users').doc(uid).set(payload, SetOptions(merge: true));
+      }
+
+      await _firestore.collection('settings').doc('theme').set(payload, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Firestore theme save error: $e');
+    }
   }
 
   // Dynamic Theme Colors Palette System (Coffee Caramel, Emerald Matcha, Berry Velvet, Midnight Obsidian)

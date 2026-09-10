@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -8,6 +10,9 @@ class AppLocalization {
   static final AppLocalization instance = AppLocalization._internal();
 
   static const String keyLanguage = 'app_language_code';
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   final ValueNotifier<String> currentLanguageNotifier = ValueNotifier<String>(
     'en',
@@ -28,6 +33,7 @@ class AppLocalization {
   }
 
   Future<void> _loadLanguage() async {
+    // 1. Fast load from local cache
     try {
       final prefs = await SharedPreferences.getInstance();
       final savedCode = prefs.getString(keyLanguage);
@@ -35,9 +41,44 @@ class AppLocalization {
         currentLanguageNotifier.value = savedCode;
       }
     } catch (_) {}
+
+    // 2. Fetch and sync with Firebase Firestore
+    await syncWithFirebase();
   }
 
-  Future<void> setLanguage(String codeOrName) async {
+  /// Sync language setting with Cloud Firestore
+  Future<void> syncWithFirebase() async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser != null) {
+        final userDoc = await _firestore.collection('users').doc(currentUser.uid).get();
+        if (userDoc.exists && userDoc.data() != null) {
+          final lang = userDoc.data()!['language_code'] as String?;
+          if (lang != null && ['en', 'id', 'zh'].contains(lang)) {
+            currentLanguageNotifier.value = lang;
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString(keyLanguage, lang);
+            return;
+          }
+        }
+      }
+
+      // Fallback check global settings
+      final globalDoc = await _firestore.collection('settings').doc('localization').get();
+      if (globalDoc.exists && globalDoc.data() != null) {
+        final lang = globalDoc.data()!['language_code'] as String?;
+        if (lang != null && ['en', 'id', 'zh'].contains(lang)) {
+          currentLanguageNotifier.value = lang;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(keyLanguage, lang);
+        }
+      }
+    } catch (e) {
+      debugPrint('Firestore localization sync info: $e');
+    }
+  }
+
+  Future<void> setLanguage(String codeOrName, {String? userId}) async {
     String code = 'en';
     final lower = codeOrName.toLowerCase();
     if (lower.contains('indonesia') || lower == 'id') {
@@ -52,10 +93,29 @@ class AppLocalization {
 
     currentLanguageNotifier.value = code;
 
+    // 1. Save to local SharedPreferences
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(keyLanguage, code);
     } catch (_) {}
+
+    // 2. Sync to Firebase Cloud Firestore
+    try {
+      final uid = userId ?? _auth.currentUser?.uid;
+      if (uid != null && uid.isNotEmpty) {
+        await _firestore.collection('users').doc(uid).set({
+          'language_code': code,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+
+      await _firestore.collection('settings').doc('localization').set({
+        'language_code': code,
+        'updated_at': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Firestore localization save error: $e');
+    }
   }
 
   String getText(String key) {

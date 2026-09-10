@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -10,8 +12,10 @@ class FirebaseAuthService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   User? get currentUser => _auth.currentUser;
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
+  bool get isLoggedIn => _auth.currentUser != null;
 
-  /// Register a new user with Firebase Authentication and save profile in Firestore
+  /// Register a new cashier/user with Firebase Authentication and save profile in Firestore
   Future<Map<String, dynamic>> registerUser({
     required String name,
     required String email,
@@ -45,22 +49,24 @@ class FirebaseAuthService {
       final profileData = {
         'uid': user.uid,
         'nama': name,
+        'displayName': name,
         'email': normalizedEmail,
         'nomor_hp': phone ?? '',
+        'phoneNumber': phone ?? '',
         'asalKota': city ?? '',
+        'city': city ?? '',
         'cashierId': finalCashierId,
         'role': finalRole,
+        'isVerified': user.emailVerified,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      // Save user profile to Firestore (with safe fallback if Firestore rules are locked)
+      // Save user profile to Firestore
       try {
-        await _firestore.collection('users').doc(user.uid).set(profileData);
+        await _firestore.collection('users').doc(user.uid).set(profileData, SetOptions(merge: true));
       } catch (firestoreErr) {
-        debugPrint(
-          'Firestore write warning (Rules may be locked): $firestoreErr',
-        );
+        debugPrint('Firestore write warning (Rules notice): $firestoreErr');
       }
 
       return {
@@ -106,7 +112,7 @@ class FirebaseAuthService {
             final doc = querySnapshot.docs.first;
             emailToUse = doc.data()['email'] ?? emailToUse;
           } else {
-            // Check lowercase / uppercase cashierId variant
+            // Check uppercase cashierId variant
             final queryUpper = await _firestore
                 .collection('users')
                 .where('cashierId', isEqualTo: emailToUse.toUpperCase())
@@ -132,12 +138,10 @@ class FirebaseAuthService {
         return {'success': false, 'message': 'Gagal memverifikasi pengguna.'};
       }
 
-      // Fetch user profile from Firestore (with fallback)
+      // Fetch user profile from Firestore
       Map<String, dynamic> profile = {};
       try {
-        final docSnapshot =
-            await _firestore.collection('users').doc(user.uid).get();
-
+        final docSnapshot = await _firestore.collection('users').doc(user.uid).get();
         if (docSnapshot.exists && docSnapshot.data() != null) {
           profile = Map<String, dynamic>.from(docSnapshot.data()!);
         }
@@ -150,9 +154,9 @@ class FirebaseAuthService {
         profile = {
           'uid': user.uid,
           'nama': user.displayName ?? user.email?.split('@').first ?? 'Kasir',
+          'displayName': user.displayName ?? user.email?.split('@').first ?? 'Kasir',
           'email': user.email ?? emailToUse,
-          'cashierId':
-              'BG${user.uid.length >= 6 ? user.uid.substring(0, 6).toUpperCase() : "188889"}',
+          'cashierId': 'BG${user.uid.length >= 6 ? user.uid.substring(0, 6).toUpperCase() : "188889"}',
           'role': 'Barista / Kasir',
           'nomor_hp': user.phoneNumber ?? '',
         };
@@ -179,7 +183,7 @@ class FirebaseAuthService {
     }
   }
 
-  /// Update user profile in Firestore
+  /// Update user profile in Firestore and Firebase Auth
   Future<bool> updateUserProfile({
     required String uid,
     required Map<String, dynamic> data,
@@ -187,6 +191,14 @@ class FirebaseAuthService {
     try {
       final updateData = Map<String, dynamic>.from(data);
       updateData['updatedAt'] = FieldValue.serverTimestamp();
+
+      if (data.containsKey('nama') || data.containsKey('displayName')) {
+        final name = data['displayName'] ?? data['nama'];
+        if (name != null && currentUser != null) {
+          await currentUser!.updateDisplayName(name.toString());
+        }
+      }
+
       await _firestore.collection('users').doc(uid).set(
             updateData,
             SetOptions(merge: true),
@@ -195,6 +207,109 @@ class FirebaseAuthService {
     } catch (e) {
       debugPrint('Error updating user profile in Firestore: $e');
       return false;
+    }
+  }
+
+  /// Get user profile snapshot from Firestore
+  Future<Map<String, dynamic>?> getUserProfile(String uid) async {
+    try {
+      final doc = await _firestore.collection('users').doc(uid).get();
+      if (doc.exists && doc.data() != null) {
+        return Map<String, dynamic>.from(doc.data()!);
+      }
+    } catch (e) {
+      debugPrint('Error getting user profile: $e');
+    }
+    return null;
+  }
+
+  /// Stream user profile in real-time from Firestore
+  Stream<Map<String, dynamic>?> streamUserProfile(String uid) {
+    return _firestore.collection('users').doc(uid).snapshots().map((doc) {
+      if (doc.exists && doc.data() != null) {
+        return Map<String, dynamic>.from(doc.data()!);
+      }
+      return null;
+    });
+  }
+
+  /// Send password reset email
+  Future<Map<String, dynamic>> sendPasswordReset(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim().toLowerCase());
+      return {
+        'success': true,
+        'message': 'Tautan reset kata sandi telah dikirim ke email Anda.',
+      };
+    } on FirebaseAuthException catch (e) {
+      return {
+        'success': false,
+        'message': _getAuthErrorMessage(e.code, isRegister: false),
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Terjadi kesalahan: $e',
+      };
+    }
+  }
+
+  /// Re-authenticate and update user password
+  Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null || user.email == null) {
+        return {'success': false, 'message': 'Sesi login tidak ditemukan.'};
+      }
+
+      final cred = EmailAuthProvider.credential(
+        email: user.email!,
+        password: currentPassword,
+      );
+
+      await user.reauthenticateWithCredential(cred);
+      await user.updatePassword(newPassword);
+
+      return {
+        'success': true,
+        'message': 'Kata sandi berhasil diperbarui!',
+      };
+    } on FirebaseAuthException catch (e) {
+      return {
+        'success': false,
+        'message': _getAuthErrorMessage(e.code, isRegister: false),
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Gagal memperbarui kata sandi: $e',
+      };
+    }
+  }
+
+  /// Send email verification
+  Future<bool> sendEmailVerification() async {
+    try {
+      final user = _auth.currentUser;
+      if (user != null && !user.emailVerified) {
+        await user.sendEmailVerification();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Error sending email verification: $e');
+    }
+    return false;
+  }
+
+  /// Reload user session
+  Future<void> reloadUser() async {
+    try {
+      await _auth.currentUser?.reload();
+    } catch (e) {
+      debugPrint('Error reloading user: $e');
     }
   }
 
@@ -225,6 +340,8 @@ class FirebaseAuthService {
         return 'Koneksi jaringan terputus. Pastikan perangkat Anda terhubung ke internet.';
       case 'too-many-requests':
         return 'Terlalu banyak percobaan gagal. Silakan tunggu beberapa saat lagi.';
+      case 'requires-recent-login':
+        return 'Operasi ini memerlukan login ulang demi keamanan.';
       default:
         return isRegister
             ? 'Pendaftaran gagal: $errorCode'

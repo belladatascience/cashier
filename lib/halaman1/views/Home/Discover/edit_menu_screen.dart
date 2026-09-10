@@ -60,242 +60,25 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
       ? const Color(0xFFF0BD8B)
       : const Color(0xFF1A1D06);
 
-  // Menu items state with dynamic image types (String URL or Uint8List bytes)
-  final List<Map<String, dynamic>> _foodItems = [
-    {
-      'name': 'Sourdough Loaf',
-      'price': 'Rp 38.000',
-      'desc':
-          'Roti artisan sourdough klasik berkulit renyah garing dengan bagian dalam yang empuk.',
-      'image': 'assets/images/food_sourdough.jpg',
-    },
-    {
-      'name': 'Butter Croissant',
-      'price': 'Rp 25.000',
-      'desc':
-          'Pastry croissant khas Prancis yang renyah berlayer dengan aroma mentega gurih.',
-      'image': 'assets/images/food_croissant.jpg',
-    },
-    {
-      'name': 'Berry Tart',
-      'price': 'Rp 35.000',
-      'desc':
-          'Kue tart manis dengan topping buah beri segar dan krim custard lembut.',
-      'image': 'assets/images/food_tart.jpg',
-    },
-    {
-      'name': 'Avocado Toast',
-      'price': 'Rp 45.000',
-      'desc':
-          'Roti panggang dengan olesan alpukat segar, irisan buah, dan taburan bumbu halus.',
-      'image': 'assets/images/food_avocado.jpg',
-    },
-    {
-      'name': 'Pain au Chocolat',
-      'price': 'Rp 28.000',
-      'desc':
-          'Flaky, buttery dough rolled around two batons of semi-sweet dark chocolate.',
-      'image': 'assets/images/food_croissant.jpg',
-    },
-    {
-      'name': 'Nasi Goreng Special',
-      'price': 'Rp 35.000',
-      'desc':
-          'Nasi goreng rempah khas cafe disajikan dengan telur ceplok, sate ayam, dan kerupuk.',
-      'image': 'assets/images/food_nasigoreng.jpg',
-    },
-    {
-      'name': 'Spaghetti Carbonara',
-      'price': 'Rp 42.000',
-      'desc':
-          'Pasta spaghetti al dente dengan saus keju creamy, smoked beef, dan taburan keju parmesan.',
-      'image': 'assets/images/food_carbonara.jpg',
-    },
-    {
-      'name': 'Chicken Club Sandwich',
-      'price': 'Rp 38.000',
-      'desc':
-          'Sandwich lapis tiga isi daging ayam panggang, keju cheddar, telur, dan kentang goreng.',
-      'image': 'assets/images/food_sandwich.jpg',
-    },
-    {
-      'name': 'Beef Burger Deluxe',
-      'price': 'Rp 48.000',
-      'desc':
-          'Burger patty sapi juicy dengan keju leleh, caramelized onion, dan saus BBQ spesial.',
-      'image': 'assets/images/food_burger.jpg',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    MenuDataStore.instance.menuDataNotifier.addListener(_onMenuStoreChanged);
+    MenuDataStore.instance.categoriesNotifier.addListener(_onMenuStoreChanged);
+  }
 
-  final List<Map<String, dynamic>> _drinkItems = [
-    {
-      'name': 'Ice Latte',
-      'price': 'Rp 28.000',
-      'desc':
-          'Es kopi latte segar dengan perpaduan espresso kaya rasa dan susu UHT dingin yang creamy.',
-      'image': 'assets/images/ice latte.jpg',
-    },
-    {
-      'name': 'Ice Americano',
-      'price': 'Rp 24.000',
-      'desc':
-          'Sajian es kopi hitam espresso murni dingin yang segar dan mantap.',
-      'image': 'assets/images/drink_latte.jpg',
-    },
-    {
-      'name': 'Ice Signature Chocolate',
-      'price': 'Rp 35.000',
-      'desc':
-          'Minuman es cokelat pekat premium dengan racikan susu segar manis lezat.',
-      'image': 'assets/images/Ice Chocolate.jpg',
-    },
-    {
-      'name': 'Ice Tuffenut Latte',
-      'price': 'Rp 32.000',
-      'desc':
-          'Es latte aroma toffee nut manis gurih dengan topping foam susu yang lembut.',
-      'image': 'assets/images/drink_latte.jpg',
-    },
-    {
-      'name': 'Ice Thai Tea',
-      'price': 'Rp 22.000',
-      'desc': 'Teh segar disajikan dingin manis creamy khas sajian thai tea.',
-      'image': 'assets/images/drink_lemontea.jpg',
-    },
-    {
-      'name': 'Ice Caramel Machiato',
-      'price': 'Rp 32.000',
-      'desc':
-          'Kopi susu dingin dengan syrup vanilla, foam lembut, dan siraman saus karamel manis di atasnya.',
-      'image': 'assets/images/Ice Caramel Machiato.jpg',
-    },
-    {
-      'name': 'Ice Tea',
-      'price': 'Rp 15.000',
-      'desc':
-          'Es teh manis dingin segar perasan lemon pilihan untuk penyegar dahaga.',
-      'image': 'assets/images/drink_lemontea.jpg',
-    },
-    {
-      'name': 'Ice Creamy Machiato',
-      'price': 'Rp 30.000',
-      'desc':
-          'Kopi macchiato dingin ekstra creamy dengan lapisan espresso dan susu lezat.',
-      'image': 'assets/images/drink_latte.jpg',
-    },
-    {
-      'name': 'Ice Matcha',
-      'price': 'Rp 30.000',
-      'desc':
-          'Seduhan teh hijau matcha jepang asli warna hijau segar dipadukan susu creamy dingin.',
-      'image': 'assets/images/drink_matcha.jpg',
-    },
-  ];
+  @override
+  void dispose() {
+    MenuDataStore.instance.menuDataNotifier.removeListener(_onMenuStoreChanged);
+    MenuDataStore.instance.categoriesNotifier.removeListener(_onMenuStoreChanged);
+    super.dispose();
+  }
 
-  final List<Map<String, dynamic>> _snackItems = [
-    {
-      'name': 'Choco Chip Cookie',
-      'price': 'Rp 18.000',
-      'desc':
-          'Kue kering cokelat choco chip panggang renyah manis dengan potongan cokelat belgia.',
-      'image': 'assets/images/snack_cookie.jpg',
-    },
-    {
-      'name': 'Almond Muffin',
-      'price': 'Rp 22.000',
-      'desc':
-          'Muffin lembut hangat berbahan keju/almond dengan topping taburan kacang renyah.',
-      'image': 'assets/images/snack_muffin.jpg',
-    },
-    {
-      'name': 'Pisang Goreng',
-      'price': 'Rp 15.000',
-      'desc':
-          'Camilan pisang goreng crispy warna keemasan hangat renyah di luar, manis lembut di dalam.',
-      'image': 'assets/images/snack_pisanggoreng.jpg',
-    },
-    {
-      'name': 'Kentang Goreng',
-      'price': 'Rp 18.000',
-      'desc':
-          'Kentang goreng french fries potongan memanjang renyah gurih hangat disajikan dengan saus cocolan.',
-      'image': 'assets/images/snack_kentang.jpg',
-    },
-    {
-      'name': 'Jamur Goreng',
-      'price': 'Rp 16.000',
-      'desc':
-          'Jamur tiram/kancing crispy goreng tepung roti bumbu gurih yang renyah dan nagih.',
-      'image': 'assets/images/snack_jamur.jpg',
-    },
-    {
-      'name': 'Kebab',
-      'price': 'Rp 22.000',
-      'desc':
-          'Kebab gulung tortilla isi olahan daging sapi cincang, sayuran segar, dan saus spesial.',
-      'image': 'assets/images/snack_kebab.jpg',
-    },
-    {
-      'name': 'Bakwan Goreng Udang',
-      'price': 'Rp 15.000',
-      'desc':
-          'Gorengan bakwan sayur gurih renyah dengan topping udang utuh segar dan rempah.',
-      'image': 'assets/images/snack_bakwan.jpg',
-    },
-    {
-      'name': 'Cimol Keju',
-      'price': 'Rp 14.000',
-      'desc':
-          'Bola-bola cimol tapioka kenyal renyah dengan isian keju lumer dan taburan bumbu pedas gurih.',
-      'image': 'assets/images/snack_cimol.png',
-    },
-    {
-      'name': 'Donat Kentang',
-      'price': 'Rp 12.000',
-      'desc':
-          'Donat kentang empuk berbentuk cincin manis lezat dengan taburan gula halus putih.',
-      'image': 'assets/images/snack_donatkentang.jpg',
-    },
-    {
-      'name': 'Tahu Cabe Garam',
-      'price': 'Rp 16.000',
-      'desc':
-          'Potongan tahu crispy goreng bumbu pedas gurih taburan cabai rawit dan bawang garam melimpah.',
-      'image': 'assets/images/snack_tahucabegaram.jpg',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _newItems = [
-    {
-      'name': 'Sparkling Citrus Water',
-      'price': 'Rp 25.000',
-      'desc': 'Crisp sparkling water served with fresh lime and lemon slices.',
-      'image': 'assets/images/drink_citrus.jpg',
-    },
-    {
-      'name': 'Artisan Matcha Latte',
-      'price': 'Rp 35.000',
-      'desc': 'Premium ceremonial grade matcha whisked with creamy milk.',
-      'image': 'assets/images/drink_matcha.jpg',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _dessertItems = [
-    {
-      'name': 'Berry Cheesecake',
-      'price': 'Rp 20.000',
-      'desc':
-          'Creamy New York style cheesecake topped with fresh berry compote.',
-      'image': 'assets/images/dessert_cheesecake.jpg',
-    },
-    {
-      'name': 'Tiramisu Cup',
-      'price': 'Rp 20.000',
-      'desc':
-          'Classic Italian dessert with espresso-soaked ladyfingers and mascarpone.',
-      'image': 'assets/images/dessert_tiramisu.jpg',
-    },
-  ];
+  void _onMenuStoreChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   List<String> get _categoryNames =>
       widget.categoryNames ?? MenuDataStore.instance.categories;
@@ -310,7 +93,7 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
       }
       return _categoryDataMap[key]!;
     }
-    return _foodItems;
+    return [];
   }
 
   Future<dynamic> _pickImage(ImageSource source) async {

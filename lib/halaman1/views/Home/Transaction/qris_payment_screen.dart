@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:cashier/halaman1/views/Home/Transaction/payment_success_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class QrisPaymentScreen extends StatefulWidget {
@@ -27,9 +32,15 @@ class QrisPaymentScreen extends StatefulWidget {
 }
 
 class _QrisPaymentScreenState extends State<QrisPaymentScreen> {
+  late final String _activeTxId;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _qrisSubscription;
+  bool _isProcessing = false;
+  int _walletBalance = 1250000;
+
   // Dynamic Color Tokens
   Color get colorPrimary => AppTheme.instance.primaryColor;
   Color get colorSecondary => AppTheme.instance.secondaryColor;
+  Color get colorSecondaryContainer => AppTheme.instance.secondaryContainer;
   Color get colorBackground => AppTheme.instance.backgroundColor;
   Color get colorSurface => AppTheme.instance.backgroundColor;
   Color get colorSurfaceContainerLowest => AppTheme.instance.surfaceColor;
@@ -40,6 +51,71 @@ class _QrisPaymentScreenState extends State<QrisPaymentScreen> {
   Color get colorOnSurfaceVariant => AppTheme.instance.onSurfaceVariant;
   Color get colorOutlineVariant => AppTheme.instance.outlineVariant;
 
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _activeTxId = widget.transactionId ??
+        '#INV-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-${now.millisecondsSinceEpoch.toString().substring(8)}';
+
+    _createQrisSessionInFirestore();
+    _listenToQrisStatus();
+    _loadWalletBalance();
+  }
+
+  @override
+  void dispose() {
+    _qrisSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadWalletBalance() async {
+    try {
+      final doc = await FirebaseFirestore.instance.doc('stores/wallet_info').get();
+      if (doc.exists && doc.data() != null) {
+        final bal = doc.data()!['balance'];
+        if (bal != null && mounted) {
+          setState(() => _walletBalance = (bal as num).toInt());
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _createQrisSessionInFirestore() async {
+    try {
+      final docId = _activeTxId.replaceAll('#', '').trim();
+      final user = FirebaseAuth.instance.currentUser;
+
+      await FirebaseFirestore.instance.collection('qris_sessions').doc(docId).set({
+        'invoiceNumber': _activeTxId,
+        'merchantId': widget.merchantId,
+        'totalAmount': widget.totalAmount,
+        'customerName': widget.customerName,
+        'cashierUid': user?.uid ?? 'guest',
+        'status': 'waiting_payment',
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Firestore QRIS session creation error: $e');
+    }
+  }
+
+  void _listenToQrisStatus() {
+    final docId = _activeTxId.replaceAll('#', '').trim();
+    _qrisSubscription = FirebaseFirestore.instance
+        .collection('qris_sessions')
+        .doc(docId)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists && snapshot.data() != null) {
+        final status = snapshot.data()!['status'];
+        if (status == 'paid' && mounted && !_isProcessing) {
+          _handlePayNow();
+        }
+      }
+    });
+  }
+
   String _formatCurrency(int amount) {
     return amount.toString().replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
@@ -47,18 +123,50 @@ class _QrisPaymentScreenState extends State<QrisPaymentScreen> {
     );
   }
 
-  void _handlePayNow() {
+  Future<void> _handleTopUp() async {
+    final newBalance = _walletBalance + 500000;
+    setState(() => _walletBalance = newBalance);
+
+    try {
+      await FirebaseFirestore.instance.doc('stores/wallet_info').set({
+        'balance': newBalance,
+        'lastTopUp': FieldValue.serverTimestamp(),
+        'updatedBy': FirebaseAuth.instance.currentUser?.email ?? 'cashier',
+      }, SetOptions(merge: true));
+    } catch (_) {}
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Top up saldo merchant berhasil disinkronkan ke Firebase!'),
+          backgroundColor: colorSecondary,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handlePayNow() async {
+    if (_isProcessing) return;
+    setState(() => _isProcessing = true);
+
+    final docId = _activeTxId.replaceAll('#', '').trim();
+    try {
+      await FirebaseFirestore.instance.collection('qris_sessions').doc(docId).set({
+        'status': 'paid',
+        'paidAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (_) {}
+
     final activeCashier = widget.cashierName ??
+        FirebaseAuth.instance.currentUser?.displayName ??
         UserDataStore.instance.userDataNotifier.value['cashierName'] ??
         UserDataStore.instance.userDataNotifier.value['name'] ??
         UserDataStore.instance.userDataNotifier.value['accountName'] ??
-        'Bella Saputra';
+        'Bella Gita Asmara';
 
-    final now = DateTime.now();
-    final txId = widget.transactionId ??
-        '#INV-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-${now.millisecondsSinceEpoch.toString().substring(8)}';
+    if (!mounted) return;
 
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (context) => PaymentSuccessScreen(
@@ -66,8 +174,8 @@ class _QrisPaymentScreenState extends State<QrisPaymentScreen> {
           customerName: widget.customerName.trim().isNotEmpty
               ? widget.customerName.trim()
               : 'Pelanggan Umum',
-          transactionId: txId,
-          paymentMethod: 'Digital Wallet (QRIS)',
+          transactionId: _activeTxId,
+          paymentMethod: 'Digital Wallet (QRIS Cloud)',
           cashierName: activeCashier.toString(),
           onOrderCompleted: widget.onOrderCompleted,
         ),
@@ -92,9 +200,9 @@ class _QrisPaymentScreenState extends State<QrisPaymentScreen> {
               onPressed: () => Navigator.pop(context),
             ),
             title: Text(
-              'BGA Co.',
+              'BGA Co. Cashier',
               style: GoogleFonts.sourceSerif4(
-                fontSize: 24,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: colorPrimary,
               ),
@@ -102,8 +210,11 @@ class _QrisPaymentScreenState extends State<QrisPaymentScreen> {
             centerTitle: true,
             actions: [
               IconButton(
-                icon: Icon(Icons.account_circle, color: colorPrimary),
-                onPressed: () {},
+                icon: Icon(Icons.cloud_done, color: colorSecondary),
+                tooltip: 'QRIS Cloud Live Active',
+                onPressed: () {
+                  Fluttertoast.showToast(msg: 'Sesi QRIS terhubung ke Cloud Firestore');
+                },
               ),
               const SizedBox(width: 8),
             ],
@@ -117,36 +228,80 @@ class _QrisPaymentScreenState extends State<QrisPaymentScreen> {
                   children: [
                     // Header Title & Subtitle
                     Text(
-                      'Digital Wallet',
-                      textAlign: TextAlign.center,
+                      'Digital Wallet QRIS',
                       style: GoogleFonts.sourceSerif4(
-                        fontSize: 32,
+                        fontSize: 28,
                         fontWeight: FontWeight.bold,
                         color: colorPrimary,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      'Manage your balance and payment methods',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.workSans(
-                        fontSize: 15,
-                        color: colorOnSurfaceVariant,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Colors.green,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Sesi Pembayaran Cloud Firestore Aktif',
+                          style: GoogleFonts.workSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.green.shade800,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 24),
 
-                    // Balance / QRIS Card
-                    _buildQrisCard(),
-                    const SizedBox(height: 28),
+                    // Main Content: Responsive 2-column or 1-column layout
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        if (constraints.maxWidth > 650) {
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 5,
+                                child: Column(
+                                  children: [
+                                    _buildBalanceCard(),
+                                    const SizedBox(height: 24),
+                                    _buildPaymentMethodsSection(),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 24),
+                              Expanded(
+                                flex: 5,
+                                child: _buildQrCodeCard(),
+                              ),
+                            ],
+                          );
+                        } else {
+                          return Column(
+                            children: [
+                              _buildQrCodeCard(),
+                              const SizedBox(height: 24),
+                              _buildBalanceCard(),
+                              const SizedBox(height: 24),
+                              _buildPaymentMethodsSection(),
+                            ],
+                          );
+                        }
+                      },
+                    ),
 
-                    // Payment Methods Section
-                    _buildPaymentMethodsSection(),
                     const SizedBox(height: 32),
 
-                    // Pay Now Action Area
+                    // Pay Now Action Button
                     _buildPayNowActionArea(),
-                    const SizedBox(height: 40),
                   ],
                 ),
               ),
@@ -157,69 +312,76 @@ class _QrisPaymentScreenState extends State<QrisPaymentScreen> {
     );
   }
 
-  Widget _buildQrisCard() {
+  Widget _buildQrCodeCard() {
     return Container(
-      width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFFE2E6BF).withValues(alpha: 0.3),
+        color: colorSurfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: colorSecondary.withValues(alpha: 0.4),
-          width: 3,
-        ),
+        border: Border.all(color: colorOutlineVariant.withValues(alpha: 0.5)),
         boxShadow: const [
           BoxShadow(
-            color: Color.fromRGBO(68, 42, 34, 0.08),
-            blurRadius: 20,
+            color: Color.fromRGBO(68, 42, 34, 0.06),
+            blurRadius: 16,
             offset: Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         children: [
-          Text(
-            'SCAN QRIS TO PAY',
-            style: GoogleFonts.workSans(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
-              color: colorPrimary,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // QR Code Card Container
-          Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(maxWidth: 300),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: colorSurfaceContainerLowest,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: colorOutlineVariant.withValues(alpha: 0.3),
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color.fromRGBO(0, 0, 0, 0.04),
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'SCAN QRIS',
+                style: GoogleFonts.workSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                  color: colorOnSurfaceVariant,
                 ),
-              ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: colorSecondaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'BEE-COFFEE-01',
+                  style: GoogleFonts.workSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: colorSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // QR Code Display
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade300, width: 1.5),
             ),
             child: Column(
               children: [
-                Icon(Icons.qr_code_2, size: 160, color: colorPrimary),
-                const SizedBox(height: 12),
+                Icon(
+                  Icons.qr_code_2_rounded,
+                  size: 200,
+                  color: colorPrimary,
+                ),
+                const SizedBox(height: 6),
                 Text(
-                  'MERCHANT ID: ${widget.merchantId}',
-                  textAlign: TextAlign.center,
+                  'QRIS Standar Nasional Pembayaran Digital',
                   style: GoogleFonts.workSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.8,
-                    color: colorPrimary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black54,
                   ),
                 ),
               ],
@@ -227,90 +389,85 @@ class _QrisPaymentScreenState extends State<QrisPaymentScreen> {
           ),
           const SizedBox(height: 18),
 
-          // Total Amount Display
+          Text(
+            'Total Tagihan:',
+            style: GoogleFonts.workSans(
+              fontSize: 13,
+              color: colorOnSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 2),
           Text(
             'Rp ${_formatCurrency(widget.totalAmount)}',
             style: GoogleFonts.sourceSerif4(
-              fontSize: 32,
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: colorSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBalanceCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colorSurfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorOutlineVariant.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'SALDO MERCHANT (FIREBASE)',
+                style: GoogleFonts.workSans(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                  color: colorOnSurfaceVariant,
+                ),
+              ),
+              const Icon(Icons.account_balance_wallet, size: 20),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Rp ${_formatCurrency(_walletBalance)}',
+            style: GoogleFonts.sourceSerif4(
+              fontSize: 24,
               fontWeight: FontWeight.bold,
               color: colorPrimary,
             ),
           ),
-          const SizedBox(height: 8),
-
-          // Subtext Verified
+          const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.verified, size: 16, color: colorSecondary),
-              const SizedBox(width: 6),
-              Text(
-                'Scan at register to pay instantly',
-                style: GoogleFonts.workSans(
-                  fontSize: 13,
-                  color: colorOnSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-
-          // Buttons: Add Funds & History
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Expanded(
                 child: SizedBox(
-                  height: 46,
+                  height: 42,
                   child: ElevatedButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Top up saldo QRIS berhasil!'),
-                          backgroundColor: colorSecondary,
-                        ),
-                      );
-                    },
+                    onPressed: _handleTopUp,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: colorPrimary,
+                      backgroundColor: colorSecondary,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      elevation: 1,
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.add_circle, size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Add Funds',
-                          style: GoogleFonts.workSans(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      'Top Up Saldo',
+                      style: GoogleFonts.workSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              SizedBox(
-                height: 46,
-                child: OutlinedButton(
-                  onPressed: () {},
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: colorPrimary,
-                    side: BorderSide(
-                      color: colorOutlineVariant.withValues(alpha: 0.5),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: const Icon(Icons.history, size: 20),
                 ),
               ),
             ],
@@ -324,115 +481,59 @@ class _QrisPaymentScreenState extends State<QrisPaymentScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.only(bottom: 8),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: colorOutlineVariant.withValues(alpha: 0.3),
-              ),
-            ),
-          ),
-          child: Text(
-            'Payment Methods',
-            style: GoogleFonts.sourceSerif4(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: colorPrimary,
-            ),
+        Text(
+          'Metode QRIS Didukung',
+          style: GoogleFonts.sourceSerif4(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: colorPrimary,
           ),
         ),
-        const SizedBox(height: 14),
-
-        // QRIS Selected Card
+        const SizedBox(height: 12),
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: colorSurfaceContainerLowest,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: colorOutlineVariant.withValues(alpha: 0.4),
-            ),
-            boxShadow: const [
-              BoxShadow(
-                color: Color.fromRGBO(68, 42, 34, 0.05),
-                blurRadius: 8,
-                offset: Offset(0, 2),
-              ),
-            ],
+            border: Border.all(color: colorOutlineVariant.withValues(alpha: 0.4)),
           ),
           child: Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
                   color: colorSecondary.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.qr_code_2, color: colorSecondary, size: 24),
+                child: Icon(Icons.qr_code_2, color: colorSecondary, size: 22),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'QRIS',
+                      'QRIS All Payment',
                       style: GoogleFonts.workSans(
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: colorPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Scan to pay with any supported app',
+                      'BCA, Mandiri, BRI, GoPay, OVO, ShopeePay, Dana',
                       style: GoogleFonts.workSans(
-                        fontSize: 13,
+                        fontSize: 11,
                         color: colorOnSurfaceVariant,
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.check_circle, color: colorSecondary, size: 24),
+              const Icon(Icons.check_circle, color: Colors.green, size: 20),
             ],
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Link New Payment Method Button
-        InkWell(
-          onTap: () {},
-          borderRadius: BorderRadius.circular(14),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: colorOutlineVariant.withValues(alpha: 0.5),
-                style: BorderStyle.solid,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.add, color: colorPrimary, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Link New Payment Method',
-                  style: GoogleFonts.workSans(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: colorPrimary,
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       ],
@@ -442,63 +543,54 @@ class _QrisPaymentScreenState extends State<QrisPaymentScreen> {
   Widget _buildPayNowActionArea() {
     return Column(
       children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.only(top: 16),
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(
-                color: colorOutlineVariant.withValues(alpha: 0.3),
-              ),
-            ),
-          ),
-          child: Text(
-            "Menunggu pelanggan melakukan scan dan menyelesaikan pembayaran QRIS...",
-            textAlign: TextAlign.center,
-            style: GoogleFonts.workSans(
-              fontSize: 13,
-              color: colorOnSurfaceVariant,
-            ),
+        Text(
+          "Pelanggan dapat melakukan scan QR di atas. Anda juga dapat konfirmasi pembayaran langsung di bawah ini.",
+          textAlign: TextAlign.center,
+          style: GoogleFonts.workSans(
+            fontSize: 12,
+            color: colorOnSurfaceVariant,
           ),
         ),
         const SizedBox(height: 16),
-
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 400),
           child: SizedBox(
             width: double.infinity,
-            height: 54,
+            height: 52,
             child: ElevatedButton(
-              onPressed: _handlePayNow,
+              onPressed: _isProcessing ? null : _handlePayNow,
               style: ElevatedButton.styleFrom(
-                backgroundColor: colorPrimary,
+                backgroundColor: colorSecondary,
                 foregroundColor: Colors.white,
-                elevation: 4,
+                elevation: 3,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Colors.white,
+              child: _isProcessing
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.check_circle_outline, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'KONFIRMASI PEMBAYARAN QRIS',
+                          style: GoogleFonts.workSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Waiting...',
-                    style: GoogleFonts.sourceSerif4(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ),

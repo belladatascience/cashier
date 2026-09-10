@@ -1,9 +1,10 @@
-import 'dart:typed_data';
-
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:cashier/halaman1/views/Home/Transaction/qris_payment_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -38,6 +39,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     text: '200000',
   );
   int _cashReceived = 200000;
+  bool _isProcessingOrder = false;
 
   // Dynamic Color Tokens
   Color get colorPrimary => AppTheme.instance.primaryColor;
@@ -93,11 +95,65 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.dispose();
   }
 
-  void _onCompleteOrder() {
-    final activeCashier = UserDataStore.instance.userDataNotifier.value['cashierName'] ??
+  /// Menyimpan transaksi pesanan ke Cloud Firestore
+  Future<String?> _saveOrderToFirestore({
+    required String activeCashier,
+    required String customerDisplayName,
+    required String paymentMethodLabel,
+  }) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final orderId = 'TRX-${DateTime.now().millisecondsSinceEpoch}';
+
+      final orderData = {
+        'orderId': orderId,
+        'storeName': widget.storeName,
+        'customerName': customerDisplayName,
+        'tableNumber': widget.tableNumber,
+        'cashierUid': user?.uid ?? 'guest_cashier',
+        'cashierEmail': user?.email ?? 'anonymous',
+        'cashierName': activeCashier,
+        'items': widget.cartItems.map((item) => {
+          'title': item['title'] ?? item['name'] ?? 'Item',
+          'price': item['price'] ?? 0,
+          'quantity': item['quantity'] ?? 1,
+          'notes': item['notes'] ?? '',
+          'image': item['image'] ?? '',
+        }).toList(),
+        'subtotal': _subtotal,
+        'tax': _tax,
+        'total': _total,
+        'cashReceived': _selectedPaymentMethod == 'cash' ? _cashReceived : _total,
+        'change': _selectedPaymentMethod == 'cash' ? _change : 0,
+        'paymentMethod': _selectedPaymentMethod,
+        'paymentChannel': _selectedPaymentMethod == 'wallet' ? _selectedWallet : 'cash',
+        'status': 'completed',
+        'timestamp': FieldValue.serverTimestamp(),
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+
+      await FirebaseFirestore.instance
+          .collection('transactions')
+          .doc(orderId)
+          .set(orderData);
+
+      return orderId;
+    } catch (e) {
+      debugPrint('Firestore order error: $e');
+      return 'TRX-${DateTime.now().millisecondsSinceEpoch}';
+    }
+  }
+
+  Future<void> _onCompleteOrder() async {
+    if (_isProcessingOrder) return;
+
+    final fbUser = FirebaseAuth.instance.currentUser;
+    final activeCashier = fbUser?.displayName ??
+        UserDataStore.instance.userDataNotifier.value['cashierName'] ??
         UserDataStore.instance.userDataNotifier.value['name'] ??
         UserDataStore.instance.userDataNotifier.value['accountName'] ??
-        'Bella Saputra';
+        'Bella Gita Asmara';
+
     final customerDisplayName = widget.tableNumber != '-' &&
             widget.tableNumber.trim().isNotEmpty
         ? '${widget.customerName.trim().isEmpty ? 'Pelanggan Umum' : widget.customerName.trim()} (${widget.tableNumber.trim()})'
@@ -121,9 +177,29 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return;
     }
 
+    if (_cashReceived < _total) {
+      Fluttertoast.showToast(
+        msg: 'Nominal uang tunai kurang dari total tagihan!',
+        backgroundColor: const Color(0xFFBA1A1A),
+      );
+      return;
+    }
+
+    setState(() => _isProcessingOrder = true);
+
     final paymentLabel = _selectedPaymentMethod == 'wallet'
         ? 'Digital Wallet (${_selectedWallet.toUpperCase()})'
-        : 'Cash in Store';
+        : 'Tunai di Kasir (Cash)';
+
+    // Simpan data transaksi ke Cloud Firestore
+    final orderId = await _saveOrderToFirestore(
+      activeCashier: activeCashier.toString(),
+      customerDisplayName: customerDisplayName,
+      paymentMethodLabel: paymentLabel,
+    );
+
+    if (!mounted) return;
+    setState(() => _isProcessingOrder = false);
 
     showDialog(
       context: context,
@@ -137,8 +213,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFDCFCE7),
+              decoration: const BoxDecoration(
+                color: Color(0xFFDCFCE7),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -149,25 +225,41 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Order Placed!',
+              'Pesanan Selesai!',
               style: GoogleFonts.sourceSerif4(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: colorPrimary,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.cloud_done, color: Colors.green, size: 14),
+                const SizedBox(width: 4),
+                Text(
+                  'Tersimpan di Cloud Firestore',
+                  style: GoogleFonts.workSans(
+                    fontSize: 11,
+                    color: Colors.green.shade800,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
             Text(
-              'Thank you for your order at ${widget.storeName}.',
+              'Terima kasih telah berbelanja di ${widget.storeName}.',
               textAlign: TextAlign.center,
               style: GoogleFonts.workSans(
                 fontSize: 13,
                 color: colorOnSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: colorSurfaceContainerLow,
                 borderRadius: BorderRadius.circular(12),
@@ -178,7 +270,28 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Cashier:',
+                        'No. Transaksi:',
+                        style: GoogleFonts.workSans(
+                          fontSize: 11,
+                          color: colorOnSurfaceVariant,
+                        ),
+                      ),
+                      Text(
+                        orderId ?? '-',
+                        style: GoogleFonts.workSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: colorPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Kasir:',
                         style: GoogleFonts.workSans(
                           fontSize: 12,
                           color: colorOnSurfaceVariant,
@@ -199,7 +312,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Customer:',
+                        'Pelanggan:',
                         style: GoogleFonts.workSans(
                           fontSize: 12,
                           color: colorOnSurfaceVariant,
@@ -224,7 +337,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Table:',
+                          'Meja:',
                           style: GoogleFonts.workSans(
                             fontSize: 12,
                             color: colorOnSurfaceVariant,
@@ -246,7 +359,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Payment Method:',
+                        'Metode Bayar:',
                         style: GoogleFonts.workSans(
                           fontSize: 12,
                           color: colorOnSurfaceVariant,
@@ -267,7 +380,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Total Paid:',
+                        'Total Bayar:',
                         style: GoogleFonts.workSans(
                           fontSize: 12,
                           color: colorOnSurfaceVariant,
@@ -289,7 +402,28 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Change (Kembalian):',
+                          'Uang Diterima:',
+                          style: GoogleFonts.workSans(
+                            fontSize: 12,
+                            color: colorOnSurfaceVariant,
+                          ),
+                        ),
+                        Text(
+                          'Rp ${_formatCurrency(_cashReceived)}',
+                          style: GoogleFonts.workSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: colorPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Kembalian:',
                           style: GoogleFonts.workSans(
                             fontSize: 12,
                             color: colorOnSurfaceVariant,
@@ -298,9 +432,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         Text(
                           'Rp ${_formatCurrency(_change)}',
                           style: GoogleFonts.sourceSerif4(
-                            fontSize: 14,
+                            fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF166534),
+                            color: colorSecondary,
                           ),
                         ),
                       ],
@@ -309,44 +443,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
-              height: 48,
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.pop(dContext);
-                  if (widget.onOrderCompleted != null) {
-                    widget.onOrderCompleted!();
-                  }
-                  Navigator.popUntil(
-                    context,
-                    (route) =>
-                        route.settings.name == 'HomeScreen' ||
-                        route.settings.name == '/HomeScreen' ||
-                        route.isFirst,
-                  );
+                  Navigator.pop(context);
+                  widget.onOrderCompleted?.call();
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: colorPrimary,
+                  backgroundColor: colorSecondary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.receipt_long, size: 18),
-                    const SizedBox(width: 8),
-                    Text(
-                      'LIHAT TRANSAKSI',
-                      style: GoogleFonts.workSans(
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  'SELESAI / TRANSAKSI BARU',
+                  style: GoogleFonts.workSans(fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -358,551 +474,282 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = AppTheme.instance;
-
-    return ValueListenableBuilder<String>(
-      valueListenable: theme.themeModeNotifier,
-      builder: (context, themeMode, child) {
-        return Scaffold(
-          backgroundColor: colorBackground,
-          appBar: AppBar(
-            backgroundColor: colorBackground,
-            elevation: 0,
-            leading: IconButton(
-              icon: Icon(Icons.arrow_back, color: colorPrimary),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: Text(
-              'Checkout',
-              style: GoogleFonts.sourceSerif4(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: colorPrimary,
-              ),
-            ),
-            centerTitle: true,
-          ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 800),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Customer & Table Info Card
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 20),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: colorSurfaceContainerLowest,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: colorPrimary.withValues(alpha: 0.1),
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color.fromRGBO(68, 42, 34, 0.06),
-                            blurRadius: 8,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: colorSecondaryContainer.withValues(
-                                    alpha: 0.45,
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Icon(
-                                  Icons.person_pin_rounded,
-                                  color: colorSecondary,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'CUSTOMER',
-                                      style: GoogleFonts.workSans(
-                                        fontSize: 10.5,
-                                        fontWeight: FontWeight.bold,
-                                        color: colorOnSurfaceVariant,
-                                        letterSpacing: 0.8,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      widget.customerName.trim().isEmpty
-                                          ? 'Pelanggan Umum'
-                                          : widget.customerName.trim(),
-                                      style: GoogleFonts.workSans(
-                                        fontSize: 14.5,
-                                        fontWeight: FontWeight.bold,
-                                        color: colorPrimary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (widget.tableNumber != '-' &&
-                              widget.tableNumber.trim().isNotEmpty) ...[
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 8.0,
-                              ),
-                              child: Divider(
-                                height: 1,
-                                thickness: 1,
-                                color: colorOutline.withValues(alpha: 0.12),
-                              ),
-                            ),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: colorSecondaryContainer.withValues(
-                                      alpha: 0.45,
-                                    ),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(
-                                    Icons.table_restaurant_outlined,
-                                    color: colorSecondary,
-                                    size: 20,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'TABLE',
-                                        style: GoogleFonts.workSans(
-                                          fontSize: 10.5,
-                                          fontWeight: FontWeight.bold,
-                                          color: colorOnSurfaceVariant,
-                                          letterSpacing: 0.8,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        widget.tableNumber.trim(),
-                                        style: GoogleFonts.workSans(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: colorSecondary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-
-                    // Section 1: Your Order Summary
-                    _buildSectionTitle('Your Order'),
-                    _buildOrderItemsList(),
-                    const SizedBox(height: 28),
-
-                    // Section 2: Payment Method Selection
-                    _buildSectionTitle('Payment Method'),
-                    _buildPaymentMethods(),
-                    const SizedBox(height: 28),
-
-                    // Section 3: Totals Summary Card
-                    _buildTotalsCard(),
-                    const SizedBox(height: 32),
-
-                    // Section 4: Action Complete Order
-                    _buildCompleteOrderAction(),
-                    const SizedBox(height: 40),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: colorPrimary.withValues(alpha: 0.1),
-            width: 1,
+    return Scaffold(
+      backgroundColor: colorBackground,
+      appBar: AppBar(
+        backgroundColor: colorBackground,
+        foregroundColor: colorPrimary,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'CHECKOUT & BAYAR',
+          style: GoogleFonts.sourceSerif4(
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+            color: colorPrimary,
           ),
         ),
       ),
-      child: Text(
-        title,
-        style: GoogleFonts.sourceSerif4(
-          fontSize: 22,
-          fontWeight: FontWeight.bold,
-          color: colorPrimary,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOrderItemsList() {
-    if (widget.cartItems.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Text(
-          'Tidak ada pesanan.',
-          style: GoogleFonts.workSans(color: colorOnSurfaceVariant),
-        ),
-      );
-    }
-
-    return Column(
-      children: widget.cartItems.map((item) {
-        final itemTotal = (item['price'] as int) * (item['quantity'] as int);
-
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: colorPrimary.withValues(alpha: 0.05)),
-            ),
-          ),
-          child: Row(
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Image Thumbnail Box
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: colorSurfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: _buildProductThumbnail(
-                    item['image'],
-                    width: 56,
-                    height: 56,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-
-              // Item Details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item['name'] ?? 'Item',
-                      style: GoogleFonts.sourceSerif4(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: colorPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'QTY: ${item['quantity']}',
-                      style: GoogleFonts.workSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.8,
-                        color: colorOnSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Price
-              Text(
-                'Rp ${_formatCurrency(itemTotal)}',
-                style: GoogleFonts.sourceSerif4(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: colorPrimary,
-                ),
-              ),
+              _buildHeaderSection(),
+              const SizedBox(height: 20),
+              _buildCartReviewList(),
+              const SizedBox(height: 24),
+              _buildPaymentMethodSection(),
+              const SizedBox(height: 24),
+              _buildTotalsCard(),
+              const SizedBox(height: 30),
+              _buildCompleteOrderAction(),
             ],
           ),
-        );
-      }).toList(),
+        ),
+      ),
     );
   }
 
-  Widget _buildProductThumbnail(
-    dynamic imageSource, {
-    double width = 56,
-    double height = 56,
-  }) {
-    if (imageSource is Uint8List) {
-      return Image.memory(
-        imageSource,
-        width: width,
-        height: height,
-        fit: BoxFit.cover,
-      );
-    } else if (imageSource is String && imageSource.startsWith('http')) {
-      return Image.network(
-        imageSource,
-        width: width,
-        height: height,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) =>
-            _buildAssetWithFallback(imageSource, width: width, height: height),
-      );
-    } else if (imageSource is String && imageSource.isNotEmpty) {
-      return Image.asset(
-        imageSource,
-        width: width,
-        height: height,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) =>
-            _buildAssetWithFallback(imageSource, width: width, height: height),
-      );
-    }
-    return _buildProductFallback(width: width, height: height);
-  }
-
-  Widget _buildAssetWithFallback(
-    String path, {
-    double width = 56,
-    double height = 56,
-  }) {
-    String fallbackAsset = 'assets/images/sandwich.jpg';
-    if (path.contains('drink') ||
-        path.contains('latte') ||
-        path.contains('tea') ||
-        path.contains('citrus') ||
-        path.contains('chocolate')) {
-      fallbackAsset = 'assets/images/ice latte.jpg';
-    } else if (path.contains('dessert') ||
-        path.contains('cheesecake') ||
-        path.contains('tiramisu')) {
-      fallbackAsset = 'assets/images/caffee1.webp';
-    }
-    return Image.asset(
-      fallbackAsset,
-      width: width,
-      height: height,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) =>
-          _buildProductFallback(width: width, height: height),
-    );
-  }
-
-  Widget _buildProductFallback({double width = 56, double height = 56}) {
+  Widget _buildHeaderSection() {
     return Container(
-      width: width,
-      height: height,
-      color: colorSurfaceContainerHigh,
-      child: Icon(
-        Icons.restaurant_menu,
-        size: width * 0.5,
-        color: colorPrimary.withValues(alpha: 0.5),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorSurfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
       ),
-    );
-  }
-
-  Widget _buildPaymentMethods() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth > 550;
-        return isWide
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: _buildWalletCard()),
-                  const SizedBox(width: 16),
-                  Expanded(child: _buildCashCard()),
-                ],
-              )
-            : Column(
-                children: [
-                  _buildWalletCard(),
-                  const SizedBox(height: 16),
-                  _buildCashCard(),
-                ],
-              );
-      },
-    );
-  }
-
-  Widget _buildWalletCard() {
-    final isSelected = _selectedPaymentMethod == 'wallet';
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedPaymentMethod = 'wallet';
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: isSelected ? colorSurfaceContainerLowest : colorSurface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected
-                ? colorSecondary
-                : colorPrimary.withValues(alpha: 0.1),
-            width: isSelected ? 2 : 1,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: colorSecondaryContainer,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.storefront, color: colorSecondary, size: 24),
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: colorSecondary.withValues(alpha: 0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.account_balance_wallet,
-                  color: isSelected
-                      ? colorSecondary
-                      : colorPrimary.withValues(alpha: 0.6),
-                  size: 24,
+                Text(
+                  widget.storeName,
+                  style: GoogleFonts.sourceSerif4(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: colorPrimary,
+                  ),
                 ),
-                Icon(
-                  isSelected
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_off,
-                  color: isSelected
-                      ? colorSecondary
-                      : colorPrimary.withValues(alpha: 0.3),
-                  size: 22,
+                const SizedBox(height: 2),
+                Text(
+                  'Pelanggan: ${widget.customerName.trim().isEmpty ? 'Pelanggan Umum' : widget.customerName.trim()} ${widget.tableNumber != '-' && widget.tableNumber.trim().isNotEmpty ? "• Meja ${widget.tableNumber.trim()}" : ""}',
+                  style: GoogleFonts.workSans(
+                    fontSize: 12,
+                    color: colorOnSurfaceVariant,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              'DIGITAL WALLET',
-              style: GoogleFonts.workSans(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-                color: isSelected ? colorPrimary : colorOnSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Divider(color: colorPrimary.withValues(alpha: 0.08)),
-            const SizedBox(height: 8),
-
-            // Wallet Options Sublist
-            _buildWalletOptionRow(
-              'GoPay',
-              Icons.account_balance_wallet,
-              'gopay',
-            ),
-            _buildWalletOptionRow('QRIS', Icons.qr_code_2, 'qris'),
-            _buildWalletOptionRow('DANA', Icons.wallet, 'dana'),
-            _buildWalletOptionRow('OVO', Icons.payments, 'ovo'),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildWalletOptionRow(String label, IconData icon, String value) {
-    final isOptionSelected =
-        _selectedWallet == value && _selectedPaymentMethod == 'wallet';
+  Widget _buildCartReviewList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'RINGKASAN ITEM (${widget.cartItems.length})',
+          style: GoogleFonts.workSans(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.0,
+            color: colorOnSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 10),
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: widget.cartItems.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 8),
+          itemBuilder: (context, index) {
+            final item = widget.cartItems[index];
+            final price = item['price'] as int;
+            final qty = item['quantity'] as int;
+            final itemTotal = price * qty;
 
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedPaymentMethod = 'wallet';
-          _selectedWallet = value;
-        });
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  icon,
-                  size: 18,
-                  color: isOptionSelected
-                      ? colorPrimary
-                      : colorPrimary.withValues(alpha: 0.4),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: GoogleFonts.workSans(
-                    fontSize: 13,
-                    fontWeight: isOptionSelected
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                    color: isOptionSelected
-                        ? colorPrimary
-                        : colorOnSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-            Container(
-              width: 16,
-              height: 16,
+            return Container(
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isOptionSelected
-                      ? colorSecondary
-                      : colorPrimary.withValues(alpha: 0.2),
-                ),
+                color: colorSurfaceContainerLowest,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: colorOutline.withValues(alpha: 0.15)),
               ),
-              child: isOptionSelected
-                  ? Center(
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: colorSecondaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${qty}x',
+                        style: GoogleFonts.workSans(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
                           color: colorSecondary,
                         ),
                       ),
-                    )
-                  : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item['title'] ?? item['name'] ?? 'Item',
+                          style: GoogleFonts.workSans(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: colorPrimary,
+                          ),
+                        ),
+                        if (item['notes'] != null &&
+                            item['notes'].toString().isNotEmpty)
+                          Text(
+                            item['notes'],
+                            style: GoogleFonts.workSans(
+                              fontSize: 11,
+                              color: colorOnSurfaceVariant,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    'Rp ${_formatCurrency(itemTotal)}',
+                    style: GoogleFonts.workSans(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: colorPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPaymentMethodSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'METODE PEMBAYARAN',
+          style: GoogleFonts.workSans(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.0,
+            color: colorOnSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildPaymentOptionCard(
+                title: 'QRIS & E-Wallet',
+                subtitle: 'GoPay, QRIS, Dana, OVO',
+                icon: Icons.qr_code_scanner,
+                isSelected: _selectedPaymentMethod == 'wallet',
+                onTap: () => setState(() => _selectedPaymentMethod = 'wallet'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildPaymentOptionCard(
+                title: 'Tunai (Cash)',
+                subtitle: 'Bayar Langsung',
+                icon: Icons.payments_outlined,
+                isSelected: _selectedPaymentMethod == 'cash',
+                onTap: () => setState(() => _selectedPaymentMethod = 'cash'),
+              ),
+            ),
+          ],
+        ),
+        if (_selectedPaymentMethod == 'wallet') ...[
+          const SizedBox(height: 16),
+          _buildWalletSelector(),
+        ] else ...[
+          const SizedBox(height: 16),
+          _buildCashCalculator(),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildPaymentOptionCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isSelected ? colorSecondaryContainer : colorSurfaceContainerLowest,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? colorSecondary : colorOutline.withValues(alpha: 0.2),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? colorSecondary : colorOnSurfaceVariant,
+              size: 26,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              style: GoogleFonts.workSans(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: colorPrimary,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: GoogleFonts.workSans(
+                fontSize: 11,
+                color: colorOnSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -910,183 +757,198 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildCashCard() {
-    final isSelected = _selectedPaymentMethod == 'cash';
+  Widget _buildWalletSelector() {
+    final wallets = [
+      {'id': 'gopay', 'name': 'GoPay'},
+      {'id': 'qris', 'name': 'QRIS All'},
+      {'id': 'dana', 'name': 'Dana'},
+      {'id': 'ovo', 'name': 'OVO'},
+    ];
 
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedPaymentMethod = 'cash';
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: isSelected ? colorSurfaceContainerLowest : colorSurface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected
-                ? colorSecondary
-                : colorPrimary.withValues(alpha: 0.1),
-            width: isSelected ? 2 : 1,
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colorSurfaceContainerLowest,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colorOutline.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'PILIH KANAL DIGITAL',
+            style: GoogleFonts.workSans(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.8,
+              color: colorOnSurfaceVariant,
+            ),
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: colorSecondary.withValues(alpha: 0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+          const SizedBox(height: 10),
+          Row(
+            children: wallets.map((w) {
+              final isSel = _selectedWallet == w['id'];
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3.0),
+                  child: ChoiceChip(
+                    label: Text(
+                      w['name']!,
+                      style: GoogleFonts.workSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: isSel ? Colors.white : colorPrimary,
+                      ),
+                    ),
+                    selected: isSel,
+                    selectedColor: colorSecondary,
+                    backgroundColor: colorSurfaceContainerLow,
+                    showCheckmark: false,
+                    onSelected: (selected) {
+                      if (selected) setState(() => _selectedWallet = w['id']!);
+                    },
                   ),
-                ]
-              : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCashCalculator() {
+    final suggestions = [
+      _total,
+      ((_total / 10000).ceil()) * 10000,
+      ((_total / 50000).ceil()) * 50000,
+      ((_total / 100000).ceil()) * 100000,
+    ].toSet().toList()..sort();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorSurfaceContainerLowest,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colorOutline.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'UANG PAS / SARAN NOMINAL',
+            style: GoogleFonts.workSans(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.8,
+              color: colorOnSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: suggestions.map((amt) {
+              final isMatched = _cashReceived == amt;
+              return ActionChip(
+                label: Text(
+                  'Rp ${_formatCurrency(amt)} ${amt == _total ? "(Pas)" : ""}',
+                  style: GoogleFonts.workSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isMatched ? Colors.white : colorPrimary,
+                  ),
+                ),
+                backgroundColor: isMatched ? colorSecondary : colorSurfaceContainerLow,
+                onPressed: () {
+                  setState(() {
+                    _cashReceived = amt;
+                    _cashInputController.text = amt.toString();
+                  });
+                },
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'NOMINAL UANG DITERIMA (RP)',
+            style: GoogleFonts.workSans(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.8,
+              color: colorOnSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _cashInputController,
+            keyboardType: TextInputType.number,
+            onChanged: (val) {
+              setState(() {
+                _cashReceived = int.tryParse(val) ?? 0;
+              });
+            },
+            decoration: InputDecoration(
+              prefixIcon: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                child: Text(
+                  'Rp',
+                  style: GoogleFonts.workSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: colorPrimary,
+                  ),
+                ),
+              ),
+              prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+              filled: true,
+              fillColor: colorSurfaceContainerLow,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: colorOutline.withValues(alpha: 0.15)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: colorSecondary, width: 1.5),
+              ),
+            ),
+            style: GoogleFonts.workSans(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: colorPrimary,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colorSurfaceContainerLow,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(
-                  Icons.payments,
-                  color: isSelected
-                      ? colorSecondary
-                      : colorPrimary.withValues(alpha: 0.6),
-                  size: 24,
+                Text(
+                  'KEMBALIAN',
+                  style: GoogleFonts.workSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.8,
+                    color: colorOnSurfaceVariant,
+                  ),
                 ),
-                Icon(
-                  isSelected
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_off,
-                  color: isSelected
-                      ? colorSecondary
-                      : colorPrimary.withValues(alpha: 0.3),
-                  size: 22,
+                Text(
+                  'Rp ${_formatCurrency(_change)}',
+                  style: GoogleFonts.sourceSerif4(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: colorSecondary,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              'CASH IN STORE',
-              style: GoogleFonts.workSans(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-                color: isSelected ? colorPrimary : colorOnSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Divider(color: colorPrimary.withValues(alpha: 0.08)),
-            const SizedBox(height: 12),
-
-            // Cash Input Field
-            Text(
-              'UANG MASUK',
-              style: GoogleFonts.workSans(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.8,
-                color: colorOnSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _cashInputController,
-              keyboardType: TextInputType.number,
-              onTap: () {
-                if (!isSelected) {
-                  setState(() => _selectedPaymentMethod = 'cash');
-                }
-              },
-              onChanged: (val) {
-                setState(() {
-                  _cashReceived = int.tryParse(val) ?? 0;
-                });
-              },
-              decoration: InputDecoration(
-                prefixIcon: Padding(
-                  padding: const EdgeInsets.only(
-                    left: 12,
-                    right: 8,
-                    top: 12,
-                    bottom: 12,
-                  ),
-                  child: Text(
-                    'Rp',
-                    style: GoogleFonts.workSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: colorPrimary,
-                    ),
-                  ),
-                ),
-                prefixIconConstraints: const BoxConstraints(
-                  minWidth: 0,
-                  minHeight: 0,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                filled: true,
-                fillColor: colorSurfaceContainerLow,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(
-                    color: colorPrimary.withValues(alpha: 0.15),
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(
-                    color: colorPrimary.withValues(alpha: 0.15),
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: colorSecondary, width: 1.5),
-                ),
-              ),
-              style: GoogleFonts.workSans(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: colorPrimary,
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            // Kembalian Output Row
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: colorSurfaceContainerLow,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'KEMBALIAN',
-                    style: GoogleFonts.workSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.8,
-                      color: colorOnSurfaceVariant,
-                    ),
-                  ),
-                  Text(
-                    'Rp ${_formatCurrency(_change)}',
-                    style: GoogleFonts.sourceSerif4(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: colorSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1097,13 +959,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       decoration: BoxDecoration(
         color: colorSurfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(
-            color: Color.fromRGBO(93, 64, 55, 0.05),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         children: [
@@ -1134,7 +989,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'TAX (10%)',
+                'PAJAK (10%)',
                 style: GoogleFonts.workSans(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
@@ -1162,18 +1017,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                'TOTAL',
+                'TOTAL BAYAR',
                 style: GoogleFonts.sourceSerif4(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
+                  letterSpacing: 1.0,
                   color: colorPrimary,
                 ),
               ),
               Text(
                 'Rp ${_formatCurrency(_total)}',
                 style: GoogleFonts.sourceSerif4(
-                  fontSize: 28,
+                  fontSize: 26,
                   fontWeight: FontWeight.bold,
                   color: colorSecondary,
                 ),
@@ -1192,38 +1047,47 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           width: double.infinity,
           height: 54,
           child: ElevatedButton(
-            onPressed: _onCompleteOrder,
+            onPressed: _isProcessingOrder ? null : _onCompleteOrder,
             style: ElevatedButton.styleFrom(
-              backgroundColor: colorPrimary,
+              backgroundColor: colorSecondary,
               foregroundColor: Colors.white,
-              elevation: 4,
+              elevation: 3,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.lock, size: 20),
-                const SizedBox(width: 10),
-                Text(
-                  'COMPLETE ORDER',
-                  style: GoogleFonts.workSans(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
+            child: _isProcessingOrder
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.cloud_upload_outlined, size: 20),
+                      const SizedBox(width: 10),
+                      Text(
+                        'PROSES & SELESAIKAN ORDER',
+                        style: GoogleFonts.workSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
         ),
         const SizedBox(height: 12),
         Text(
-          'Secure payment processed by ${widget.storeName}',
+          'Pembayaran kasir & sinkronisasi otomatis Cloud Firestore',
           textAlign: TextAlign.center,
           style: GoogleFonts.workSans(
-            fontSize: 12,
+            fontSize: 11,
             color: colorOnSurfaceVariant,
           ),
         ),

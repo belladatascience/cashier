@@ -1,4 +1,4 @@
-import 'package:cashier/extension/navigator.dart';
+﻿import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/models/user_login.dart';
 import 'package:cashier/halaman1/services/firebase_auth_service.dart';
@@ -63,7 +63,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     final name = nameC.text.trim();
-    final email = emailC.text.trim();
+    String rawEmailOrId = emailC.text.trim();
     final phone = phoneC.text.trim();
     final city = cityC.text.trim();
     final pass = passwordC.text;
@@ -75,8 +75,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     if (pass.length < 6) {
-      _showSnackBar('Kata sandi minimal 6 karakter!', isError: true);
+      _showSnackBar('Kata sandi minimal 6 karakter untuk Firebase!', isError: true);
       return;
+    }
+
+    // Auto-normalize email format for Firebase Auth if user inputs ID like "KASIR01"
+    String normalizedEmail = rawEmailOrId;
+    String assignedCashierId = rawEmailOrId;
+
+    if (!rawEmailOrId.contains('@')) {
+      final sanitized = rawEmailOrId.toLowerCase().replaceAll(' ', '');
+      normalizedEmail = '$sanitized@bgaco.com';
+      assignedCashierId = rawEmailOrId.toUpperCase();
+    } else {
+      assignedCashierId = 'BG${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
     }
 
     setState(() {
@@ -84,39 +96,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      final cashierId =
-          'BG${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
-
       // 1. Register with Firebase Authentication & Cloud Firestore
       final result = await FirebaseAuthService.instance.registerUser(
         name: name,
-        email: email,
+        email: normalizedEmail,
         password: pass,
         phone: phone,
         city: city,
-        cashierId: cashierId,
+        cashierId: assignedCashierId,
         role: 'Barista / Kasir',
       );
 
       if (!mounted) return;
 
       if (result['success'] == true) {
-        final generatedCashierId = result['cashierId'] ?? cashierId;
+        final finalCashierId = result['cashierId'] ?? assignedCashierId;
 
-        // 2. Synchronize to local SQLite for offline fallback
+        // 2. Synchronize to local SQLite for offline resilience
         try {
           final newUser = UserModelSQL(
             nama: name,
-            email: email,
+            email: normalizedEmail,
             nomor_hp: phone,
             asalKota: city,
             password: pass,
-            cashierId: generatedCashierId,
+            cashierId: finalCashierId,
             role: 'Barista / Kasir',
           );
           await DataBaseHelper().registerUser(newUser);
         } catch (dbErr) {
-          debugPrint('Local SQLite sync error (non-fatal): $dbErr');
+          debugPrint('Local SQLite sync note: $dbErr');
         }
 
         setState(() {
@@ -124,13 +133,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         });
 
         _showSnackBar(
-          'Pendaftaran berhasil! ID Kasir Anda: $generatedCashierId',
+          'Pendaftaran Firebase berhasil! ID Kasir Anda: $finalCashierId',
           isError: false,
         );
 
-        await Future.delayed(const Duration(milliseconds: 1000));
+        await Future.delayed(const Duration(milliseconds: 1200));
         if (mounted) {
-          context.pop({'user': email, 'pass': pass});
+          context.pop({'user': rawEmailOrId, 'pass': pass});
         }
       } else {
         setState(() {
@@ -146,7 +155,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() {
         _isLoading = false;
       });
-      _showSnackBar('Terjadi kesalahan: $e', isError: true);
+      _showSnackBar('Terjadi kesalahan pendaftaran: $e', isError: true);
     }
   }
 
@@ -178,27 +187,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }) {
     return InputDecoration(
       hintText: hintText,
-      hintStyle: GoogleFonts.workSans(color: colorOutlineVariant, fontSize: 15),
+      hintStyle: GoogleFonts.workSans(
+        color: colorOutlineVariant,
+        fontSize: 14,
+      ),
       filled: true,
       fillColor: colorBackground,
       prefixIcon: Icon(prefixIcon, color: colorOutline, size: 20),
       suffixIcon: suffixIcon,
-      contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+      contentPadding: const EdgeInsets.symmetric(
+        vertical: 14,
+        horizontal: 14,
+      ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide(color: colorOutlineVariant, width: 1),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide(color: colorSecondary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(6),
-        borderSide: BorderSide(color: colorOnErrorContainer, width: 1),
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(
+          color: colorErrorContainer,
+          width: 1,
+        ),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(6),
-        borderSide: BorderSide(color: colorOnErrorContainer, width: 1.5),
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(
+          color: colorErrorContainer,
+          width: 1.5,
+        ),
       ),
     );
   }
@@ -227,17 +248,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       builder: (context, themeMode, child) {
         return Scaffold(
           backgroundColor: theme.backgroundColor,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: IconButton(
-              icon: Icon(Icons.arrow_back, color: theme.primaryColor),
-              onPressed: () => context.pop(),
-            ),
-          ),
           body: Stack(
             children: [
-              // Background Gradient
+              // Subtle Ambient Radial Gradient Background
               Positioned.fill(
                 child: Container(
                   decoration: const BoxDecoration(
@@ -256,47 +269,64 @@ class _RegisterScreenState extends State<RegisterScreen> {
               SafeArea(
                 child: Center(
                   child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24.0,
-                      vertical: 12.0,
+                      vertical: 24.0,
                     ),
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 460),
+                      constraints: const BoxConstraints(maxWidth: 440),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Header Title
-                          Text(
-                            'DAFTAR AKUN',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.sourceSerif4(
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: -0.8,
-                              color: colorPrimary,
-                            ),
+                          // Header Back Button & Title
+                          Row(
+                            children: [
+                              IconButton(
+                                onPressed: () => context.pop(),
+                                icon: Icon(
+                                  Icons.arrow_back_ios_new_rounded,
+                                  color: colorPrimary,
+                                  size: 20,
+                                ),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: colorSurfaceContainerLowest,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Daftar Akun Firebase',
+                                style: GoogleFonts.sourceSerif4(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorPrimary,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Buat akun kasir baru BGA Co.',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.workSans(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
-                              color: colorOnSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 16),
 
-                          // Lottie Logo
+                          // Header Animated Avatar / Logo
                           Center(
                             child: Container(
-                              width: 120,
-                              height: 120,
+                              width: 100,
+                              height: 100,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: colorPrimary.withValues(alpha: 0.05),
+                                color: colorSurfaceContainerLowest,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: colorPrimary.withValues(
+                                      alpha: 0.12,
+                                    ),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
                               ),
                               child: ClipOval(
                                 child: Lottie.asset(
@@ -346,6 +376,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   _buildFieldLabel('Nama Lengkap'),
                                   TextFormField(
                                     controller: nameC,
+                                    textCapitalization: TextCapitalization.words,
                                     style: GoogleFonts.workSans(
                                       fontSize: 15,
                                       color: colorOnSurface,
@@ -368,13 +399,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   _buildFieldLabel('Email / ID Kasir'),
                                   TextFormField(
                                     controller: emailC,
+                                    keyboardType: TextInputType.emailAddress,
                                     style: GoogleFonts.workSans(
                                       fontSize: 15,
                                       color: colorOnSurface,
                                     ),
                                     decoration: _buildInputDecoration(
                                       hintText:
-                                          'contoh: KASIR02 / email@bga.com',
+                                          'contoh: KASIR02 atau email@bga.com',
                                       prefixIcon: Icons.badge_outlined,
                                     ),
                                     validator: (value) {
@@ -414,6 +446,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   _buildFieldLabel('Asal Kota'),
                                   TextFormField(
                                     controller: cityC,
+                                    textCapitalization: TextCapitalization.words,
                                     style: GoogleFonts.workSans(
                                       fontSize: 15,
                                       color: colorOnSurface,
@@ -433,7 +466,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   const SizedBox(height: 16),
 
                                   // Kata Sandi
-                                  _buildFieldLabel('Kata Sandi'),
+                                  _buildFieldLabel('Kata Sandi (Min. 6 Karakter)'),
                                   TextFormField(
                                     controller: passwordC,
                                     obscureText: _obscurePassword,
@@ -442,7 +475,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       color: colorOnSurface,
                                     ),
                                     decoration: _buildInputDecoration(
-                                      hintText: '••••••••',
+                                      hintText: '•••••••••',
                                       prefixIcon: Icons.lock_outline,
                                       suffixIcon: IconButton(
                                         icon: Icon(
@@ -464,8 +497,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       if (value == null || value.isEmpty) {
                                         return 'Kata sandi wajib diisi';
                                       }
-                                      if (value.length < 3) {
-                                        return 'Kata sandi minimal 3 karakter';
+                                      if (value.length < 6) {
+                                        return 'Kata sandi minimal 6 karakter';
                                       }
                                       return null;
                                     },
@@ -482,7 +515,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       color: colorOnSurface,
                                     ),
                                     decoration: _buildInputDecoration(
-                                      hintText: '••••••••',
+                                      hintText: '•••••••••',
                                       prefixIcon: Icons.lock_reset_outlined,
                                       suffixIcon: IconButton(
                                         icon: Icon(
@@ -505,7 +538,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         return 'Konfirmasi kata sandi wajib diisi';
                                       }
                                       if (value != passwordC.text) {
-                                        return 'Kata sandi tidak sama';
+                                        return 'Konfirmasi kata sandi tidak sesuai';
                                       }
                                       return null;
                                     },
@@ -543,7 +576,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                   MainAxisAlignment.center,
                                               children: [
                                                 Text(
-                                                  'Daftar Akun',
+                                                  'Daftar Akun Firebase',
                                                   style: GoogleFonts.workSans(
                                                     fontSize: 14,
                                                     fontWeight: FontWeight.w600,

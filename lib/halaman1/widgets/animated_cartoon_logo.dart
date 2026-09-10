@@ -1,11 +1,14 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 
+/// Widget Logo Kartun Animasi dengan integrasi Firebase (Cloud Firestore & Firebase Auth)
 class AnimatedCartoonLogo extends StatefulWidget {
   final double height;
   final double borderRadius;
@@ -14,6 +17,9 @@ class AnimatedCartoonLogo extends StatefulWidget {
   final String defaultAssetPath;
   final VoidCallback? onChangeRequested;
   final bool showEditButton;
+  final bool autoFetchFromFirebase;
+  final String? firebaseDocPath;
+  final bool showCloudBadge;
 
   const AnimatedCartoonLogo({
     super.key,
@@ -24,6 +30,9 @@ class AnimatedCartoonLogo extends StatefulWidget {
     this.defaultAssetPath = 'assets/animation/cafe.json',
     this.onChangeRequested,
     this.showEditButton = true,
+    this.autoFetchFromFirebase = true,
+    this.firebaseDocPath,
+    this.showCloudBadge = true,
   });
 
   @override
@@ -39,6 +48,9 @@ class _AnimatedCartoonLogoState extends State<AnimatedCartoonLogo>
   late Animation<double> _pulseAnimation;
 
   late AnimationController _rotateController;
+
+  String? _firebaseLogoUrl;
+  bool _isLoadingFirebase = false;
 
   @override
   void initState() {
@@ -60,15 +72,93 @@ class _AnimatedCartoonLogoState extends State<AnimatedCartoonLogo>
       duration: const Duration(milliseconds: 1800),
     )..repeat(reverse: true);
 
-    _pulseAnimation = Tween<double>(begin: 0.98, end: 1.03).animate(
+    _pulseAnimation = Tween<double>(begin: 0.97, end: 1.03).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    // Ambient Sparkle Ring Rotation
+    // Rotating Ambient Background Glow Animation
     _rotateController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 12),
     )..repeat();
+
+    if (widget.autoFetchFromFirebase && widget.customUrl == null && widget.imageBytes == null) {
+      _loadLogoFromFirebase();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant AnimatedCartoonLogo oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.customUrl != oldWidget.customUrl ||
+        widget.imageBytes != oldWidget.imageBytes) {
+      if (widget.customUrl == null && widget.imageBytes == null && widget.autoFetchFromFirebase) {
+        _loadLogoFromFirebase();
+      }
+    }
+  }
+
+  Future<void> _loadLogoFromFirebase() async {
+    if (!mounted) return;
+    setState(() => _isLoadingFirebase = true);
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // 1. Cek Photo URL dari Firebase Auth
+        if (user.photoURL != null && user.photoURL!.isNotEmpty) {
+          if (mounted) {
+            setState(() {
+              _firebaseLogoUrl = user.photoURL;
+              _isLoadingFirebase = false;
+            });
+            return;
+          }
+        }
+
+        // 2. Cek Dokumen Firestore Pengguna / Toko
+        final docPath = widget.firebaseDocPath ?? 'users/';
+        final snapshot = await FirebaseFirestore.instance.doc(docPath).get();
+        if (snapshot.exists && snapshot.data() != null) {
+          final data = snapshot.data()!;
+          final url = data['bannerUrl'] ??
+              data['storeLogoUrl'] ??
+              data['photoUrl'] ??
+              data['logoUrl'];
+          if (url != null && url.toString().isNotEmpty) {
+            if (mounted) {
+              setState(() {
+                _firebaseLogoUrl = url.toString();
+                _isLoadingFirebase = false;
+              });
+              return;
+            }
+          }
+        }
+      }
+
+      // 3. Cek General Store Settings di Firestore
+      final storeDoc = await FirebaseFirestore.instance.doc('stores/default_store').get();
+      if (storeDoc.exists && storeDoc.data() != null) {
+        final storeData = storeDoc.data()!;
+        final storeLogo = storeData['bannerUrl'] ?? storeData['storeLogoUrl'];
+        if (storeLogo != null && storeLogo.toString().isNotEmpty) {
+          if (mounted) {
+            setState(() {
+              _firebaseLogoUrl = storeLogo.toString();
+              _isLoadingFirebase = false;
+            });
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('AnimatedCartoonLogo: Firebase fetch error: ');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingFirebase = false);
+      }
+    }
   }
 
   @override
@@ -82,15 +172,48 @@ class _AnimatedCartoonLogoState extends State<AnimatedCartoonLogo>
   Widget _buildImageWidget() {
     if (widget.imageBytes != null) {
       return Image.memory(widget.imageBytes!, fit: BoxFit.contain);
-    } else if (widget.customUrl != null) {
+    }
+
+    final activeUrl = widget.customUrl ?? _firebaseLogoUrl;
+    if (activeUrl != null && activeUrl.isNotEmpty) {
       return Image.network(
-        widget.customUrl!,
+        activeUrl,
         fit: BoxFit.contain,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
+                color: AppTheme.instance.secondaryColor,
+              ),
+            ),
+          );
+        },
         errorBuilder: (context, error, stackTrace) => _buildAssetFallback(),
       );
-    } else {
-      return _buildAssetFallback();
     }
+
+    if (_isLoadingFirebase) {
+      return Center(
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppTheme.instance.secondaryColor,
+          ),
+        ),
+      );
+    }
+
+    return _buildAssetFallback();
   }
 
   Widget _buildAssetFallback() {
@@ -132,6 +255,7 @@ class _AnimatedCartoonLogoState extends State<AnimatedCartoonLogo>
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.instance;
+    final isCloudSource = (widget.customUrl ?? _firebaseLogoUrl) != null;
 
     return Stack(
       children: [
@@ -217,48 +341,49 @@ class _AnimatedCartoonLogoState extends State<AnimatedCartoonLogo>
                   ),
                 ),
 
-                // Animated "LIVE CARTOON LOGO" Badge Indicator
-                Positioned(
-                  bottom: 6,
-                  left: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.secondaryColor,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.play_circle_fill,
-                          color: Colors.white,
-                          size: 11,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'KARTUN ANIMASI BERGERAK',
-                          style: GoogleFonts.workSans(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.5,
-                            color: Colors.white,
+                // Animated LIVE CARTOON LOGO / CLOUD LOGO Badge Indicator
+                if (widget.showCloudBadge)
+                  Positioned(
+                    bottom: 6,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.secondaryColor,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isCloudSource ? Icons.cloud_done : Icons.play_circle_fill,
+                            color: Colors.white,
+                            size: 11,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isCloudSource ? 'FIREBASE CLOUD LOGO' : 'KARTUN ANIMASI BERGERAK',
+                            style: GoogleFonts.workSans(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),

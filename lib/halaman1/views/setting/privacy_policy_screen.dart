@@ -1,4 +1,4 @@
-import 'package:cashier/extension/navigator.dart';
+﻿import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -136,6 +136,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                       color: theme.primaryColor,
                     ),
                   ),
+                  centerTitle: true,
                   bottom: PreferredSize(
                     preferredSize: const Size.fromHeight(1.0),
                     child: Container(color: theme.dividerColor, height: 1.0),
@@ -159,161 +160,68 @@ class PrivacyPolicyScreen extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: theme.surfaceColor,
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: theme.dividerColor,
-                                  width: 1,
-                                ),
+                                border: Border.all(color: theme.dividerColor),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.05),
+                                    color: Colors.black.withValues(alpha: 0.04),
                                     blurRadius: 16,
                                     offset: const Offset(0, 4),
                                   ),
                                 ],
                               ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24.0,
-                                vertical: 32.0,
-                              ),
+                              padding: const EdgeInsets.all(28.0),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const SizedBox(height: 8),
-
-                                  // Section 1: Introduction
-                                  Text(
-                                    'Introduction',
-                                    style: GoogleFonts.sourceSerif4(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: theme.primaryColor,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 14),
-                                  Text(
-                                    'At BGA Co., we honor the sanctity of your personal space, both physical and digital. This Privacy Policy details our practices regarding the collection, use, and safeguarding of your personal information when you use our services.',
-                                    style: GoogleFonts.workSans(
-                                      fontSize: 15,
-                                      height: 1.6,
-                                      color: theme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'We approach data with the same careful consideration and respect as we do our curated collections. By engaging with our platform, you consent to the practices outlined in this document, which is designed to be as transparent and enduring as our ethos.',
-                                    style: GoogleFonts.workSans(
-                                      fontSize: 15,
-                                      height: 1.6,
-                                      color: theme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 24),
-
-                                  // Paper Divider
-                                  Center(
-                                    child: Container(
-                                      width: 120,
-                                      height: 1,
-                                      color: theme.dividerColor,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 24),
-
-                                  // Section 2: Information We Collect
-                                  Text(
-                                    'Information We Collect',
-                                    style: GoogleFonts.sourceSerif4(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      color: theme.primaryColor,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 14),
-                                  Text(
-                                    'To provide an authentic and tailored experience, we gather certain details when you interact with BGA Co.:',
-                                    style: GoogleFonts.workSans(
-                                      fontSize: 15,
-                                      height: 1.6,
-                                      color: theme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  _buildBulletItem(
-                                    label: 'Identity Data:',
-                                    text:
-                                        'Includes your name, username, or similar identifiers.',
-                                  ),
-                                  _buildBulletItem(
-                                    label: 'Contact Data:',
-                                    text:
-                                        'Such as billing address, delivery address, email address, and telephone numbers.',
-                                  ),
-                                  _buildBulletItem(
-                                    label: 'Transaction Data:',
-                                    text:
-                                        'Details about payments to and from you, and other details of products or services you have purchased from us.',
-                                  ),
-                                  _buildBulletItem(
-                                    label: 'Technical Data:',
-                                    text:
-                                        'Internet protocol (IP) address, your login data, browser type and version, time zone setting and location.',
-                                  ),
-                                  const SizedBox(height: 28),
-
-                                  // Section 3: How We Use Your Data (Highlighted Box)
+                                  // Firebase Cloud Privacy Compliance Card
                                   Container(
                                     width: double.infinity,
-                                    padding: const EdgeInsets.all(24),
+                                    padding: const EdgeInsets.all(16),
                                     decoration: BoxDecoration(
-                                      color: theme.surfaceContainerLow,
+                                      color: theme.secondaryColor.withValues(alpha: 0.08),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: theme.dividerColor,
-                                        width: 1,
+                                        color: theme.secondaryColor.withValues(alpha: 0.3),
                                       ),
                                     ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                    child: Row(
                                       children: [
-                                        Text(
-                                          'How We Use Your Data',
-                                          style: GoogleFonts.sourceSerif4(
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.bold,
-                                            color: theme.primaryColor,
+                                        Icon(
+                                          Icons.verified_user_rounded,
+                                          color: theme.secondaryColor,
+                                          size: 24,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Keamanan Cloud Firebase Terverifikasi',
+                                                style: GoogleFonts.sourceSerif4(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: theme.primaryColor,
+                                                ),
+                                              ),
+                                              Text(
+                                                'Data kasir, transaksi, dan autentikasi dilindungi dengan enkripsi standar Google Cloud (TLS & AES-256).',
+                                                style: GoogleFonts.workSans(
+                                                  fontSize: 12,
+                                                  color: theme.onSurfaceVariant,
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Text(
-                                          'We deploy your data judiciously, strictly to enhance our relationship and service delivery. Key uses include:',
-                                          style: GoogleFonts.workSans(
-                                            fontSize: 15,
-                                            height: 1.6,
-                                            color: theme.onSurfaceVariant,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        _buildSimpleBulletItem(
-                                          'Processing and fulfilling your orders with precision.',
-                                        ),
-                                        _buildSimpleBulletItem(
-                                          'Managing our relationship with you, including notifying you about changes to our terms or privacy policy.',
-                                        ),
-                                        _buildSimpleBulletItem(
-                                          'Curating recommendations that align with your demonstrated aesthetic preferences.',
-                                        ),
-                                        _buildSimpleBulletItem(
-                                          'Improving our platform layout, ensuring the digital environment remains uncluttered and functional.',
                                         ),
                                       ],
                                     ),
                                   ),
-                                  const SizedBox(height: 28),
+                                  const SizedBox(height: 24),
 
-                                  // Section 4: Data Security
+                                  // Section 1: Introduction
                                   Text(
-                                    'Data Security',
+                                    '1. Pengantar & Komitmen Privasi',
                                     style: GoogleFonts.sourceSerif4(
                                       fontSize: 22,
                                       fontWeight: FontWeight.bold,
@@ -322,30 +230,63 @@ class PrivacyPolicyScreen extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 14),
                                   Text(
-                                    'We have instituted rigorous security measures to prevent your personal data from being accidentally lost, used, or accessed in an unauthorized way, altered, or disclosed.',
+                                    'Selamat datang di aplikasi Cashier BGA Co. Kami menghargai privasi dan kepercayaan Anda. Kebijakan Privasi ini menjelaskan bagaimana informasi operasional kasir, data staf, dan data transaksi dikumpulkan, dilindungi, dan dikelola secara aman melalui layanan cloud Firebase.',
                                     style: GoogleFonts.workSans(
                                       fontSize: 15,
                                       height: 1.6,
                                       color: theme.onSurfaceVariant,
                                     ),
                                   ),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 28),
+
+                                  // Section 2: Data We Collect
                                   Text(
-                                    'Access to your personal data is limited strictly to those employees, agents, contractors, and other third parties who have a defined business need to know. They are subject to a strict duty of confidentiality.',
-                                    style: GoogleFonts.workSans(
-                                      fontSize: 15,
-                                      height: 1.6,
-                                      color: theme.onSurfaceVariant,
+                                    '2. Data yang Dikumpulkan & Disimpan',
+                                    style: GoogleFonts.sourceSerif4(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                      color: theme.primaryColor,
                                     ),
                                   ),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 14),
+                                  _buildBulletItem(
+                                    label: 'Data Akun & Autentikasi:',
+                                    text:
+                                        'Alamat email terdaftar, ID Kasir, nama lengkap, dan kredensial terenkripsi yang dikelola oleh Firebase Authentication.',
+                                  ),
+                                  _buildBulletItem(
+                                    label: 'Data Operasional Toko:',
+                                    text:
+                                        'Jadwal shift, nama outlet, riwayat pesanan, dan laporan transaksi yang disimpan secara realtime di Cloud Firestore.',
+                                  ),
+                                  _buildBulletItem(
+                                    label: 'Preferensi Aplikasi:',
+                                    text:
+                                        'Pilihan tema, bahasa, dan pengaturan notifikasi yang disinkronkan ke akun cloud kasir.',
+                                  ),
+                                  const SizedBox(height: 28),
+
+                                  // Section 3: How We Use Your Data
                                   Text(
-                                    'While we strive to use commercially acceptable means to protect your personal information, remember that no method of transmission over the Internet is 100% secure.',
-                                    style: GoogleFonts.workSans(
-                                      fontSize: 15,
-                                      height: 1.6,
-                                      color: theme.onSurfaceVariant,
+                                    '3. Penggunaan & Keamanan Data Cloud',
+                                    style: GoogleFonts.sourceSerif4(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                      color: theme.primaryColor,
                                     ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  _buildSimpleBulletItem(
+                                    'Memproses transaksi kasir dan sinkronisasi stok secara realtime.',
+                                  ),
+                                  _buildSimpleBulletItem(
+                                    'Memastikan akses hanya diberikan kepada staf dan kasir terverifikasi.',
+                                  ),
+                                  _buildSimpleBulletItem(
+                                    'Menyediakan cadangan data cloud yang aman sehingga data tidak hilang saat pergantian perangkat.',
+                                  ),
+                                  _buildSimpleBulletItem(
+                                    'Data Anda tidak akan pernah dijual atau dibagikan kepada pihak ketiga di luar ekosistem BGA Co.',
                                   ),
                                   const SizedBox(height: 32),
 
@@ -368,7 +309,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                                       runSpacing: 8,
                                       children: [
                                         Text(
-                                          'Effective Date: October 24, 2023',
+                                          'Terakhir Diperbarui: 2026 • BGA Co. Cloud',
                                           style: GoogleFonts.workSans(
                                             fontSize: 13,
                                             color: theme.outlineColor,
@@ -378,22 +319,18 @@ class PrivacyPolicyScreen extends StatelessWidget {
                                           onTap: () {
                                             _showSnackBar(
                                               context,
-                                              'PDF Privacy Policy berhasil diunduh',
+                                              'Dokumen Kebijakan Privasi Firebase aktif',
                                             );
                                           },
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
+                                          borderRadius: BorderRadius.circular(4),
                                           child: Text(
-                                            'Download PDF Version',
+                                            'Status Keamanan Cloud: Aktif',
                                             style: GoogleFonts.workSans(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w600,
                                               color: theme.secondaryColor,
-                                              decoration:
-                                                  TextDecoration.underline,
-                                              decorationColor:
-                                                  theme.secondaryColor,
+                                              decoration: TextDecoration.underline,
+                                              decorationColor: theme.secondaryColor,
                                             ),
                                           ),
                                         ),
@@ -404,7 +341,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                               ),
                             ),
 
-                            // Decorative Header Bar Accent Centered at Top of Card
+                            // Decorative Header Bar Accent
                             Positioned(
                               top: 0,
                               left: 0,

@@ -1,10 +1,11 @@
-import 'dart:typed_data';
+﻿import 'dart:typed_data';
 
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:cashier/halaman1/views/Home/Shift/staff_shift_screen.dart';
 import 'package:cashier/halaman1/views/setting/edit_personal_info_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -91,20 +92,23 @@ class _CashierProfileScreenState extends State<CashierProfileScreen>
 
   void _loadFromUserDataStore() {
     final data = UserDataStore.instance.userDataNotifier.value;
+    final fbUser = FirebaseAuth.instance.currentUser;
     if (mounted) {
       setState(() {
-        _cashierName = data['cashierName'] ?? data['name'] ?? widget.name;
+        _cashierName = data['cashierName'] ?? fbUser?.displayName ?? data['name'] ?? widget.name;
         _cashierRole = data['cashierRole'] ?? data['role'] ?? widget.role;
         _storeName = data['storeName'] ?? widget.storeName;
         _storeLocation = data['location'] ?? widget.storeLocation;
         _shift = data['shift'] ?? widget.shift;
         _startDate = data['startDate'] ?? DateTime(2024, 1, 15);
-        _accountName = data['accountName'] ?? 'Bella Gita Asmara';
-        _email = data['email'] ?? 'bella.gita@bgaco.com';
-        _phone = data['phone'] ?? '087888848000';
-        _nik = data['cashierId'] ?? 'BG188889';
-        _statusAkun = 'Aktif (Verified)';
-        _lastLogin = 'Hari ini, 06:45 WIB';
+        _accountName = data['accountName'] ?? fbUser?.displayName ?? 'Bella Gita Asmara';
+        _email = data['email'] ?? fbUser?.email ?? 'bella.gita@bgaco.com';
+        _phone = data['phone'] ?? fbUser?.phoneNumber ?? '087888848000';
+        _nik = data['cashierId'] ?? (fbUser != null ? 'BG' : 'BG188889');
+        _statusAkun = fbUser != null
+            ? (fbUser.emailVerified ? 'Aktif (Firebase Verified)' : 'Aktif (Firebase)')
+            : 'Aktif (Verified)';
+        _lastLogin = 'Hari ini, : WIB';
         if (data['avatarBytes'] != null) {
           _imageBytes = data['avatarBytes'];
         }
@@ -479,7 +483,7 @@ class _CashierProfileScreenState extends State<CashierProfileScreen>
       'Barista',
       'Barista Assistant',
       'Kasir',
-      'Pâtissier',
+      'PÃ¢tissier',
       'Pelayan',
       'Kitchen Crew',
       'Supervisor',
@@ -769,7 +773,7 @@ class _CashierProfileScreenState extends State<CashierProfileScreen>
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                'Staff $name ($role) berhasil ditambahkan! 👤',
+                                'Staff $name ($role) berhasil ditambahkan! ðŸ‘¤',
                                 style: GoogleFonts.workSans(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -885,7 +889,7 @@ class _CashierProfileScreenState extends State<CashierProfileScreen>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Karyawan $name berhasil dihapus! 🗑️',
+                            'Karyawan $name berhasil dihapus! ðŸ—‘ï¸',
                             style: GoogleFonts.workSans(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,

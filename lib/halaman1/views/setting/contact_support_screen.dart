@@ -1,5 +1,8 @@
-import 'package:cashier/extension/navigator.dart';
+﻿import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/user_data_store.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -31,6 +34,27 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _prefillUserData();
+  }
+
+  void _prefillUserData() {
+    final user = FirebaseAuth.instance.currentUser;
+    final data = UserDataStore.instance.userDataNotifier.value;
+
+    final defaultName = user?.displayName ?? data['accountName'] ?? data['cashierName'] ?? '';
+    final defaultContact = user?.email ?? user?.phoneNumber ?? data['email'] ?? data['phone'] ?? '';
+
+    if (defaultName.isNotEmpty) {
+      _nameC.text = defaultName;
+    }
+    if (defaultContact.isNotEmpty) {
+      _contactC.text = defaultContact;
+    }
+  }
+
+  @override
   void dispose() {
     _nameC.dispose();
     _contactC.dispose();
@@ -46,7 +70,26 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
       _isSubmitting = true;
     });
 
-    await Future.delayed(const Duration(milliseconds: 1200));
+    final ticketCode = 'BGA-TICK-${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}';
+    final user = FirebaseAuth.instance.currentUser;
+
+    try {
+      // 1. Simpan data tiket ke Cloud Firestore
+      await FirebaseFirestore.instance.collection('support_tickets').add({
+        'ticketId': ticketCode,
+        'uid': user?.uid ?? 'anonymous',
+        'namaPengirim': _nameC.text.trim(),
+        'kontak': _contactC.text.trim(),
+        'kategori': _selectedCategory,
+        'subjek': _subjectC.text.trim(),
+        'pesan': _messageC.text.trim(),
+        'namaLampiran': _attachedFileName,
+        'status': 'OPEN',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Firestore write ticket notice: $e');
+    }
 
     if (!mounted) return;
 
@@ -68,7 +111,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
             ),
             const SizedBox(width: 10),
             Text(
-              'Pesan Terkirim!',
+              'Tiket Terkirim ke Cloud!',
               style: GoogleFonts.sourceSerif4(
                 fontWeight: FontWeight.bold,
                 color: AppTheme.instance.primaryColor,
@@ -76,11 +119,45 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
             ),
           ],
         ),
-        content: Text(
-          'Tiket dukungan Anda telah berhasil dibuat. Tim BGA Support akan menghubungi Anda dalam waktu 1x24 jam melalui WhatsApp/Email.',
-          style: GoogleFonts.workSans(
-            color: AppTheme.instance.onSurfaceVariant,
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Tiket dukungan Anda telah berhasil disimpan ke Cloud Firebase dengan ID:',
+              style: GoogleFonts.workSans(
+                color: AppTheme.instance.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppTheme.instance.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.instance.dividerColor),
+              ),
+              child: Text(
+                ticketCode,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.workSans(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.instance.secondaryColor,
+                  fontSize: 15,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Tim BGA Support akan segera menindaklanjuti kendala Anda dalam waktu 1x24 jam.',
+              style: GoogleFonts.workSans(
+                fontSize: 12.5,
+                color: AppTheme.instance.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
         actions: [
           ElevatedButton(
@@ -95,7 +172,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            child: const Text('Kembali ke Help Center'),
+            child: const Text('Kembali ke Pengaturan'),
           ),
         ],
       ),
@@ -119,7 +196,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
               onPressed: () => context.pop(),
             ),
             title: Text(
-              'Contact Support',
+              'BGA Help & Support',
               style: GoogleFonts.sourceSerif4(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -186,7 +263,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Kirimkan kendala operasional kasir Anda dan tim teknisi kami akan segera merespons.',
+                                    'Kirimkan kendala operasional kasir Anda ke cloud dan teknisi kami akan segera merespons.',
                                     style: GoogleFonts.workSans(
                                       fontSize: 13,
                                       color: theme.onSurfaceVariant,
@@ -256,7 +333,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
 
                       // Form Title
                       Text(
-                        'Formulir Tiket Dukungan',
+                        'Formulir Tiket Dukungan Firebase',
                         style: GoogleFonts.sourceSerif4(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -300,9 +377,9 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                             ),
                             const SizedBox(height: 16),
 
-                            // Field: Contact (Email/No. HP)
+                            // Field: Contact Info
                             Text(
-                              'Nomor WhatsApp / Email',
+                              'Email / No. WhatsApp Kasir',
                               style: GoogleFonts.workSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -313,11 +390,10 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                             TextFormField(
                               controller: _contactC,
                               validator: (v) => v == null || v.isEmpty
-                                  ? 'Harap isi kontak WhatsApp / Email'
+                                  ? 'Harap isi kontak Anda'
                                   : null,
                               decoration: InputDecoration(
-                                hintText:
-                                    'misal: 08123456789 atau kasir@gmail.com',
+                                hintText: 'contoh: 08123456789 atau email@bga.com',
                                 filled: true,
                                 fillColor: theme.surfaceColor,
                                 border: OutlineInputBorder(
@@ -330,7 +406,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                             ),
                             const SizedBox(height: 16),
 
-                            // Field: Category
+                            // Field: Category Dropdown
                             Text(
                               'Kategori Kendala',
                               style: GoogleFonts.workSans(
@@ -342,20 +418,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                             const SizedBox(height: 6),
                             DropdownButtonFormField<String>(
                               initialValue: _selectedCategory,
-                              items: _categories.map((cat) {
-                                return DropdownMenuItem(
-                                  value: cat,
-                                  child: Text(
-                                    cat,
-                                    style: GoogleFonts.workSans(),
-                                  ),
-                                );
-                              }).toList(),
-                              onChanged: (val) {
-                                if (val != null) {
-                                  setState(() => _selectedCategory = val);
-                                }
-                              },
+                              dropdownColor: theme.surfaceColor,
                               decoration: InputDecoration(
                                 filled: true,
                                 fillColor: theme.surfaceColor,
@@ -366,12 +429,29 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                                   ),
                                 ),
                               ),
+                              items: _categories.map((cat) {
+                                return DropdownMenuItem(
+                                  value: cat,
+                                  child: Text(
+                                    cat,
+                                    style: GoogleFonts.workSans(
+                                      fontSize: 14,
+                                      color: theme.primaryColor,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() => _selectedCategory = val);
+                                }
+                              },
                             ),
                             const SizedBox(height: 16),
 
                             // Field: Subject
                             Text(
-                              'Subjek Kendala',
+                              'Judul / Subjek Kendala',
                               style: GoogleFonts.workSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -382,10 +462,10 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                             TextFormField(
                               controller: _subjectC,
                               validator: (v) => v == null || v.isEmpty
-                                  ? 'Harap isi subjek pesan'
+                                  ? 'Harap isi subjek kendala'
                                   : null,
                               decoration: InputDecoration(
-                                hintText: 'Ringkasan kendala yang dialami',
+                                hintText: 'contoh: Printer thermal tidak konek',
                                 filled: true,
                                 fillColor: theme.surfaceColor,
                                 border: OutlineInputBorder(
@@ -398,9 +478,9 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                             ),
                             const SizedBox(height: 16),
 
-                            // Field: Detail Message
+                            // Field: Message
                             Text(
-                              'Detail Pesan Kendala',
+                              'Deskripsi Rinci Kendala',
                               style: GoogleFonts.workSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -518,8 +598,8 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                                     : const Icon(Icons.send_rounded, size: 20),
                                 label: Text(
                                   _isSubmitting
-                                      ? 'Mengirim Pesan...'
-                                      : 'Kirim Tiket Dukungan',
+                                      ? 'Mengirim ke Cloud...'
+                                      : 'Kirim Tiket ke Firebase',
                                   style: GoogleFonts.workSans(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
