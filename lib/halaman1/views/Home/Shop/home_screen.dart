@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:cashier/extension/navigator.dart';
-import 'package:cashier/halaman1/services/firebase_auth_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/models/transaction_model.dart';
+import 'package:cashier/halaman1/services/firebase_auth_service.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/menu_data_store.dart';
+import 'package:cashier/halaman1/utils/transaction_data_store.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:cashier/halaman1/views/Home/Discover/edit_menu_screen.dart';
 import 'package:cashier/halaman1/views/Home/Shift/staff_shift_screen.dart';
@@ -16,6 +16,7 @@ import 'package:cashier/halaman1/views/Home/login.dart';
 import 'package:cashier/halaman1/views/Profile/cashier_profile_screen.dart';
 import 'package:cashier/halaman1/views/setting/settings_screen.dart';
 import 'package:cashier/halaman1/widgets/animated_cartoon_logo.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -24,6 +25,12 @@ class HomeScreen extends StatefulWidget {
   final String storeName;
   final String storeLocation;
   final String shift;
+
+  static final ValueNotifier<int> activeTabNotifier = ValueNotifier<int>(1);
+
+  static void switchToTab(int index) {
+    activeTabNotifier.value = index;
+  }
 
   const HomeScreen({
     super.key,
@@ -57,6 +64,17 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    HomeScreen.activeTabNotifier.addListener(_onActiveTabChanged);
+
+    // Inisialisasi Sinkronisasi Penuh Firebase Firestore
+    UserDataStore.instance.initFromFirebase();
+    MenuDataStore.instance.initFromFirebase();
+    TransactionDataStore.instance.initialize();
+
+    _transactionHistory = TransactionDataStore.instance.legacyTransactions;
+    TransactionDataStore.instance.transactionsNotifier.addListener(
+      _onTransactionsDataChanged,
+    );
     _subscribeTransactions();
     MenuDataStore.instance.menuDataNotifier.addListener(_onMenuDataChanged);
     MenuDataStore.instance.categoriesNotifier.addListener(_onMenuDataChanged);
@@ -64,12 +82,35 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    HomeScreen.activeTabNotifier.removeListener(_onActiveTabChanged);
     _txSubscription?.cancel();
+    TransactionDataStore.instance.transactionsNotifier.removeListener(
+      _onTransactionsDataChanged,
+    );
     MenuDataStore.instance.menuDataNotifier.removeListener(_onMenuDataChanged);
     MenuDataStore.instance.categoriesNotifier.removeListener(
       _onMenuDataChanged,
     );
     super.dispose();
+  }
+
+  void _onActiveTabChanged() {
+    if (mounted && _currentBottomTab != HomeScreen.activeTabNotifier.value) {
+      setState(() {
+        _currentBottomTab = HomeScreen.activeTabNotifier.value;
+      });
+      if (_currentBottomTab == 3) {
+        _loadTransactionsFromDatabase();
+      }
+    }
+  }
+
+  void _onTransactionsDataChanged() {
+    if (mounted) {
+      setState(() {
+        _transactionHistory = TransactionDataStore.instance.legacyTransactions;
+      });
+    }
   }
 
   void _onMenuDataChanged() {
@@ -79,22 +120,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _subscribeTransactions() {
-    _txSubscription = DataBaseHelper().streamTransactions().listen((txList) {
-      if (mounted) {
-        setState(() {
-          _transactionHistory = txList.map((tx) => tx.toLegacyMap()).toList();
-        });
-      }
-    }, onError: (e) {
-      debugPrint('Error streaming transactions from Firestore: $e');
-      _loadTransactionsFromDatabase();
-    });
+    _txSubscription = DataBaseHelper().streamTransactions().listen(
+      (txList) {
+        if (mounted && txList.isNotEmpty) {
+          setState(() {
+            _transactionHistory = txList.map((tx) => tx.toLegacyMap()).toList();
+          });
+        }
+      },
+      onError: (e) {
+        debugPrint('Error streaming transactions from Firestore: $e');
+        _loadTransactionsFromDatabase();
+      },
+    );
   }
 
   Future<void> _loadTransactionsFromDatabase() async {
     try {
       final txList = await DataBaseHelper().getAllTransactions();
-      if (mounted) {
+      if (mounted && txList.isNotEmpty) {
         setState(() {
           _transactionHistory = txList.map((tx) => tx.toLegacyMap()).toList();
         });
@@ -139,10 +183,21 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${item['name']} ditambahkan ke keranjang'),
-        duration: const Duration(seconds: 2),
+        content: Text(
+          '${item['name']} ditambahkan ke keranjang (${_cartTotalItems})',
+        ),
+        duration: const Duration(seconds: 3),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: colorSecondary,
+        backgroundColor: colorPrimary,
+        action: SnackBarAction(
+          label: 'Lihat Cart 🛒',
+          textColor: Colors.white,
+          onPressed: () {
+            setState(() {
+              _currentBottomTab = 2;
+            });
+          },
+        ),
       ),
     );
   }
@@ -151,7 +206,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showDiscoverAuthDialog() {
     final activeFbUser = FirebaseAuth.instance.currentUser;
     final activeUserData = UserDataStore.instance.userDataNotifier.value;
-    final defaultId = activeFbUser?.email ??
+    final defaultId =
+        activeFbUser?.email ??
         activeUserData['email'] ??
         activeUserData['cashierId'] ??
         '';
@@ -396,7 +452,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: isVerifying ? null : () => Navigator.pop(dialogCtx),
+                        onPressed: isVerifying
+                            ? null
+                            : () => Navigator.pop(dialogCtx),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           side: BorderSide(color: colorOutlineVariant),
@@ -424,7 +482,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
                                 if (inputId.isEmpty || inputPass.isEmpty) {
                                   setDialogState(() {
-                                    errorMessage = 'ID Akun dan Password wajib diisi!';
+                                    errorMessage =
+                                        'ID Akun dan Password wajib diisi!';
                                   });
                                   return;
                                 }
@@ -438,31 +497,47 @@ class _HomeScreenState extends State<HomeScreen> {
 
                                 // 1. Verifikasi langsung ke Firebase Authentication
                                 try {
-                                  final fbResult = await FirebaseAuthService.instance.loginUser(
-                                    identifier: inputId,
-                                    password: inputPass,
-                                  );
+                                  final fbResult = await FirebaseAuthService
+                                      .instance
+                                      .loginUser(
+                                        identifier: inputId,
+                                        password: inputPass,
+                                      );
                                   if (fbResult['success'] == true) {
                                     isAuthSuccess = true;
                                   }
                                 } catch (e) {
-                                  debugPrint('Discover Firebase Auth check error: $e');
+                                  debugPrint(
+                                    'Discover Firebase Auth check error: $e',
+                                  );
                                 }
 
                                 // 2. Verifikasi dengan Sesi Firebase Aktif saat ini
                                 if (!isAuthSuccess && activeFbUser != null) {
-                                  final emailMatch = activeFbUser.email?.toLowerCase() == inputId.toLowerCase();
-                                  final cashierIdMatch = activeUserData['cashierId']?.toString() == inputId;
-                                  final emailStoredMatch = activeUserData['email']?.toString().toLowerCase() == inputId.toLowerCase();
+                                  final emailMatch =
+                                      activeFbUser.email?.toLowerCase() ==
+                                      inputId.toLowerCase();
+                                  final cashierIdMatch =
+                                      activeUserData['cashierId']?.toString() ==
+                                      inputId;
+                                  final emailStoredMatch =
+                                      activeUserData['email']
+                                          ?.toString()
+                                          .toLowerCase() ==
+                                      inputId.toLowerCase();
 
-                                  if (emailMatch || cashierIdMatch || emailStoredMatch) {
+                                  if (emailMatch ||
+                                      cashierIdMatch ||
+                                      emailStoredMatch) {
                                     try {
                                       if (activeFbUser.email != null) {
-                                        final cred = EmailAuthProvider.credential(
-                                          email: activeFbUser.email!,
-                                          password: inputPass,
-                                        );
-                                        await activeFbUser.reauthenticateWithCredential(cred);
+                                        final cred =
+                                            EmailAuthProvider.credential(
+                                              email: activeFbUser.email!,
+                                              password: inputPass,
+                                            );
+                                        await activeFbUser
+                                            .reauthenticateWithCredential(cred);
                                         isAuthSuccess = true;
                                       }
                                     } catch (_) {}
@@ -472,10 +547,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 // 3. Verifikasi dengan SQLite Database
                                 if (!isAuthSuccess) {
                                   try {
-                                    final dbUser = await DataBaseHelper().loginUser(
-                                      inputId,
-                                      inputPass,
-                                    );
+                                    final dbUser = await DataBaseHelper()
+                                        .loginUser(inputId, inputPass);
                                     if (dbUser != null) {
                                       isAuthSuccess = true;
                                     }
@@ -486,9 +559,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                 if (!isAuthSuccess) {
                                   final storedPass = activeUserData['password'];
                                   final storedEmail = activeUserData['email'];
-                                  final storedCashierId = activeUserData['cashierId'];
-                                  if (storedPass != null && storedPass == inputPass) {
-                                    if (storedEmail == inputId || storedCashierId == inputId || inputId == '188889') {
+                                  final storedCashierId =
+                                      activeUserData['cashierId'];
+                                  if (storedPass != null &&
+                                      storedPass == inputPass) {
+                                    if (storedEmail == inputId ||
+                                        storedCashierId == inputId ||
+                                        inputId == '188889') {
                                       isAuthSuccess = true;
                                     }
                                   }
@@ -497,9 +574,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 // 5. Fallback Demo Default Credentials
                                 if (!isAuthSuccess) {
                                   final isFallbackValid =
-                                      (inputId.toLowerCase() == 'kasir01' && inputPass == '123') ||
-                                      (inputId.toLowerCase() == 'admin' && (inputPass == '123' || inputPass == 'admin123')) ||
-                                      (inputId.toLowerCase() == 'bella' && (inputPass == '123' || inputPass == '123456'));
+                                      (inputId.toLowerCase() == 'kasir01' &&
+                                          inputPass == '123') ||
+                                      (inputId.toLowerCase() == 'admin' &&
+                                          (inputPass == '123' ||
+                                              inputPass == 'admin123')) ||
+                                      (inputId.toLowerCase() == 'bella' &&
+                                          (inputPass == '123' ||
+                                              inputPass == '123456'));
                                   if (isFallbackValid) {
                                     isAuthSuccess = true;
                                   }
@@ -511,7 +593,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                     _isDiscoverUnlocked = true;
                                     _currentBottomTab = 0;
                                   });
-                                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                  ScaffoldMessenger.of(
+                                    context,
+                                  ).hideCurrentSnackBar();
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
@@ -529,7 +613,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 } else {
                                   setDialogState(() {
                                     isVerifying = false;
-                                    errorMessage = 'ID Akun atau Password salah! Akses ditolak.';
+                                    errorMessage =
+                                        'ID Akun atau Password salah! Akses ditolak.';
                                   });
                                 }
                               },
@@ -656,111 +741,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showCartBottomSheet() {
     setState(() {
       _currentBottomTab = 2;
-    });
-  }
-
-  void _recordTransactionFromCart({
-    List<Map<String, dynamic>>? items,
-    String paymentMethod = 'Digital Wallet (QRIS)',
-    String customerName = 'Handky Chang',
-  }) {
-    final listToRecord = (items != null && items.isNotEmpty)
-        ? items
-        : (_cartItems.isNotEmpty
-              ? _cartItems
-              : [
-                  {
-                    'name': 'Rustic Sourdough Loaf',
-                    'price': 45000,
-                    'quantity': 1,
-                  },
-                  {'name': 'Butter Croissant', 'price': 28000, 'quantity': 2},
-                  {'name': 'Berry Tart', 'price': 55000, 'quantity': 1},
-                ]);
-
-    final now = DateTime.now();
-    const monthNames = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final dateStr =
-        '${now.day} ${monthNames[now.month - 1]} ${now.year}, ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-
-    int subtotal = 0;
-    final itemsCopy = listToRecord.map((item) {
-      int p = 0;
-      if (item['price'] is int) {
-        p = item['price'] as int;
-      } else if (item['price'] is String) {
-        final digits = (item['price'] as String).replaceAll(
-          RegExp(r'[^\d]'),
-          '',
-        );
-        p = int.tryParse(digits) ?? 0;
-      }
-      final q = (item['quantity'] ?? item['qty'] ?? 1) as int;
-      subtotal += p * q;
-      return {
-        'name': item['name']?.toString() ?? 'Menu Item',
-        'qty': q,
-        'price': p,
-      };
-    }).toList();
-
-    final tax = (subtotal * 0.1).round();
-    final total = subtotal + tax;
-
-    final invId =
-        '#INV-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-${(100 + _transactionHistory.length + 1)}';
-
-    final activeCashier =
-        UserDataStore.instance.userDataNotifier.value['cashierName'] ??
-        UserDataStore.instance.userDataNotifier.value['name'] ??
-        UserDataStore.instance.userDataNotifier.value['accountName'] ??
-        'Bella Saputra';
-
-    final activeStore =
-        UserDataStore.instance.userDataNotifier.value['storeName'] ??
-        (widget.storeName.isNotEmpty ? widget.storeName : 'Bella Cafe');
-
-    final txModel = TransactionModel(
-      invoiceNumber: invId,
-      dateTime: dateStr,
-      cashierName: activeCashier.toString(),
-      paymentMethod: paymentMethod,
-      customerName: customerName,
-      tableNumber: _cartTableController.text.trim().isNotEmpty
-          ? _cartTableController.text.trim()
-          : '-',
-      subtotal: subtotal,
-      tax: tax,
-      total: total,
-      status: 'LUNAS',
-      storeName: activeStore.toString(),
-      items: itemsCopy
-          .map(
-            (i) => TransactionItemModel(
-              invoiceNumber: invId,
-              menuName: i['name'].toString(),
-              qty: (i['qty'] as int?) ?? 1,
-              price: (i['price'] as int?) ?? 0,
-            ),
-          )
-          .toList(),
-    );
-
-    DataBaseHelper().insertTransaction(txModel).then((_) {
-      _loadTransactionsFromDatabase();
     });
   }
 
@@ -1052,156 +1032,194 @@ class _HomeScreenState extends State<HomeScreen> {
                       // Store Info Header Card
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                colorSurfaceContainerLow,
-                                colorSecondaryContainer.withValues(alpha: 0.35),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: colorSecondary.withValues(alpha: 0.25),
-                              width: 1.2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: colorSecondary.withValues(alpha: 0.08),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          padding: const EdgeInsets.all(14.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(9),
-                                    decoration: BoxDecoration(
-                                      color: colorSecondary,
-                                      borderRadius: BorderRadius.circular(12),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: colorSecondary.withValues(
-                                            alpha: 0.35,
-                                          ),
-                                          blurRadius: 6,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
+                        child: ValueListenableBuilder<Map<String, dynamic>>(
+                          valueListenable:
+                              UserDataStore.instance.userDataNotifier,
+                          builder: (context, userData, _) {
+                            final storeDisplayName =
+                                (userData['storeName']?.toString().isNotEmpty ==
+                                    true)
+                                ? userData['storeName'].toString()
+                                : (widget.storeName.isNotEmpty
+                                      ? widget.storeName
+                                      : 'Bella Cafe');
+                            final storeDisplayLocation =
+                                (userData['location']?.toString().isNotEmpty ==
+                                    true)
+                                ? userData['location'].toString()
+                                : (widget.storeLocation.isNotEmpty
+                                      ? widget.storeLocation
+                                      : 'Jakarta');
+                            final currentShift =
+                                (userData['shift']?.toString().isNotEmpty ==
+                                    true)
+                                ? userData['shift'].toString()
+                                : (widget.shift.isNotEmpty
+                                      ? widget.shift
+                                      : 'Pagi');
+                            final currentCashierName =
+                                (userData['cashierName']
+                                        ?.toString()
+                                        .isNotEmpty ==
+                                    true)
+                                ? userData['cashierName'].toString()
+                                : (userData['accountName']?.toString() ??
+                                      'Bella Gita asmara');
+
+                            return Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    colorSurfaceContainerLow,
+                                    colorSecondaryContainer.withValues(
+                                      alpha: 0.35,
                                     ),
-                                    child: const Icon(
-                                      Icons.local_cafe_rounded,
-                                      color: Colors.white,
-                                      size: 20,
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: colorSecondary.withValues(alpha: 0.25),
+                                  width: 1.2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: colorSecondary.withValues(
+                                      alpha: 0.08,
                                     ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                widget.storeName.isNotEmpty
-                                                    ? widget.storeName
-                                                    : 'Bella Cafe',
-                                                style: GoogleFonts.sourceSerif4(
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: colorPrimary,
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                            const Text(
-                                              '✨',
-                                              style: TextStyle(fontSize: 13),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons.location_on_rounded,
-                                              size: 13,
-                                              color: colorSecondary,
-                                            ),
-                                            const SizedBox(width: 3),
-                                            Text(
-                                              widget.storeLocation.isNotEmpty
-                                                  ? widget.storeLocation
-                                                  : 'Jakarta',
-                                              style: GoogleFonts.workSans(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
-                                                color: colorSecondary,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 10),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: colorSurfaceContainerLowest,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: colorOutlineVariant.withValues(
-                                      alpha: 0.3,
-                                    ),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        const Text(
-                                          '☀️',
-                                          style: TextStyle(fontSize: 12),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Shift: ${widget.shift.isNotEmpty ? widget.shift : 'Pagi'}',
-                                          style: GoogleFonts.workSans(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w700,
-                                            color: colorPrimary,
+                              padding: const EdgeInsets.all(14.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(9),
+                                        decoration: BoxDecoration(
+                                          color: colorSecondary,
+                                          borderRadius: BorderRadius.circular(
+                                            12,
                                           ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: colorSecondary.withValues(
+                                                alpha: 0.35,
+                                              ),
+                                              blurRadius: 6,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
                                         ),
-                                      ],
+                                        child: const Icon(
+                                          Icons.local_cafe_rounded,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    storeDisplayName,
+                                                    style:
+                                                        GoogleFonts.sourceSerif4(
+                                                          fontSize: 18,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: colorPrimary,
+                                                        ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                const Text(
+                                                  '✨',
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.location_on_rounded,
+                                                  size: 13,
+                                                  color: colorSecondary,
+                                                ),
+                                                const SizedBox(width: 3),
+                                                Expanded(
+                                                  child: Text(
+                                                    storeDisplayLocation,
+                                                    style: GoogleFonts.workSans(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: colorSecondary,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
                                     ),
-                                    ValueListenableBuilder<
-                                      Map<String, dynamic>
-                                    >(
-                                      valueListenable: UserDataStore
-                                          .instance
-                                          .userDataNotifier,
-                                      builder: (context, userData, _) {
-                                        final name =
-                                            userData['cashierName'] ?? 'Bella';
-                                        return Row(
+                                    decoration: BoxDecoration(
+                                      color: colorSurfaceContainerLowest,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: colorOutlineVariant.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            const Text(
+                                              '☀️',
+                                              style: TextStyle(fontSize: 12),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              'Shift: $currentShift',
+                                              style: GoogleFonts.workSans(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w700,
+                                                color: colorPrimary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Row(
                                           children: [
                                             Container(
                                               width: 7,
@@ -1213,7 +1231,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                             ),
                                             const SizedBox(width: 5),
                                             Text(
-                                              '$name',
+                                              currentCashierName,
                                               style: GoogleFonts.workSans(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.w600,
@@ -1221,14 +1239,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                               ),
                                             ),
                                           ],
-                                        );
-                                      },
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
                       ),
 
@@ -1351,24 +1369,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icon(Icons.menu, color: colorPrimary, size: 28),
                   onPressed: () => _scaffoldKey.currentState?.openDrawer(),
                 ),
-                title: ValueListenableBuilder<Map<String, dynamic>>(
-                  valueListenable: UserDataStore.instance.userDataNotifier,
-                  builder: (context, userData, _) {
-                    final store =
-                        userData['storeName'] ??
-                        (widget.storeName.isNotEmpty
-                            ? widget.storeName
-                            : 'Kingdom Cafe');
-                    return Text(
-                      store,
-                      style: GoogleFonts.sourceSerif4(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: colorPrimary,
-                      ),
-                    );
-                  },
-                ),
+                title: null,
                 centerTitle: true,
                 actions: [
                   Stack(
@@ -2533,28 +2534,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                             customerName: buyerName,
                                             tableNumber: tableNo,
                                             onOrderCompleted: () {
-                                              final currentCartCopy =
-                                                  List<
-                                                    Map<String, dynamic>
-                                                  >.from(_cartItems);
-                                              final displayCustomer =
-                                                  tableNo != '-' &&
-                                                      tableNo.isNotEmpty
-                                                  ? '$buyerName ($tableNo)'
-                                                  : buyerName;
                                               setState(() {
-                                                _recordTransactionFromCart(
-                                                  items: currentCartCopy,
-                                                  paymentMethod:
-                                                      'Digital Wallet (QRIS)',
-                                                  customerName: displayCustomer,
-                                                );
                                                 _cartItems.clear();
                                                 _cartCustomerNameController
                                                     .clear();
                                                 _cartTableController.clear();
                                                 _currentBottomTab = 3;
                                               });
+                                              _loadTransactionsFromDatabase();
                                             },
                                           );
                                         },
@@ -2628,22 +2615,32 @@ class _HomeScreenState extends State<HomeScreen> {
   // ==================== TRANSACTION HISTORY VIEW ====================
   Widget _buildTransactionHistoryView() {
     final filteredTransactions = _transactionHistory.where((tx) {
-      final matchesFilter =
-          _transactionFilter == 'Semua' ||
-          tx['method'].toString().toLowerCase().contains(
-            _transactionFilter.toLowerCase(),
-          );
+      final methodStr = tx['method']?.toString().toLowerCase() ?? '';
+      bool matchesFilter = _transactionFilter == 'Semua';
+      if (!matchesFilter) {
+        if (_transactionFilter == 'QRIS') {
+          matchesFilter =
+              methodStr.contains('qris') || methodStr.contains('wallet');
+        } else if (_transactionFilter == 'Tunai') {
+          matchesFilter =
+              methodStr.contains('tunai') || methodStr.contains('cash');
+        } else if (_transactionFilter == 'GoPay') {
+          matchesFilter = methodStr.contains('gopay');
+        } else {
+          matchesFilter = methodStr.contains(_transactionFilter.toLowerCase());
+        }
+      }
+
+      final query = _transactionSearchQuery.trim().toLowerCase();
       final matchesSearch =
-          _transactionSearchQuery.isEmpty ||
-          tx['id'].toString().toLowerCase().contains(
-            _transactionSearchQuery.toLowerCase(),
-          ) ||
-          tx['customer'].toString().toLowerCase().contains(
-            _transactionSearchQuery.toLowerCase(),
-          );
+          query.isEmpty ||
+          (tx['id']?.toString().toLowerCase().contains(query) ?? false) ||
+          (tx['customer']?.toString().toLowerCase().contains(query) ?? false) ||
+          (tx['cashier']?.toString().toLowerCase().contains(query) ?? false);
+
       final matchesDate =
           _selectedTransactionDate == null ||
-          _isSameDate(tx['date'].toString(), _selectedTransactionDate!);
+          _isSameDate(tx['date']?.toString() ?? '', _selectedTransactionDate!);
       return matchesFilter && matchesSearch && matchesDate;
     }).toList();
 
@@ -2918,26 +2915,33 @@ class _HomeScreenState extends State<HomeScreen> {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        tx['id'],
-                                        style: GoogleFonts.workSans(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: colorPrimary,
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          tx['id'],
+                                          style: GoogleFonts.workSans(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: colorPrimary,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        '• ${tx['date']}',
-                                        style: GoogleFonts.workSans(
-                                          fontSize: 12,
-                                          color: colorOnSurfaceVariant,
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            '• ${tx['date']}',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.workSans(
+                                              fontSize: 11,
+                                              color: colorOnSurfaceVariant,
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
+                                  const SizedBox(width: 8),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 8,
@@ -3403,11 +3407,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   bool _isSameDate(String txDateStr, DateTime targetDate) {
+    if (txDateStr.isEmpty) return false;
     final formattedFilter = _formatDateForFilter(targetDate);
-    if (txDateStr.contains(formattedFilter)) {
+    if (txDateStr.toLowerCase().contains(formattedFilter.toLowerCase())) {
       return true;
     }
-    final months = [
+    const monthsEng = [
       'Jan',
       'Feb',
       'Mar',
@@ -3421,13 +3426,49 @@ class _HomeScreenState extends State<HomeScreen> {
       'Nov',
       'Dec',
     ];
+    const monthsId = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
+    ];
+
     final dayStr = targetDate.day.toString();
     final dayPad = targetDate.day.toString().padLeft(2, '0');
-    final monthShort = months[targetDate.month - 1];
+    final monthEng = monthsEng[targetDate.month - 1];
+    final monthId = monthsId[targetDate.month - 1];
     final yearStr = targetDate.year.toString();
+    final monthPad = targetDate.month.toString().padLeft(2, '0');
 
-    return txDateStr.contains('$dayStr $monthShort $yearStr') ||
-        txDateStr.contains('$dayPad $monthShort $yearStr');
+    // 1. Check English abbreviations e.g. "11 Sep 2026"
+    if (txDateStr.contains('$dayStr $monthEng $yearStr') ||
+        txDateStr.contains('$dayPad $monthEng $yearStr')) {
+      return true;
+    }
+    // 2. Check Indonesian abbreviations e.g. "11 Mei 2026"
+    if (txDateStr.contains('$dayStr $monthId $yearStr') ||
+        txDateStr.contains('$dayPad $monthId $yearStr')) {
+      return true;
+    }
+    // 3. Check ISO format e.g. "2026-09-11"
+    if (txDateStr.contains('$yearStr-$monthPad-$dayPad')) {
+      return true;
+    }
+    // 4. Check slash / dash format e.g. "11/09/2026" or "11-09-2026"
+    if (txDateStr.contains('$dayPad/$monthPad/$yearStr') ||
+        txDateStr.contains('$dayPad-$monthPad-$yearStr')) {
+      return true;
+    }
+
+    return false;
   }
 
   Future<void> _pickTransactionDate() async {
@@ -3462,6 +3503,22 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildDateFilterBar() {
+    final now = DateTime.now();
+    final isTodaySelected =
+        _selectedTransactionDate != null &&
+        _selectedTransactionDate!.year == now.year &&
+        _selectedTransactionDate!.month == now.month &&
+        _selectedTransactionDate!.day == now.day;
+
+    final yesterday = now.subtract(const Duration(days: 1));
+    final isYesterdaySelected =
+        _selectedTransactionDate != null &&
+        _selectedTransactionDate!.year == yesterday.year &&
+        _selectedTransactionDate!.month == yesterday.month &&
+        _selectedTransactionDate!.day == yesterday.day;
+
+    final isAllSelected = _selectedTransactionDate == null;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -3487,6 +3544,55 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 10),
+
+          // Quick Date Chips
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildQuickDateChip(
+                  label: 'Semua Tanggal',
+                  isSelected: isAllSelected,
+                  onTap: () {
+                    setState(() {
+                      _selectedTransactionDate = null;
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                _buildQuickDateChip(
+                  label: 'Hari Ini',
+                  isSelected: isTodaySelected,
+                  onTap: () {
+                    setState(() {
+                      _selectedTransactionDate = DateTime(
+                        now.year,
+                        now.month,
+                        now.day,
+                      );
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                _buildQuickDateChip(
+                  label: 'Kemarin',
+                  isSelected: isYesterdaySelected,
+                  onTap: () {
+                    setState(() {
+                      _selectedTransactionDate = DateTime(
+                        yesterday.year,
+                        yesterday.month,
+                        yesterday.day,
+                      );
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Calendar Custom Date Picker Tile
           InkWell(
             onTap: _pickTransactionDate,
             borderRadius: BorderRadius.circular(12),
@@ -3516,7 +3622,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ? _formatDateForFilter(
                                     _selectedTransactionDate!,
                                   )
-                                : 'Ketuk pilih tanggal (Semua Tanggal)',
+                                : 'Ketuk pilih tanggal spesifik dari kalender...',
                             overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.workSans(
                               fontSize: 13,
@@ -3558,6 +3664,37 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildQuickDateChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? colorPrimary : colorSurfaceContainerLow,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? colorPrimary
+                : colorOutlineVariant.withValues(alpha: 0.4),
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.workSans(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            color: isSelected ? Colors.white : colorPrimary,
+          ),
+        ),
       ),
     );
   }

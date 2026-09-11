@@ -1,7 +1,9 @@
 import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/models/transaction_model.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/transaction_data_store.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
+import 'package:cashier/halaman1/views/Home/Shop/home_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -131,6 +133,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
         ],
       );
 
+      await TransactionDataStore.instance.addTransaction(txModel);
       await DataBaseHelper().insertTransaction(txModel);
     } catch (e) {
       debugPrint('SQLite write error in PaymentSuccessScreen: $e');
@@ -169,8 +172,9 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
   }
 
   void _handleReturnHome() {
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    HomeScreen.switchToTab(3);
     widget.onOrderCompleted?.call();
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override
@@ -388,10 +392,10 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.home, size: 20),
+                          const Icon(Icons.receipt_long, size: 20),
                           const SizedBox(width: 8),
                           Text(
-                            'KEMBALI KE BERANDA KASIR',
+                            'KEMBALI KE RIWAYAT TRANSAKSI',
                             style: GoogleFonts.workSans(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,

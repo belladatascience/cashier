@@ -900,6 +900,19 @@ class DataBaseHelper {
     }
   }
 
+  Future<bool> deleteStoreByName(String name) async {
+    try {
+      final snapshot = await _storesCol.where('name', isEqualTo: name.trim()).get();
+      for (final doc in snapshot.docs) {
+        await doc.reference.delete();
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Error in deleteStoreByName Firestore: $e');
+      return false;
+    }
+  }
+
   // ===================== STAFF / KARYAWAN CRUD =====================
 
   Future<List<StaffModel>> getAllStaff() async {
@@ -1059,8 +1072,14 @@ class DataBaseHelper {
       }).toList();
 
       txMap['items'] = itemsMapList;
+      txMap['timestamp'] = FieldValue.serverTimestamp();
+      txMap['createdAt'] = DateTime.now().toIso8601String();
 
-      await _transactionsCol.doc('tx_$newId').set(txMap);
+      final docId = tx.invoiceNumber.isNotEmpty
+          ? tx.invoiceNumber.replaceAll('#', '').trim()
+          : 'tx_$newId';
+
+      await _transactionsCol.doc(docId).set(txMap, SetOptions(merge: true));
       return newId;
     } catch (e) {
       debugPrint('Error in insertTransaction Firestore: $e');
@@ -1073,7 +1092,7 @@ class DataBaseHelper {
     try {
       Query query = _transactionsCol;
       if (storeName != null && storeName.isNotEmpty && storeName != 'Semua') {
-        query = query.where('store_name', isEqualTo: storeName);
+        // filter client-side to avoid index requirement issues on multiple fields
       }
 
       final snapshot = await query.get();
@@ -1084,9 +1103,16 @@ class DataBaseHelper {
         final items = rawItems
             .map((i) => TransactionItemModel.fromMap(Map<String, dynamic>.from(i as Map)))
             .toList();
-        list.add(TransactionModel.fromMap(data, items));
+        final model = TransactionModel.fromMap(data, items, doc.id);
+        if (storeName == null || storeName.isEmpty || storeName == 'Semua' || model.storeName == storeName) {
+          list.add(model);
+        }
       }
-      list.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+      list.sort((a, b) {
+        final aId = a.id ?? 0;
+        final bId = b.id ?? 0;
+        return bId.compareTo(aId);
+      });
       return list;
     } catch (e) {
       debugPrint('Error in getAllTransactions Firestore: $e');
@@ -1096,9 +1122,6 @@ class DataBaseHelper {
 
   Stream<List<TransactionModel>> streamTransactions({String? storeName}) {
     Query query = _transactionsCol;
-    if (storeName != null && storeName.isNotEmpty && storeName != 'Semua') {
-      query = query.where('store_name', isEqualTo: storeName);
-    }
     return query.snapshots().map((snapshot) {
       List<TransactionModel> list = [];
       for (final doc in snapshot.docs) {
@@ -1107,9 +1130,16 @@ class DataBaseHelper {
         final items = rawItems
             .map((i) => TransactionItemModel.fromMap(Map<String, dynamic>.from(i as Map)))
             .toList();
-        list.add(TransactionModel.fromMap(data, items));
+        final model = TransactionModel.fromMap(data, items, doc.id);
+        if (storeName == null || storeName.isEmpty || storeName == 'Semua' || model.storeName == storeName) {
+          list.add(model);
+        }
       }
-      list.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+      list.sort((a, b) {
+        final aId = a.id ?? 0;
+        final bId = b.id ?? 0;
+        return bId.compareTo(aId);
+      });
       return list;
     });
   }

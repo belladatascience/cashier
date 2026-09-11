@@ -1,7 +1,10 @@
+import 'package:cashier/halaman1/database/database_helper.dart';
+import 'package:cashier/halaman1/models/transaction_model.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/transaction_data_store.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
+import 'package:cashier/halaman1/views/Home/Shop/home_screen.dart';
 import 'package:cashier/halaman1/views/Home/Transaction/qris_payment_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -58,7 +61,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   int get _subtotal {
     return widget.cartItems.fold(
       0,
-      (sum, item) => sum + ((item['price'] as int) * (item['quantity'] as int)),
+      (sum, item) {
+        int p = 0;
+        if (item['price'] is int) {
+          p = item['price'] as int;
+        } else if (item['price'] is String) {
+          final d = (item['price'] as String).replaceAll(RegExp(r'[^\d]'), '');
+          p = int.tryParse(d) ?? 0;
+        }
+        final q = (item['quantity'] ?? item['qty'] ?? 1) as int;
+        return sum + (p * q);
+      },
     );
   }
 
@@ -95,48 +108,54 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.dispose();
   }
 
-  /// Menyimpan transaksi pesanan ke Cloud Firestore
+  /// Menyimpan transaksi pesanan ke Cloud Firestore & Database Helper
   Future<String?> _saveOrderToFirestore({
     required String activeCashier,
     required String customerDisplayName,
     required String paymentMethodLabel,
   }) async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final orderId = 'TRX-${DateTime.now().millisecondsSinceEpoch}';
+      final now = DateTime.now();
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      final dateStr = '${now.day} ${monthNames[now.month - 1]} ${now.year}, ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+      final orderId = 'TRX-${now.millisecondsSinceEpoch}';
 
-      final orderData = {
-        'orderId': orderId,
-        'storeName': widget.storeName,
-        'customerName': customerDisplayName,
-        'tableNumber': widget.tableNumber,
-        'cashierUid': user?.uid ?? 'guest_cashier',
-        'cashierEmail': user?.email ?? 'anonymous',
-        'cashierName': activeCashier,
-        'items': widget.cartItems.map((item) => {
-          'title': item['title'] ?? item['name'] ?? 'Item',
-          'price': item['price'] ?? 0,
-          'quantity': item['quantity'] ?? 1,
-          'notes': item['notes'] ?? '',
-          'image': item['image'] ?? '',
-        }).toList(),
-        'subtotal': _subtotal,
-        'tax': _tax,
-        'total': _total,
-        'cashReceived': _selectedPaymentMethod == 'cash' ? _cashReceived : _total,
-        'change': _selectedPaymentMethod == 'cash' ? _change : 0,
-        'paymentMethod': _selectedPaymentMethod,
-        'paymentChannel': _selectedPaymentMethod == 'wallet' ? _selectedWallet : 'cash',
-        'status': 'completed',
-        'timestamp': FieldValue.serverTimestamp(),
-        'createdAt': DateTime.now().toIso8601String(),
-      };
+      final txItems = widget.cartItems.map((item) {
+        int p = 0;
+        if (item['price'] is int) {
+          p = item['price'] as int;
+        } else if (item['price'] is String) {
+          final digits = (item['price'] as String).replaceAll(RegExp(r'[^\d]'), '');
+          p = int.tryParse(digits) ?? 0;
+        }
+        final q = (item['quantity'] ?? item['qty'] ?? 1) as int;
+        final name = (item['title'] ?? item['name'] ?? 'Item').toString();
+        return TransactionItemModel(
+          invoiceNumber: orderId,
+          menuName: name,
+          qty: q,
+          price: p,
+          subtotal: p * q,
+        );
+      }).toList();
 
-      await FirebaseFirestore.instance
-          .collection('transactions')
-          .doc(orderId)
-          .set(orderData);
+      final txModel = TransactionModel(
+        invoiceNumber: orderId,
+        dateTime: dateStr,
+        cashierName: activeCashier,
+        paymentMethod: paymentMethodLabel,
+        customerName: customerDisplayName,
+        tableNumber: widget.tableNumber.trim().isNotEmpty ? widget.tableNumber.trim() : '-',
+        subtotal: _subtotal,
+        tax: _tax,
+        total: _total,
+        status: 'LUNAS',
+        storeName: widget.storeName.trim().isNotEmpty ? widget.storeName.trim() : 'Bella Cafe',
+        items: txItems,
+      );
 
+      await TransactionDataStore.instance.addTransaction(txModel);
+      await DataBaseHelper().insertTransaction(txModel);
       return orderId;
     } catch (e) {
       debugPrint('Firestore order error: $e');
@@ -448,6 +467,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
+                  HomeScreen.switchToTab(3);
                   Navigator.pop(dContext);
                   Navigator.pop(context);
                   widget.onOrderCompleted?.call();

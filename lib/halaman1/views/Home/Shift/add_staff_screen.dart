@@ -2,6 +2,8 @@ import 'dart:typed_data';
 import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/models/staff_model.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/user_data_store.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -19,10 +21,20 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
   final TextEditingController _phoneC = TextEditingController();
   final TextEditingController _jamC = TextEditingController();
 
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   String? _selectedPosisi;
   String? _selectedShift;
+  String? _selectedStore;
   Uint8List? _avatarBytes;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    UserDataStore.instance.initFromFirebase();
+    _selectedStore = UserDataStore.instance.userDataNotifier.value['storeName'] as String? ?? 'Bella Cafe';
+  }
 
   final ImagePicker _picker = ImagePicker();
 
@@ -175,6 +187,9 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
         ? nama.substring(0, 2).toUpperCase()
         : nama.toUpperCase();
 
+    final selectedStoreName = _selectedStore ??
+        (UserDataStore.instance.userDataNotifier.value['storeName'] as String? ?? 'Bella Cafe');
+
     // 1. Create Staff Model for Firestore
     final staffModel = StaffModel(
       name: nama,
@@ -189,6 +204,39 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
     int newStaffId = DateTime.now().millisecondsSinceEpoch;
     try {
       newStaffId = await DataBaseHelper().insertStaff(staffModel);
+
+      // Simpan langsung ke koleksi 'staff' di Cloud Firestore
+      final staffDocId = 'staff_$newStaffId';
+      await _firestore.collection('staff').doc(staffDocId).set({
+        'id': newStaffId,
+        'name': nama,
+        'role': roleName,
+        'phone': phone.isNotEmpty ? phone : null,
+        'email': email.isNotEmpty ? email : null,
+        'status': 'Hadir',
+        'storeName': selectedStoreName,
+        'initials': initials,
+        'hours': jam.isNotEmpty ? jam : '40',
+        'shift': _selectedShift,
+        'avatar_bytes': _avatarBytes != null ? _avatarBytes!.toList() : null,
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      // Simpan jadwal shift ke koleksi 'shifts' di Cloud Firestore
+      final now = DateTime.now();
+      final dateKey = UserDataStore.instance.formatDateKey(now);
+      await _firestore
+          .collection('shifts')
+          .doc('${dateKey}_$newStaffId')
+          .set({
+        'date': dateKey,
+        'staff_id': newStaffId,
+        'staff_name': nama,
+        'role': roleName,
+        'shift_type': _selectedShift,
+        'store_name': selectedStoreName,
+        'timestamp': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     } catch (e) {
       debugPrint('Firestore insertStaff error: $e');
     }
@@ -198,6 +246,7 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
       'name': nama,
       'role': roleName,
       'status': 'Hadir',
+      'storeName': selectedStoreName,
       'time': _selectedShift == 'pagi' ? 'In: 07:00' : 'In: 15:00',
       'shiftTime': _selectedShift,
       'hours': jam.isNotEmpty ? jam : '40',
@@ -207,6 +256,19 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
       'avatarBytes': _avatarBytes,
       'initials': initials,
     };
+
+    try {
+      await UserDataStore.instance.addCafeStaff(newStaff);
+      await UserDataStore.instance.addStaffToRoster(
+        _selectedShift == 'pagi' ? 0 : 1,
+        newStaff,
+        activeDate: DateTime.now(),
+      );
+      await UserDataStore.instance.reloadStaffList();
+      await UserDataStore.instance.reloadShiftsForDate(DateTime.now());
+    } catch (e) {
+      debugPrint('UserDataStore update error: $e');
+    }
 
     setState(() => _isLoading = false);
 
@@ -485,6 +547,10 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
                             ),
                             const SizedBox(height: 16),
 
+                            // Pilihan Toko / Outlet Bertugas
+                            _buildStoreDropdown(),
+                            const SizedBox(height: 16),
+
                             // Input: Total Jam per Minggu
                             Text(
                               'TOTAL JAM PER MINGGU (ESTIMASI)',
@@ -517,71 +583,73 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
                             const SizedBox(height: 20),
 
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                OutlinedButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  style: OutlinedButton.styleFrom(
-                                    side: BorderSide(
-                                      color: colorPrimary.withValues(
-                                        alpha: 0.3,
+                                Expanded(
+                                  flex: 2,
+                                  child: OutlinedButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    style: OutlinedButton.styleFrom(
+                                      side: BorderSide(
+                                        color: colorPrimary.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
                                       ),
                                     ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 14,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'BATAL',
-                                    style: GoogleFonts.workSans(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.0,
-                                      color: colorPrimary,
+                                    child: Text(
+                                      'BATAL',
+                                      style: GoogleFonts.workSans(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.8,
+                                        color: colorPrimary,
+                                      ),
                                     ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
-
-                                ElevatedButton.icon(
-                                  onPressed: _isLoading ? null : _handleSave,
-                                  icon: _isLoading
-                                      ? const SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
+                                Expanded(
+                                  flex: 3,
+                                  child: ElevatedButton.icon(
+                                    onPressed: _isLoading ? null : _handleSave,
+                                    icon: _isLoading
+                                        ? const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.cloud_upload_outlined,
+                                            size: 18,
                                             color: Colors.white,
                                           ),
-                                        )
-                                      : const Icon(
-                                          Icons.cloud_upload_outlined,
-                                          size: 18,
-                                          color: Colors.white,
-                                        ),
-                                  label: Text(
-                                    _isLoading
-                                        ? 'MENYIMPAN...'
-                                        : 'SIMPAN KE FIRESTORE',
-                                    style: GoogleFonts.workSans(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.0,
-                                      color: Colors.white,
+                                    label: Text(
+                                      _isLoading
+                                          ? 'MENYIMPAN...'
+                                          : 'SIMPAN STAF',
+                                      style: GoogleFonts.workSans(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.5,
+                                        color: Colors.white,
+                                      ),
                                     ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: colorPrimary,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 14,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: colorPrimary,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -737,6 +805,87 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
               onChanged: (val) => setState(() => _selectedShift = val),
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStoreDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'TOKO / OUTLET BERTUGAS *',
+          style: GoogleFonts.workSans(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.0,
+            color: colorOnSurface,
+          ),
+        ),
+        const SizedBox(height: 6),
+        ValueListenableBuilder<List<String>>(
+          valueListenable: UserDataStore.instance.storeListNotifier,
+          builder: (context, stores, _) {
+            final storeOptions = List<String>.from(stores);
+            if (_selectedStore != null &&
+                _selectedStore!.isNotEmpty &&
+                !storeOptions.contains(_selectedStore!)) {
+              storeOptions.insert(0, _selectedStore!);
+            }
+            if (storeOptions.isEmpty) {
+              storeOptions.add('Bella Cafe');
+            }
+            final currentVal = storeOptions.contains(_selectedStore)
+                ? _selectedStore
+                : storeOptions.first;
+
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: colorSurfaceContainerLow,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: colorOutlineVariant),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: currentVal,
+                  isExpanded: true,
+                  icon: Icon(Icons.arrow_drop_down, color: colorOutline),
+                  items: storeOptions.map((st) {
+                    return DropdownMenuItem<String>(
+                      value: st,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.storefront_outlined,
+                            size: 18,
+                            color: colorSecondary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              st,
+                              style: GoogleFonts.workSans(
+                                color: colorOnSurface,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() => _selectedStore = val);
+                    }
+                  },
+                ),
+              ),
+            );
+          },
         ),
       ],
     );

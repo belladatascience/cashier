@@ -1,8 +1,11 @@
+import 'dart:typed_data';
 import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/models/user_login.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 class DataUserCashier extends StatefulWidget {
   const DataUserCashier({super.key});
@@ -329,6 +332,7 @@ class _DataUserCashierState extends State<DataUserCashier> {
     final passwordController = TextEditingController(text: user?.password ?? "");
     final noHpController = TextEditingController(text: user?.nomor_hp ?? "");
     final cityController = TextEditingController(text: user?.asalKota ?? "");
+    Uint8List? selectedAvatarBytes = user?.avatarBytes;
 
     showModalBottomSheet(
       context: context,
@@ -338,182 +342,270 @@ class _DataUserCashierState extends State<DataUserCashier> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-            left: 20,
-            right: 20,
-            top: 20,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: colorOutlineVariant,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                Text(
-                  isEditing ? 'Edit Data Pengguna' : 'Tambah Pengguna Baru',
-                  style: GoogleFonts.sourceSerif4(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: colorPrimary,
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Input Nama Lengkap
-                TextField(
-                  controller: nameController,
-                  style: GoogleFonts.workSans(color: colorOnSurface),
-                  decoration: InputDecoration(
-                    labelText: 'Nama Lengkap',
-                    prefixIcon: Icon(Icons.badge_outlined, color: colorSecondary),
-                    filled: true,
-                    fillColor: colorSurfaceContainerLow,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Input Email / ID Kasir
-                TextField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  style: GoogleFonts.workSans(color: colorOnSurface),
-                  decoration: InputDecoration(
-                    labelText: 'Email / ID Kasir',
-                    prefixIcon: Icon(Icons.email_outlined, color: colorSecondary),
-                    filled: true,
-                    fillColor: colorSurfaceContainerLow,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Input Password
-                TextField(
-                  controller: passwordController,
-                  obscureText: true,
-                  style: GoogleFonts.workSans(color: colorOnSurface),
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    prefixIcon: Icon(Icons.lock_outline, color: colorSecondary),
-                    filled: true,
-                    fillColor: colorSurfaceContainerLow,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Input Nomor HP
-                TextField(
-                  controller: noHpController,
-                  keyboardType: TextInputType.phone,
-                  style: GoogleFonts.workSans(color: colorOnSurface),
-                  decoration: InputDecoration(
-                    labelText: 'Nomor HP',
-                    prefixIcon: Icon(Icons.phone_outlined, color: colorSecondary),
-                    filled: true,
-                    fillColor: colorSurfaceContainerLow,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Input Asal Kota
-                TextField(
-                  controller: cityController,
-                  style: GoogleFonts.workSans(color: colorOnSurface),
-                  decoration: InputDecoration(
-                    labelText: 'Asal Kota',
-                    prefixIcon: Icon(Icons.location_city_outlined, color: colorSecondary),
-                    filled: true,
-                    fillColor: colorSurfaceContainerLow,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Tombol Simpan / Update
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: colorPrimary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+                left: 20,
+                right: 20,
+                top: 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: colorOutlineVariant,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                    icon: Icon(isEditing ? Icons.save_rounded : Icons.add_rounded),
-                    label: Text(
-                      isEditing ? 'Simpan Perubahan' : 'Daftarkan Pengguna',
-                      style: GoogleFonts.workSans(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    onPressed: () async {
-                      final email = emailController.text.trim();
-                      final password = passwordController.text;
-                      if (email.isEmpty || password.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Email dan Password wajib diisi!'),
-                            backgroundColor: colorError,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          isEditing ? 'Edit Data Pengguna' : 'Tambah Pengguna Baru',
+                          style: GoogleFonts.sourceSerif4(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: colorPrimary,
                           ),
-                        );
-                        return;
-                      }
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: colorSecondary.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.cloud_sync, size: 16, color: colorSecondary),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Firestore',
+                                style: GoogleFonts.workSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
 
-                      final userPayload = UserModelSQL(
-                        id: user?.id,
-                        nama: nameController.text.trim(),
-                        email: email,
-                        password: password,
-                        nomor_hp: noHpController.text.trim(),
-                        asalKota: cityController.text.trim(),
-                        cashierId: email,
-                        avatarBytes: user?.avatarBytes,
-                      );
-
-                      if (isEditing) {
-                        await DataBaseHelper().updateUser(userPayload);
-                      } else {
-                        await DataBaseHelper().registerUser(userPayload);
-                      }
-
-                      if (context.mounted) {
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              isEditing
-                                  ? 'Data pengguna berhasil diperbarui di Firestore'
-                                  : 'Pengguna baru berhasil ditambahkan ke Firestore',
+                    // Avatar Picker
+                    Center(
+                      child: GestureDetector(
+                        onTap: () async {
+                          final ImagePicker picker = ImagePicker();
+                          final XFile? image = await picker.pickImage(
+                            source: ImageSource.gallery,
+                            maxWidth: 500,
+                            maxHeight: 500,
+                            imageQuality: 80,
+                          );
+                          if (image != null) {
+                            final bytes = await image.readAsBytes();
+                            setModalState(() {
+                              selectedAvatarBytes = bytes;
+                            });
+                          }
+                        },
+                        child: Stack(
+                          children: [
+                            CircleAvatar(
+                              radius: 36,
+                              backgroundColor: colorSecondary.withValues(alpha: 0.2),
+                              backgroundImage: selectedAvatarBytes != null
+                                  ? MemoryImage(selectedAvatarBytes!)
+                                  : null,
+                              child: selectedAvatarBytes == null
+                                  ? Icon(
+                                      Icons.person_add_alt_1,
+                                      size: 32,
+                                      color: colorSecondary,
+                                    )
+                                  : null,
                             ),
-                            backgroundColor: colorSecondary,
-                            behavior: SnackBarBehavior.floating,
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: colorPrimary,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Input Nama Lengkap
+                    TextField(
+                      controller: nameController,
+                      style: GoogleFonts.workSans(color: colorOnSurface),
+                      decoration: InputDecoration(
+                        labelText: 'Nama Lengkap',
+                        prefixIcon: Icon(Icons.badge_outlined, color: colorSecondary),
+                        filled: true,
+                        fillColor: colorSurfaceContainerLow,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Input Email / ID Kasir
+                    TextField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      style: GoogleFonts.workSans(color: colorOnSurface),
+                      decoration: InputDecoration(
+                        labelText: 'Email / ID Kasir',
+                        prefixIcon: Icon(Icons.email_outlined, color: colorSecondary),
+                        filled: true,
+                        fillColor: colorSurfaceContainerLow,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Input Password
+                    TextField(
+                      controller: passwordController,
+                      obscureText: true,
+                      style: GoogleFonts.workSans(color: colorOnSurface),
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        prefixIcon: Icon(Icons.lock_outline, color: colorSecondary),
+                        filled: true,
+                        fillColor: colorSurfaceContainerLow,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Input Nomor HP
+                    TextField(
+                      controller: noHpController,
+                      keyboardType: TextInputType.phone,
+                      style: GoogleFonts.workSans(color: colorOnSurface),
+                      decoration: InputDecoration(
+                        labelText: 'Nomor HP',
+                        prefixIcon: Icon(Icons.phone_outlined, color: colorSecondary),
+                        filled: true,
+                        fillColor: colorSurfaceContainerLow,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Input Asal Kota
+                    TextField(
+                      controller: cityController,
+                      style: GoogleFonts.workSans(color: colorOnSurface),
+                      decoration: InputDecoration(
+                        labelText: 'Asal Kota',
+                        prefixIcon: Icon(Icons.location_city_outlined, color: colorSecondary),
+                        filled: true,
+                        fillColor: colorSurfaceContainerLow,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Tombol Simpan / Update
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: colorPrimary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        );
-                      }
-                    },
-                  ),
+                        ),
+                        icon: Icon(isEditing ? Icons.save_rounded : Icons.add_rounded),
+                        label: Text(
+                          isEditing ? 'Simpan Perubahan' : 'Daftarkan Pengguna',
+                          style: GoogleFonts.workSans(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        onPressed: () async {
+                          final email = emailController.text.trim();
+                          final password = passwordController.text;
+                          if (email.isEmpty || password.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text('Email dan Password wajib diisi!'),
+                                backgroundColor: colorError,
+                              ),
+                            );
+                            return;
+                          }
+
+                          final userPayload = UserModelSQL(
+                            id: user?.id,
+                            nama: nameController.text.trim(),
+                            email: email,
+                            password: password,
+                            nomor_hp: noHpController.text.trim(),
+                            asalKota: cityController.text.trim(),
+                            cashierId: email,
+                            avatarBytes: selectedAvatarBytes,
+                          );
+
+                          if (isEditing) {
+                            await DataBaseHelper().updateUser(userPayload);
+                          } else {
+                            await DataBaseHelper().registerUser(userPayload);
+                          }
+
+                          await UserDataStore.instance.reloadUserData();
+
+                          if (context.mounted) {
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  isEditing
+                                      ? 'Data pengguna berhasil diperbarui di Firestore'
+                                      : 'Pengguna baru berhasil ditambahkan ke Firestore',
+                                ),
+                                backgroundColor: colorSecondary,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );

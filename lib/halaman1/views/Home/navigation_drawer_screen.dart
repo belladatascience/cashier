@@ -1,11 +1,15 @@
-﻿import 'package:cashier/extension/navigator.dart';
+import 'dart:async';
+import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/services/firebase_auth_service.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
+import 'package:cashier/halaman1/views/Home/Cart/cart_transaction_screen.dart';
+import 'package:cashier/halaman1/views/Home/Shift/staff_shift_screen.dart';
 import 'package:cashier/halaman1/views/Home/data_user.dart';
 import 'package:cashier/halaman1/views/Home/login.dart';
 import 'package:cashier/halaman1/views/Profile/cashier_profile_screen.dart';
 import 'package:cashier/halaman1/widgets/animated_cartoon_logo.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -28,6 +32,9 @@ class NavigationDrawerScreen extends StatefulWidget {
 
 class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  StreamSubscription<DocumentSnapshot>? _userDocSubscription;
 
   // Dynamic Color Tokens from AppTheme
   Color get colorPrimary => AppTheme.instance.primaryColor;
@@ -50,10 +57,30 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
   @override
   void initState() {
     super.initState();
+    UserDataStore.instance.initFromFirebase();
+    _listenToUserFirebase();
     // Auto-open drawer after build to showcase the drawer UI
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scaffoldKey.currentState?.openDrawer();
     });
+  }
+
+  void _listenToUserFirebase() {
+    final uid = _auth.currentUser?.uid;
+    if (uid != null) {
+      _userDocSubscription = _firestore.collection('users').doc(uid).snapshots().listen((doc) {
+        if (doc.exists && doc.data() != null) {
+          UserDataStore.instance.reloadUserData();
+          if (mounted) setState(() {});
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _userDocSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _handleLogout() async {
@@ -301,12 +328,22 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
                                 title: 'Shift & Jadwal',
                                 onTap: () {
                                   Navigator.pop(context);
+                                  context.push(const StaffShiftScreen());
                                 },
                               ),
                               _buildDrawerNavItem(
                                 icon: Icons.cloud_done_outlined,
                                 title: 'Status Firebase: Terhubung',
-                                onTap: () {},
+                                onTap: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text('Tersambung secara realtime ke Cloud Firestore ☁️'),
+                                      backgroundColor: colorSecondary,
+                                      behavior: SnackBarBehavior.floating,
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                },
                               ),
                             ],
                           ),
@@ -463,21 +500,25 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
                                 icon: Icons.point_of_sale,
                                 title: 'POS Kasir',
                                 color: const Color(0xFF7D562D),
+                                onTap: () => context.push(const CartTransactionScreen()),
                               ),
                               _buildDashboardCard(
                                 icon: Icons.receipt_long,
                                 title: 'Transaksi',
                                 color: const Color(0xFF45492D),
+                                onTap: () => context.push(const CartTransactionScreen()),
                               ),
                               _buildDashboardCard(
                                 icon: Icons.inventory_2_outlined,
-                                title: 'Stok Produk',
+                                title: 'Kelola Pengguna',
                                 color: const Color(0xFF5D4037),
+                                onTap: () => context.push(const DataUserCashier()),
                               ),
                               _buildDashboardCard(
                                 icon: Icons.bar_chart,
                                 title: 'Laporan Shift',
                                 color: const Color(0xFF303030),
+                                onTap: () => context.push(const StaffShiftScreen()),
                               ),
                             ],
                           ),
@@ -531,6 +572,7 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
     required IconData icon,
     required String title,
     required Color color,
+    VoidCallback? onTap,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -544,7 +586,7 @@ class _NavigationDrawerScreenState extends State<NavigationDrawerScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {},
+          onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(16.0),

@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/models/store_model.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:cashier/halaman1/views/Home/Shift/add_staff_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -26,6 +29,12 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
 
   late DateTime _selectedDate;
   late DateTime _focusedMonth;
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  StreamSubscription<QuerySnapshot>? _storesSubscription;
+  StreamSubscription<QuerySnapshot>? _shiftsSubscription;
+  StreamSubscription<QuerySnapshot>? _staffSubscription;
 
   // Dynamic Color Tokens linked to AppTheme
   Color get colorPrimary => AppTheme.instance.primaryColor;
@@ -69,17 +78,46 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
     final now = DateTime.now();
     _selectedDate = now;
     _focusedMonth = DateTime(now.year, now.month, 1);
+    UserDataStore.instance.initFromFirebase();
     UserDataStore.instance.reloadShiftsForDate(now);
+    _listenToFirebaseRealtime();
+
     UserDataStore.instance.shiftRosterPagiNotifier.addListener(_onUserDataStoreChanged);
     UserDataStore.instance.shiftRosterSoreNotifier.addListener(_onUserDataStoreChanged);
     UserDataStore.instance.cafeStaffListNotifier.addListener(_onUserDataStoreChanged);
+    UserDataStore.instance.shiftCalendarHistoryNotifier.addListener(_onUserDataStoreChanged);
+    UserDataStore.instance.userDataNotifier.addListener(_onUserDataStoreChanged);
+  }
+
+  void _listenToFirebaseRealtime() {
+    try {
+      _storesSubscription = _firestore.collection('stores').snapshots().listen((_) {
+        UserDataStore.instance.reloadStoreList();
+        if (mounted) setState(() {});
+      });
+      _shiftsSubscription = _firestore.collection('shifts').snapshots().listen((_) {
+        UserDataStore.instance.reloadShiftsForDate(_selectedDate);
+        if (mounted) setState(() {});
+      });
+      _staffSubscription = _firestore.collection('staff').snapshots().listen((_) {
+        UserDataStore.instance.reloadStaffList();
+        if (mounted) setState(() {});
+      });
+    } catch (e) {
+      debugPrint('Error attaching Firebase listeners to staff shift screen: $e');
+    }
   }
 
   @override
   void dispose() {
+    _storesSubscription?.cancel();
+    _shiftsSubscription?.cancel();
+    _staffSubscription?.cancel();
     UserDataStore.instance.shiftRosterPagiNotifier.removeListener(_onUserDataStoreChanged);
     UserDataStore.instance.shiftRosterSoreNotifier.removeListener(_onUserDataStoreChanged);
     UserDataStore.instance.cafeStaffListNotifier.removeListener(_onUserDataStoreChanged);
+    UserDataStore.instance.shiftCalendarHistoryNotifier.removeListener(_onUserDataStoreChanged);
+    UserDataStore.instance.userDataNotifier.removeListener(_onUserDataStoreChanged);
     super.dispose();
   }
 
@@ -483,14 +521,46 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                   final location = locationC.text.trim();
 
                                   try {
-                                    await DataBaseHelper().insertStore(
-                                      StoreModel(
-                                        name: storeName,
-                                        location: location,
-                                        defaultShift: 'Pagi',
-                                      ),
+                                    final newStore = StoreModel(
+                                      name: storeName,
+                                      location: location,
+                                      defaultShift: 'Pagi',
                                     );
-                                  } catch (_) {}
+                                    await DataBaseHelper().insertStore(newStore);
+
+                                    // Simpan ke collection 'stores' Firestore
+                                    final docId = storeName
+                                        .toLowerCase()
+                                        .replaceAll(RegExp(r'\s+'), '_');
+                                    await _firestore
+                                        .collection('stores')
+                                        .doc(docId)
+                                        .set({
+                                      'name': storeName,
+                                      'location': location,
+                                      'defaultShift': 'Pagi',
+                                      'updatedAt': FieldValue.serverTimestamp(),
+                                    }, SetOptions(merge: true));
+
+                                    // Update Firestore user document
+                                    final currentUser = _auth.currentUser;
+                                    if (currentUser != null) {
+                                      await _firestore
+                                          .collection('users')
+                                          .doc(currentUser.uid)
+                                          .set({
+                                        'storeName': storeName,
+                                        'location': location,
+                                        'lastActive':
+                                            FieldValue.serverTimestamp(),
+                                      }, SetOptions(merge: true));
+                                    }
+                                  } catch (e) {
+                                    debugPrint('Error inserting store to Firestore: $e');
+                                  }
+
+                                  UserDataStore.instance.addStoreName(storeName);
+                                  await UserDataStore.instance.reloadStoreList();
 
                                   await UserDataStore.instance.updateUserData({
                                     'storeName': storeName,
@@ -560,6 +630,131 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
               ),
             );
           },
+        );
+      },
+    );
+  }
+
+  void _showDeleteStoreDialog(StoreModel store) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return AlertDialog(
+          backgroundColor: colorSurfaceContainerLowest,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEE2E2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.delete_forever_rounded,
+                  color: Color(0xFFDC2626),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Hapus Toko?',
+                  style: GoogleFonts.sourceSerif4(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: colorPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Apakah Anda yakin ingin menghapus toko "${store.name}" (${store.location}) dari daftar toko?',
+            style: GoogleFonts.workSans(
+              fontSize: 14,
+              color: colorOnSurfaceVariant,
+            ),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          actions: [
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(dialogCtx),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: BorderSide(color: colorOutlineVariant),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Text(
+                      'Batal',
+                      style: GoogleFonts.workSans(
+                        fontWeight: FontWeight.bold,
+                        color: colorOnSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      Navigator.pop(dialogCtx);
+                      try {
+                        final snapshot = await _firestore
+                            .collection('stores')
+                            .where('name', isEqualTo: store.name.trim())
+                            .get();
+                        for (final doc in snapshot.docs) {
+                          await doc.reference.delete();
+                        }
+                      } catch (e) {
+                        debugPrint('Error deleting store from Firestore: $e');
+                      }
+                      await UserDataStore.instance.removeStore(store.name, id: store.id);
+                      if (mounted) {
+                        setState(() {});
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Toko "${store.name}" berhasil dihapus! 🗑️',
+                              style: GoogleFonts.workSans(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            backgroundColor: const Color(0xFFDC2626),
+                            behavior: SnackBarBehavior.floating,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      backgroundColor: const Color(0xFFDC2626),
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Text(
+                      'Hapus',
+                      style: GoogleFonts.workSans(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         );
       },
     );
@@ -669,19 +864,21 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
         targetTab = 1;
       }
 
-      setState(() {
-        UserDataStore.instance.addStaffToRoster(
-          targetTab,
-          newStaff,
-          activeDate: _selectedDate,
-        );
-        UserDataStore.instance.addCafeStaff(newStaff);
-      });
+      await UserDataStore.instance.addStaffToRoster(
+        targetTab,
+        newStaff,
+        activeDate: _selectedDate,
+      );
+      await UserDataStore.instance.addCafeStaff(newStaff);
+
       if (mounted) {
+        setState(() {
+          _selectedShiftTab = targetTab;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Staf ${newStaff['name']} berhasil ditambahkan ke ${targetTab == 0 ? "Shift Pagi" : "Shift Sore"}! 🎉',
+              'Staf ${newStaff['name']} berhasil ditambahkan ke ${targetTab == 0 ? "Shift Pagi" : "Shift Sore"} & Tersinkron ke Kalender! 🎉',
             ),
             backgroundColor: colorSecondary,
             behavior: SnackBarBehavior.floating,
@@ -709,6 +906,8 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
       text: staff['time'] ?? 'In: 07:00',
     );
     String selectedStatus = staff['status'] ?? 'Hadir';
+    String selectedStore = staff['storeName'] as String? ??
+        (UserDataStore.instance.userDataNotifier.value['storeName'] as String? ?? 'Bella Cafe');
     String? errorMessage;
 
     final List<String> rolePresets = [
@@ -942,6 +1141,85 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                       ),
                       const SizedBox(height: 14),
 
+                      // Toko / Outlet Bertugas Dropdown
+                      Text(
+                        'Toko / Outlet Bertugas',
+                        style: GoogleFonts.workSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: colorPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      ValueListenableBuilder<List<String>>(
+                        valueListenable:
+                            UserDataStore.instance.storeListNotifier,
+                        builder: (context, stores, _) {
+                          final storeOptions = List<String>.from(stores);
+                          if (!storeOptions.contains(selectedStore) &&
+                              selectedStore.isNotEmpty) {
+                            storeOptions.insert(0, selectedStore);
+                          }
+                          final activeValue =
+                              storeOptions.contains(selectedStore)
+                                  ? selectedStore
+                                  : (storeOptions.isNotEmpty
+                                      ? storeOptions.first
+                                      : null);
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: colorSurfaceContainerLow,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: activeValue,
+                                isExpanded: true,
+                                icon: Icon(
+                                  Icons.keyboard_arrow_down,
+                                  color: colorPrimary,
+                                ),
+                                items: storeOptions.map((st) {
+                                  return DropdownMenuItem<String>(
+                                    value: st,
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.storefront_outlined,
+                                          size: 18,
+                                          color: colorSecondary,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            st,
+                                            style: GoogleFonts.workSans(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              color: colorPrimary,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setDialogState(() {
+                                      selectedStore = val;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 14),
+
                       // Status Kehadiran Dropdown
                       Text(
                         'Status Kehadiran',
@@ -1096,6 +1374,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                             'name': name,
                             'role': role,
                             'status': selectedStatus,
+                            'storeName': selectedStore,
                             'shiftTime': shiftTime.isNotEmpty
                                 ? shiftTime
                                 : (shiftTab == 0
@@ -1333,7 +1612,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Main Top Tabs Navigation (CALENDAR vs MANAJEMEN SHIFT)
+                      // Main Top Tabs Navigation (CALENDAR vs MANAJEMEN SHIFT vs DAFTAR TOKO)
                       Container(
                         decoration: BoxDecoration(
                           border: Border(
@@ -1358,7 +1637,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                         ? Border(
                                             bottom: BorderSide(
                                               color: colorSecondary,
-                                              width: 2,
+                                              width: 2.5,
                                             ),
                                           )
                                         : null,
@@ -1367,9 +1646,9 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                     'CALENDAR',
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.workSans(
-                                      fontSize: 14,
+                                      fontSize: 12.5,
                                       fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.0,
+                                      letterSpacing: 0.8,
                                       color: _selectedTabIndex == 0
                                           ? colorSecondary
                                           : colorOnSurfaceVariant,
@@ -1391,7 +1670,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                         ? Border(
                                             bottom: BorderSide(
                                               color: colorSecondary,
-                                              width: 2,
+                                              width: 2.5,
                                             ),
                                           )
                                         : null,
@@ -1400,10 +1679,43 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                     'MANAJEMEN SHIFT',
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.workSans(
-                                      fontSize: 14,
+                                      fontSize: 12.5,
                                       fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.0,
+                                      letterSpacing: 0.8,
                                       color: _selectedTabIndex == 1
+                                          ? colorSecondary
+                                          : colorOnSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: InkWell(
+                                onTap: () =>
+                                    setState(() => _selectedTabIndex = 2),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    border: _selectedTabIndex == 2
+                                        ? Border(
+                                            bottom: BorderSide(
+                                              color: colorSecondary,
+                                              width: 2.5,
+                                            ),
+                                          )
+                                        : null,
+                                  ),
+                                  child: Text(
+                                    'DAFTAR TOKO',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.workSans(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.8,
+                                      color: _selectedTabIndex == 2
                                           ? colorSecondary
                                           : colorOnSurfaceVariant,
                                     ),
@@ -2044,72 +2356,84 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                               );
                             }).toList(),
                           ),
-                      ] else ...[
+                                    ] else if (_selectedTabIndex == 1) ...[
                         // TAB 2: MANAJEMEN SHIFT VIEW
                         // Header Title & Description
-                        Text(
-                          'Manajemen Shift',
-                          style: GoogleFonts.sourceSerif4(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: colorPrimary,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Manajemen Shift',
+                                    style: GoogleFonts.sourceSerif4(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.bold,
+                                      color: colorPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Jadwal tugas harian dan status kehadiran staf toko.',
+                                    style: GoogleFonts.workSans(
+                                      fontSize: 13,
+                                      color: colorOnSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Jadwal tugas harian dan status kehadiran staf toko.',
-                          style: GoogleFonts.workSans(
-                            fontSize: 14,
-                            color: colorOnSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 16),
 
-                        // Active Date Info Banner
+                        // Card Tanggal Shift
                         Container(
-                          margin: const EdgeInsets.only(bottom: 16),
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
+                            horizontal: 16,
+                            vertical: 14,
                           ),
                           decoration: BoxDecoration(
-                            color: colorSurfaceContainerLow,
-                            borderRadius: BorderRadius.circular(12),
+                            color: colorSecondary.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: colorOutlineVariant.withValues(alpha: 0.3),
+                              color: colorSecondary.withValues(alpha: 0.2),
                             ),
                           ),
                           child: Row(
                             children: [
                               Icon(
-                                Icons.calendar_today_rounded,
-                                size: 16,
+                                Icons.calendar_today_outlined,
                                 color: colorSecondary,
+                                size: 20,
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  'Tanggal: ${DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(_selectedDate)}',
+                                  'Tanggal: ${dateFormatFull.format(_selectedDate)}',
                                   style: GoogleFonts.workSans(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.bold,
                                     color: colorPrimary,
                                   ),
                                 ),
                               ),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
+                                  horizontal: 10,
+                                  vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
                                   color: colorGreenBg,
-                                  borderRadius: BorderRadius.circular(6),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
                                   'Tersinkron ke Kalender',
                                   style: GoogleFonts.workSans(
-                                    fontSize: 10.5,
+                                    fontSize: 11,
                                     fontWeight: FontWeight.bold,
                                     color: colorGreenText,
                                   ),
@@ -2118,11 +2442,17 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                             ],
                           ),
                         ),
+                        const SizedBox(height: 20),
 
-                        // Sub-Tabs (Shift Pagi vs Shift Sore)
+                        // Sub-Tab Switcher: SHIFT PAGI vs SHIFT SORE
                         Container(
                           decoration: BoxDecoration(
-                            border: const Border(bottom: BorderSide(width: 1)),
+                            border: Border(
+                              bottom: BorderSide(
+                                color: colorOutlineVariant,
+                                width: 1,
+                              ),
+                            ),
                           ),
                           child: Row(
                             children: [
@@ -2139,7 +2469,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                           ? Border(
                                               bottom: BorderSide(
                                                 color: colorSecondary,
-                                                width: 2,
+                                                width: 2.5,
                                               ),
                                             )
                                           : null,
@@ -2150,7 +2480,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                       style: GoogleFonts.workSans(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
-                                        letterSpacing: 1.0,
+                                        letterSpacing: 0.6,
                                         color: _selectedShiftTab == 0
                                             ? colorSecondary
                                             : colorOnSurfaceVariant,
@@ -2172,7 +2502,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                           ? Border(
                                               bottom: BorderSide(
                                                 color: colorSecondary,
-                                                width: 2,
+                                                width: 2.5,
                                               ),
                                             )
                                           : null,
@@ -2183,7 +2513,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                       style: GoogleFonts.workSans(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
-                                        letterSpacing: 1.0,
+                                        letterSpacing: 0.6,
                                         color: _selectedShiftTab == 1
                                             ? colorSecondary
                                             : colorOnSurfaceVariant,
@@ -2197,15 +2527,17 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                         ),
                         const SizedBox(height: 20),
 
-                        // Shift Summary Card
+                        // Card Info Jadwal & Counter Staf Hadir
                         Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(20),
+                          padding: const EdgeInsets.all(18),
                           decoration: BoxDecoration(
                             color: colorSurfaceContainerLowest,
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(20),
                             border: Border(
-                              left: BorderSide(color: colorSecondary, width: 5),
+                              left: BorderSide(
+                                color: colorSecondary,
+                                width: 5,
+                              ),
                             ),
                             boxShadow: const [
                               BoxShadow(
@@ -2235,8 +2567,8 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                   Row(
                                     children: [
                                       Icon(
-                                        Icons.schedule,
-                                        size: 18,
+                                        Icons.access_time_rounded,
+                                        size: 16,
                                         color: colorOnSurfaceVariant,
                                       ),
                                       const SizedBox(width: 6),
@@ -2245,7 +2577,8 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                             ? '07:00 - 15:00 WIB'
                                             : '15:00 - 23:00 WIB',
                                         style: GoogleFonts.workSans(
-                                          fontSize: 14,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
                                           color: colorOnSurfaceVariant,
                                         ),
                                       ),
@@ -2255,17 +2588,15 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                               ),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 8,
+                                  horizontal: 16,
+                                  vertical: 10,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: colorPrimaryContainer.withValues(
-                                    alpha: 0.15,
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
+                                  color: colorSurfaceContainerLow,
+                                  borderRadius: BorderRadius.circular(14),
                                   border: Border.all(
-                                    color: colorPrimaryContainer.withValues(
-                                      alpha: 0.3,
+                                    color: colorOutlineVariant.withValues(
+                                      alpha: 0.5,
                                     ),
                                   ),
                                 ),
@@ -2276,27 +2607,26 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                       style: GoogleFonts.workSans(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
-                                        letterSpacing: 0.8,
+                                        letterSpacing: 0.5,
                                         color: colorOnSurfaceVariant,
                                       ),
                                     ),
                                     const SizedBox(height: 2),
                                     Builder(
                                       builder: (context) {
-                                        final currentRoster =
-                                            _selectedShiftTab == 0
+                                        final list = _selectedShiftTab == 0
                                             ? _shiftRosterPagi
                                             : _shiftRosterSore;
-                                        final hadirCount = currentRoster
+                                        final hadirCount = list
                                             .where(
                                               (s) =>
-                                                  s['status'] == 'Hadir' ||
-                                                  s['status'] == 'ON DUTY',
+                                                  (s['status'] as String? ??
+                                                      '') ==
+                                                  'Hadir',
                                             )
                                             .length;
-                                        final totalCount = currentRoster.length;
                                         return Text(
-                                          '$hadirCount/$totalCount',
+                                          '$hadirCount/${list.length}',
                                           style: GoogleFonts.sourceSerif4(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
@@ -2311,85 +2641,54 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: 24),
 
-                        // Staff Roster Header & Action Buttons (+ Toko & + Staff)
+                        // Section Title: Daftar Staf Bertugas + Button + STAF
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Expanded(
-                              child: Text(
-                                'Daftar Staf Bertugas',
-                                style: GoogleFonts.sourceSerif4(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: colorPrimary,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                            Text(
+                              'Daftar Staf Bertugas',
+                              style: GoogleFonts.sourceSerif4(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: colorPrimary,
                               ),
                             ),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Button Toko
-                                TextButton.icon(
-                                  onPressed: _showAddStoreDialog,
-                                  style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    foregroundColor: colorSecondary,
-                                  ),
-                                  icon: Icon(
-                                    Icons.add_business_rounded,
-                                    size: 16,
-                                    color: colorSecondary,
-                                  ),
-                                  label: Text(
-                                    'TOKO',
-                                    style: GoogleFonts.workSans(
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 0.6,
-                                      color: colorSecondary,
-                                    ),
-                                  ),
+                            ElevatedButton.icon(
+                              onPressed: _showAddStaffDialog,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: colorSecondary,
+                                foregroundColor: Colors.white,
+                                elevation: 1.5,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
                                 ),
-                                const SizedBox(width: 4),
-                                // Button Staf
-                                TextButton.icon(
-                                  onPressed: _showAddStaffDialog,
-                                  style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    foregroundColor: colorSecondary,
-                                  ),
-                                  icon: Icon(
-                                    Icons.add,
-                                    size: 16,
-                                    color: colorSecondary,
-                                  ),
-                                  label: Text(
-                                    'STAF',
-                                    style: GoogleFonts.workSans(
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 0.6,
-                                      color: colorSecondary,
-                                    ),
-                                  ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                              ],
+                              ),
+                              icon: const Icon(
+                                Icons.add,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                              label: Text(
+                                '+ STAF',
+                                style: GoogleFonts.workSans(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.6,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
 
-                        // Empty State if no staff in shift
+                        // Staff Roster Cards List
                         if ((_selectedShiftTab == 0
                                 ? _shiftRosterPagi
                                 : _shiftRosterSore)
@@ -2397,197 +2696,232 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
-                              vertical: 32,
+                              vertical: 36,
                               horizontal: 20,
                             ),
-                            margin: const EdgeInsets.only(bottom: 12),
                             decoration: BoxDecoration(
                               color: colorSurfaceContainerLowest,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: colorOutlineVariant.withValues(
-                                  alpha: 0.4,
-                                ),
+                                color: colorOutlineVariant.withValues(alpha: 0.5),
                               ),
                             ),
                             child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
                                   Icons.people_outline_rounded,
-                                  size: 40,
-                                  color: colorOnSurfaceVariant.withValues(
-                                    alpha: 0.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  'Belum ada staf bertugas di ${_selectedShiftTab == 0 ? "Shift Pagi" : "Shift Sore"}',
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.workSans(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: colorOnSurfaceVariant,
-                                  ),
+                                  size: 48,
+                                  color: colorOnSurfaceVariant.withValues(alpha: 0.5),
                                 ),
                                 const SizedBox(height: 12),
-                                ElevatedButton.icon(
-                                  onPressed: _showAddStaffDialog,
-                                  icon: const Icon(Icons.add, size: 16),
-                                  label: const Text('Tambah Staf'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: colorSecondary,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 10,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
+                                Text(
+                                  'Belum ada staf di shift ini',
+                                  style: GoogleFonts.workSans(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: colorPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Klik tombol "+ STAF" di atas untuk menambahkan jadwal tugas staf.',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.workSans(
+                                    fontSize: 12,
+                                    color: colorOnSurfaceVariant,
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-
-                        // Staff Member Cards with Edit & Delete Actions
-                        ...(_selectedShiftTab == 0
+                          )
+                        else
+                          ...List.generate((_selectedShiftTab == 0
+                                  ? _shiftRosterPagi
+                                  : _shiftRosterSore)
+                              .length, (index) {
+                            final currentList = _selectedShiftTab == 0
                                 ? _shiftRosterPagi
-                                : _shiftRosterSore)
-                            .asMap()
-                            .entries
-                            .map((entry) {
-                              final index = entry.key;
-                              final staff = entry.value;
-                              final isRest = staff['status'] == 'Istirahat';
-                              final isAbsent = staff['status'] == 'Belum Hadir';
+                                : _shiftRosterSore;
+                            final staff = currentList[index];
+                            final status =
+                                staff['status'] as String? ?? 'Hadir';
 
-                              Color badgeBgColor = colorGreenBg;
-                              Color badgeTextColor = colorGreenText;
+                            Color badgeBgColor = colorGreenBg;
+                            Color badgeTextColor = colorGreenText;
+                            if (status == 'Istirahat') {
+                              badgeBgColor = const Color(0xFFFEF3C7);
+                              badgeTextColor = const Color(0xFF92400E);
+                            } else if (status == 'Belum Hadir') {
+                              badgeBgColor = const Color(0xFFFEE2E2);
+                              badgeTextColor = const Color(0xFF991B1B);
+                            } else if (status == 'Izin' || status == 'Libur') {
+                              badgeBgColor = const Color(0xFFF3F4F6);
+                              badgeTextColor = const Color(0xFF4B5563);
+                            }
 
-                              if (isRest) {
-                                badgeBgColor = colorSecondaryContainer
-                                    .withValues(alpha: 0.5);
-                                badgeTextColor = colorSecondary;
-                              } else if (isAbsent) {
-                                badgeBgColor = colorErrorContainer;
-                                badgeTextColor = colorOnErrorContainer;
-                              }
-
-                              return Opacity(
-                                opacity: isAbsent ? 0.75 : 1.0,
-                                child: Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  padding: const EdgeInsets.all(14),
-                                  decoration: BoxDecoration(
-                                    color: colorSurfaceContainerLowest,
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: colorPrimary.withValues(
-                                        alpha: 0.08,
-                                      ),
-                                    ),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                        color: Colors.black12,
-                                        blurRadius: 4,
-                                        offset: Offset(0, 2),
-                                      ),
-                                    ],
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: colorSurfaceContainerLowest,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color.fromRGBO(68, 42, 34, 0.06),
+                                    blurRadius: 10,
+                                    offset: Offset(0, 3),
                                   ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Row(
-                                          children: [
-                                            // Staff Avatar Badge
-                                            _buildStaffAvatarBadge(
-                                              staff,
-                                              size: 46,
-                                            ),
-                                            const SizedBox(width: 14),
+                                ],
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  // Staff Avatar
+                                  _buildStaffAvatarBadge(staff, size: 48),
+                                  const SizedBox(width: 14),
 
-                                            // Staff Name, Role & Jam Shift
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
+                                  // Staff Details
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          staff['name'] as String? ?? 'Staf',
+                                          style: GoogleFonts.workSans(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                            color: colorPrimary,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              staff['role'] as String? ??
+                                                  'Barista',
+                                              style: GoogleFonts.workSans(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w500,
+                                                color: colorOnSurfaceVariant,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: _selectedShiftTab == 0
+                                                    ? const Color(0xFFDCFCE7)
+                                                    : const Color(0xFFE0F2FE),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                _selectedShiftTab == 0
+                                                    ? 'Shift Pagi'
+                                                    : 'Shift Sore',
+                                                style: GoogleFonts.workSans(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: _selectedShiftTab == 0
+                                                      ? const Color(0xFF166534)
+                                                      : const Color(0xFF0369A1),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+
+                                        // Store Name & Shift Time Badge Row
+                                        Wrap(
+                                          spacing: 6,
+                                          runSpacing: 4,
+                                          children: [
+                                            // Badge Store Name
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: colorPrimary.withValues(
+                                                  alpha: 0.08,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                                border: Border.all(
+                                                  color: colorPrimary
+                                                      .withValues(alpha: 0.2),
+                                                ),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
                                                 children: [
+                                                  Icon(
+                                                    Icons.storefront_rounded,
+                                                    size: 11,
+                                                    color: colorPrimary,
+                                                  ),
+                                                  const SizedBox(width: 3),
                                                   Text(
-                                                    staff['name'] as String? ??
-                                                        'Staf',
+                                                    staff['storeName'] ??
+                                                        (UserDataStore
+                                                                .instance
+                                                                .userDataNotifier
+                                                                .value[
+                                                            'storeName'] ??
+                                                            'Bella Cafe'),
                                                     style: GoogleFonts.workSans(
-                                                      fontSize: 15,
+                                                      fontSize: 10.5,
                                                       fontWeight:
-                                                          FontWeight.bold,
-                                                      color: isAbsent
-                                                          ? colorOnSurfaceVariant
-                                                          : colorPrimary,
+                                                          FontWeight.w600,
+                                                      color: colorPrimary,
                                                     ),
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
                                                   ),
-                                                  const SizedBox(height: 2),
+                                                ],
+                                              ),
+                                            ),
+                                            // Badge Shift Time
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: colorSecondaryContainer
+                                                    .withValues(alpha: 0.45),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.access_time_rounded,
+                                                    size: 11,
+                                                    color: colorSecondary,
+                                                  ),
+                                                  const SizedBox(width: 3),
                                                   Text(
-                                                    staff['role'] as String? ??
-                                                        'Karyawan',
+                                                    _formatStaffShiftTime(
+                                                      staff['shiftTime'],
+                                                      _selectedShiftTab,
+                                                    ),
                                                     style: GoogleFonts.workSans(
-                                                      fontSize: 12,
-                                                      color:
-                                                          colorOnSurfaceVariant,
-                                                    ),
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  Container(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 6,
-                                                          vertical: 2,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color:
-                                                          colorSecondaryContainer
-                                                              .withValues(
-                                                                alpha: 0.45,
-                                                              ),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            6,
-                                                          ),
-                                                    ),
-                                                    child: Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        Icon(
-                                                          Icons
-                                                              .access_time_rounded,
-                                                          size: 11,
-                                                          color: colorSecondary,
-                                                        ),
-                                                        const SizedBox(
-                                                          width: 3,
-                                                        ),
-                                                        Text(
-                                                          _formatStaffShiftTime(
-                                                            staff['shiftTime'],
-                                                            _selectedShiftTab,
-                                                          ),
-                                                          style: GoogleFonts.workSans(
-                                                            fontSize: 10.5,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            color:
-                                                                colorSecondary,
-                                                          ),
-                                                        ),
-                                                      ],
+                                                      fontSize: 10.5,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: colorSecondary,
                                                     ),
                                                   ),
                                                 ],
@@ -2595,184 +2929,167 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                             ),
                                           ],
                                         ),
-                                      ),
-                                      const SizedBox(width: 8),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
 
-                                      // Status Badge, In-Time & Edit/Delete Action Buttons
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
+                                  // Status Badge, In-Time & Edit/Delete Action Buttons
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: badgeBgColor,
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          (staff['status'] as String? ??
+                                                  'HADIR')
+                                              .toUpperCase(),
+                                          style: GoogleFonts.workSans(
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 0.5,
+                                            color: badgeTextColor,
+                                          ),
+                                        ),
+                                      ),
+                                      if (staff['time'] != null &&
+                                          staff['time'] != '-') ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          staff['time'] as String,
+                                          style: GoogleFonts.workSans(
+                                            fontSize: 11,
+                                            color: colorOnSurfaceVariant,
+                                          ),
+                                        ),
+                                      ],
+                                      const SizedBox(height: 6),
+
+                                      // Edit and Delete Buttons Row
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 3,
+                                          // Edit Button
+                                          InkWell(
+                                            onTap: () => _showEditStaffDialog(
+                                              staff,
+                                              index,
+                                              _selectedShiftTab,
                                             ),
-                                            decoration: BoxDecoration(
-                                              color: badgeBgColor,
-                                              borderRadius:
-                                                  BorderRadius.circular(6),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
                                             ),
-                                            child: Text(
-                                              (staff['status'] as String? ??
-                                                      'HADIR')
-                                                  .toUpperCase(),
-                                              style: GoogleFonts.workSans(
-                                                fontSize: 10.5,
-                                                fontWeight: FontWeight.bold,
-                                                letterSpacing: 0.5,
-                                                color: badgeTextColor,
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 7,
+                                                    vertical: 3.5,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: colorSecondaryContainer
+                                                    .withValues(alpha: 0.6),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                                border: Border.all(
+                                                  color: colorSecondary
+                                                      .withValues(alpha: 0.3),
+                                                ),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.edit_outlined,
+                                                    size: 12,
+                                                    color: colorSecondary,
+                                                  ),
+                                                  const SizedBox(width: 3),
+                                                  Text(
+                                                    'Edit',
+                                                    style: GoogleFonts.workSans(
+                                                      fontSize: 10.5,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: colorSecondary,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
                                           ),
-                                          if (staff['time'] != null &&
-                                              staff['time'] != '-') ...[
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              staff['time'] as String,
-                                              style: GoogleFonts.workSans(
-                                                fontSize: 11,
-                                                color: colorOnSurfaceVariant,
+                                          const SizedBox(width: 5),
+
+                                          // Delete Button
+                                          InkWell(
+                                            onTap: () => _showDeleteStaffDialog(
+                                              staff,
+                                              index,
+                                              _selectedShiftTab,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 7,
+                                                    vertical: 3.5,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFFEE2E2),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                                border: Border.all(
+                                                  color: const Color(
+                                                    0xFFEF4444,
+                                                  ).withValues(alpha: 0.3),
+                                                ),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(
+                                                    Icons
+                                                        .delete_outline_rounded,
+                                                    size: 12,
+                                                    color: Color(0xFFDC2626),
+                                                  ),
+                                                  const SizedBox(width: 3),
+                                                  Text(
+                                                    'Hapus',
+                                                    style: GoogleFonts.workSans(
+                                                      fontSize: 10.5,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: const Color(
+                                                        0xFFDC2626,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
-                                          ],
-                                          const SizedBox(height: 6),
-
-                                          // Edit and Delete Buttons Row
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              // Edit Button
-                                              InkWell(
-                                                onTap: () =>
-                                                    _showEditStaffDialog(
-                                                      staff,
-                                                      index,
-                                                      _selectedShiftTab,
-                                                    ),
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                                child: Container(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 7,
-                                                        vertical: 3.5,
-                                                      ),
-                                                  decoration: BoxDecoration(
-                                                    color:
-                                                        colorSecondaryContainer
-                                                            .withValues(
-                                                              alpha: 0.6,
-                                                            ),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          6,
-                                                        ),
-                                                    border: Border.all(
-                                                      color: colorSecondary
-                                                          .withValues(
-                                                            alpha: 0.3,
-                                                          ),
-                                                    ),
-                                                  ),
-                                                  child: Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                      Icon(
-                                                        Icons.edit_outlined,
-                                                        size: 12,
-                                                        color: colorSecondary,
-                                                      ),
-                                                      const SizedBox(width: 3),
-                                                      Text(
-                                                        'Edit',
-                                                        style:
-                                                            GoogleFonts.workSans(
-                                                              fontSize: 10.5,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                              color:
-                                                                  colorSecondary,
-                                                            ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 5),
-
-                                              // Delete Button
-                                              InkWell(
-                                                onTap: () =>
-                                                    _showDeleteStaffDialog(
-                                                      staff,
-                                                      index,
-                                                      _selectedShiftTab,
-                                                    ),
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                                child: Container(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 7,
-                                                        vertical: 3.5,
-                                                      ),
-                                                  decoration: BoxDecoration(
-                                                    color: const Color(
-                                                      0xFFFEE2E2,
-                                                    ),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          6,
-                                                        ),
-                                                    border: Border.all(
-                                                      color: const Color(
-                                                        0xFFEF4444,
-                                                      ).withValues(alpha: 0.3),
-                                                    ),
-                                                  ),
-                                                  child: Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                      const Icon(
-                                                        Icons
-                                                            .delete_outline_rounded,
-                                                        size: 12,
-                                                        color: Color(
-                                                          0xFFDC2626,
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 3),
-                                                      Text(
-                                                        'Hapus',
-                                                        style:
-                                                            GoogleFonts.workSans(
-                                                              fontSize: 10.5,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                              color:
-                                                                  const Color(
-                                                                    0xFFDC2626,
-                                                                  ),
-                                                            ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
                                           ),
                                         ],
                                       ),
                                     ],
                                   ),
-                                ),
-                              );
-                            }),
+                                ],
+                              ),
+                            );
+                          }),
+                      ] else if (_selectedTabIndex == 2) ...[
+                        // TAB 3: DAFTAR TOKO & CABANG VIEW
+                        _buildStoresTabView(),
                       ],
                     ],
                   ),
@@ -2782,6 +3099,592 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
           ),
         );
       },
+    );
+  }
+
+  // ==================== TAB 3: DAFTAR TOKO & CABANG VIEW ====================
+  Widget _buildStoresTabView() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header Title, Description, and + TOKO Button
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Daftar Cabang & Toko',
+                    style: GoogleFonts.sourceSerif4(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: colorPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Kelola outlet toko dan pilih toko aktif untuk operasional kasir.',
+                    style: GoogleFonts.workSans(
+                      fontSize: 13,
+                      color: colorOnSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            ElevatedButton.icon(
+              onPressed: () async {
+                await _showAddStoreDialog();
+                if (mounted) setState(() {});
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colorSecondary,
+                foregroundColor: Colors.white,
+                elevation: 1.5,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(
+                Icons.add_business_rounded,
+                size: 16,
+                color: Colors.white,
+              ),
+              label: Text(
+                '+ TOKO',
+                style: GoogleFonts.workSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.6,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Toko Aktif Saat Ini Card
+        ValueListenableBuilder<Map<String, dynamic>>(
+          valueListenable: UserDataStore.instance.userDataNotifier,
+          builder: (context, userData, _) {
+            final activeStore = userData['storeName'] ?? 'Bella Cafe';
+            final activeLocation = userData['location'] ?? 'Jakarta';
+
+            return Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    colorSecondary.withValues(alpha: 0.12),
+                    colorPrimary.withValues(alpha: 0.06),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: colorSecondary.withValues(alpha: 0.35),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: colorSecondary,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colorSecondary.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.storefront_rounded,
+                        color: Colors.white,
+                        size: 26,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colorGreenBg,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'TOKO AKTIF SAAT INI',
+                                style: GoogleFonts.workSans(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                  color: colorGreenText,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          activeStore,
+                          style: GoogleFonts.sourceSerif4(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: colorPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.location_on_outlined,
+                              size: 13,
+                              color: colorOnSurfaceVariant,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              activeLocation,
+                              style: GoogleFonts.workSans(
+                                fontSize: 12,
+                                color: colorOnSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+
+        // Section Title: Seluruh Toko Terdaftar
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Daftar Seluruh Toko',
+              style: GoogleFonts.sourceSerif4(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: colorPrimary,
+              ),
+            ),
+            ValueListenableBuilder<List<String>>(
+              valueListenable: UserDataStore.instance.storeListNotifier,
+              builder: (context, storeNames, _) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colorSurfaceContainerLow,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: colorOutlineVariant.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Text(
+                    '${storeNames.length} Toko Tersedia',
+                    style: GoogleFonts.workSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: colorOnSurfaceVariant,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // Stream / Future Builder dari Database + UserDataStore
+        ValueListenableBuilder<List<String>>(
+          valueListenable: UserDataStore.instance.storeListNotifier,
+          builder: (context, registeredStoreNames, _) {
+            return ValueListenableBuilder<Map<String, dynamic>>(
+              valueListenable: UserDataStore.instance.userDataNotifier,
+              builder: (context, userData, _) {
+                final currentActiveStoreName =
+                    userData['storeName']?.toString().trim() ?? 'Bella Cafe';
+                final currentActiveLocation =
+                    userData['location']?.toString().trim() ?? 'Jakarta';
+
+                return FutureBuilder<List<StoreModel>>(
+                  future: DataBaseHelper().getAllStores(),
+                  builder: (context, snapshot) {
+                    final dbStores = snapshot.data ?? [];
+
+                    // Map of all stores merged by store name (lowercase)
+                    final Map<String, StoreModel> mergedStoresMap = {};
+
+                    // 1. Fallback presets only if not explicitly deleted
+                    final defaultPresets = [
+                      StoreModel(id: 1, name: 'Bella Cafe', location: 'Jakarta Selatan', defaultShift: 'Pagi'),
+                      StoreModel(id: 2, name: 'BGA Co. - Central Perk', location: 'Jakarta Pusat', defaultShift: 'Pagi'),
+                      StoreModel(id: 3, name: 'BGA Co. - Downtown Latte', location: 'Jakarta Selatan', defaultShift: 'Sore'),
+                      StoreModel(id: 4, name: 'BGA Co. - Westside Brew', location: 'Jakarta Barat', defaultShift: 'Pagi'),
+                    ];
+                    for (final s in defaultPresets) {
+                      if (!UserDataStore.instance.isStoreDeleted(s.name)) {
+                        mergedStoresMap[s.name.trim().toLowerCase()] = s;
+                      }
+                    }
+
+                    // 2. Add stores from SQLite/Firestore database
+                    for (final s in dbStores) {
+                      if (!UserDataStore.instance.isStoreDeleted(s.name)) {
+                        mergedStoresMap[s.name.trim().toLowerCase()] = s;
+                      }
+                    }
+
+                    // 3. Add stores from UserDataStore storeListNotifier
+                    for (final name in registeredStoreNames) {
+                      final key = name.trim().toLowerCase();
+                      if (!UserDataStore.instance.isStoreDeleted(name) &&
+                          !mergedStoresMap.containsKey(key)) {
+                        mergedStoresMap[key] = StoreModel(
+                          name: name,
+                          location: name.toLowerCase() == currentActiveStoreName.toLowerCase()
+                              ? currentActiveLocation
+                              : 'Indonesia',
+                          defaultShift: 'Pagi',
+                        );
+                      }
+                    }
+
+                    // 4. Ensure current active store is in list if not deleted
+                    if (currentActiveStoreName.isNotEmpty &&
+                        !UserDataStore.instance.isStoreDeleted(currentActiveStoreName)) {
+                      final key = currentActiveStoreName.toLowerCase();
+                      if (!mergedStoresMap.containsKey(key)) {
+                        mergedStoresMap[key] = StoreModel(
+                          name: currentActiveStoreName,
+                          location: currentActiveLocation.isNotEmpty
+                              ? currentActiveLocation
+                              : 'Indonesia',
+                          defaultShift: 'Pagi',
+                        );
+                      }
+                    }
+
+                    final stores = mergedStoresMap.values.toList();
+
+                    if (stores.isEmpty) {
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(28),
+                        decoration: BoxDecoration(
+                          color: colorSurfaceContainerLowest,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: colorOutlineVariant.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.store_mall_directory_outlined,
+                              size: 48,
+                              color: colorOnSurfaceVariant,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Belum ada toko yang terdaftar',
+                              style: GoogleFonts.workSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: colorPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Klik tombol "+ TOKO" di atas untuk menambahkan toko baru.',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.workSans(
+                                fontSize: 12,
+                                color: colorOnSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return Column(
+                      children: stores.map((store) {
+                        final isActive =
+                            store.name.trim().toLowerCase() ==
+                            currentActiveStoreName.toLowerCase();
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: colorSurfaceContainerLowest,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isActive
+                                  ? colorSecondary
+                                  : colorOutlineVariant.withValues(alpha: 0.4),
+                              width: isActive ? 1.5 : 1.0,
+                            ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color.fromRGBO(68, 42, 34, 0.06),
+                                blurRadius: 10,
+                                offset: Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // Store Icon Container
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: isActive
+                                      ? colorSecondary.withValues(alpha: 0.15)
+                                      : colorSurfaceContainerLow,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    Icons.storefront_rounded,
+                                    color: isActive
+                                        ? colorSecondary
+                                        : colorOnSurfaceVariant,
+                                    size: 22,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+
+                              // Store Info
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            store.name,
+                                            style: GoogleFonts.workSans(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.bold,
+                                              color: colorPrimary,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (isActive)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 7,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: colorGreenBg,
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              'AKTIF',
+                                              style: GoogleFonts.workSans(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: colorGreenText,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.location_on_outlined,
+                                          size: 13,
+                                          color: colorOnSurfaceVariant,
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Expanded(
+                                          child: Text(
+                                            store.location.isNotEmpty
+                                                ? store.location
+                                                : 'Indonesia',
+                                            style: GoogleFonts.workSans(
+                                              fontSize: 12,
+                                              color: colorOnSurfaceVariant,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+
+                              // Actions: Pilih & Hapus Toko
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  if (!isActive)
+                                    ElevatedButton(
+                                      onPressed: () async {
+                                        try {
+                                          final currentUser = _auth.currentUser;
+                                          if (currentUser != null) {
+                                            await _firestore
+                                                .collection('users')
+                                                .doc(currentUser.uid)
+                                                .set({
+                                              'storeName': store.name,
+                                              'location': store.location,
+                                              'lastActive':
+                                                  FieldValue.serverTimestamp(),
+                                            }, SetOptions(merge: true));
+                                          }
+                                          await _firestore
+                                              .collection('active_session')
+                                              .doc('current')
+                                              .set({
+                                            'storeName': store.name,
+                                            'location': store.location,
+                                            'timestamp':
+                                                FieldValue.serverTimestamp(),
+                                          }, SetOptions(merge: true));
+                                        } catch (e) {
+                                          debugPrint('Error syncing active store to Firestore: $e');
+                                        }
+
+                                        await UserDataStore.instance.updateUserData({
+                                          'storeName': store.name,
+                                          'location': store.location,
+                                        });
+                                        if (mounted) {
+                                          setState(() {});
+                                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Toko "${store.name}" berhasil diaktifkan! 🏪',
+                                                style: GoogleFonts.workSans(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              backgroundColor: colorSecondary,
+                                              behavior: SnackBarBehavior.floating,
+                                              duration: const Duration(seconds: 2),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: colorSecondaryContainer,
+                                        foregroundColor: colorSecondary,
+                                        elevation: 0,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 6,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Pilih',
+                                        style: GoogleFonts.workSans(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  const SizedBox(height: 6),
+                                  InkWell(
+                                    onTap: () => _showDeleteStoreDialog(store),
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 3,
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.delete_outline_rounded,
+                                            size: 14,
+                                            color: Color(0xFFDC2626),
+                                          ),
+                                          const SizedBox(width: 3),
+                                          Text(
+                                            'Hapus',
+                                            style: GoogleFonts.workSans(
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.w600,
+                                              color: const Color(0xFFDC2626),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  },
+                );
+              },
+            );
+          },
+        ),
+        const SizedBox(height: 40),
+      ],
     );
   }
 }

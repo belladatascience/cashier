@@ -44,7 +44,7 @@ class TransactionItemModel {
   factory TransactionItemModel.fromMap(Map<String, dynamic> map, {String? docId}) {
     final rawId = map['id'];
     final rawTxId = map['transaction_id'] ?? map['transactionId'];
-    final rawQty = map['qty'];
+    final rawQty = map['qty'] ?? map['quantity'];
     final rawPrice = map['price'];
     final rawSubtotal = map['subtotal'];
 
@@ -72,8 +72,9 @@ class TransactionItemModel {
           '',
       menuName: (map['menu_name'] as String?) ??
           (map['menuName'] as String?) ??
+          (map['title'] as String?) ??
           (map['name'] as String?) ??
-          '',
+          'Menu Item',
       qty: qtyVal,
       price: priceVal,
       subtotal: subtotalVal,
@@ -88,7 +89,10 @@ class TransactionItemModel {
       'transaction_id': transactionId,
       'invoice_number': invoiceNumber,
       'menu_name': menuName,
+      'name': menuName,
+      'title': menuName,
       'qty': qty,
+      'quantity': qty,
       'price': price,
       'subtotal': subtotal,
     };
@@ -101,14 +105,17 @@ class TransactionItemModel {
       'transaction_id': transactionId,
       'invoice_number': invoiceNumber,
       'menu_name': menuName,
+      'name': menuName,
+      'title': menuName,
       'qty': qty,
+      'quantity': qty,
       'price': price,
       'subtotal': subtotal,
     };
   }
 
   Map<String, dynamic> toLegacyMap() {
-    return {'name': menuName, 'qty': qty, 'price': price};
+    return {'name': menuName, 'title': menuName, 'qty': qty, 'quantity': qty, 'price': price, 'subtotal': subtotal};
   }
 
   TransactionItemModel copyWith({
@@ -243,6 +250,13 @@ class TransactionModel {
     return TransactionModel.fromMap(data, null, doc.id);
   }
 
+  /// Helper to convert month number to 3-letter abbreviation
+  static String _monthShortName(int m) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    if (m >= 1 && m <= 12) return months[m - 1];
+    return 'Jan';
+  }
+
   /// Factory from Map with Firestore-safe parsing
   factory TransactionModel.fromMap(
     Map<String, dynamic> map, [
@@ -252,7 +266,7 @@ class TransactionModel {
     final rawId = map['id'];
     final rawSubtotal = map['subtotal'];
     final rawTax = map['tax'];
-    final rawTotal = map['total'];
+    final rawTotal = map['total'] ?? map['totalAmount'] ?? map['total_amount'];
 
     List<TransactionItemModel> parsedItems = items ?? [];
     if (parsedItems.isEmpty && map['items'] is List) {
@@ -262,33 +276,81 @@ class TransactionModel {
           .toList();
     }
 
+    // Parse Invoice Number
+    String invNumber = (map['invoice_number'] as String?) ??
+        (map['invoiceNumber'] as String?) ??
+        (map['orderId'] as String?) ??
+        (map['order_id'] as String?) ??
+        '';
+    if (invNumber.isEmpty && docId != null) {
+      invNumber = docId.startsWith('tx_') ? '#INV-${docId.substring(3)}' : docId;
+    }
+    if (invNumber.isEmpty) {
+      final now = DateTime.now();
+      invNumber = '#INV-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-${(rawId ?? now.millisecondsSinceEpoch)}';
+    }
+
+    // Parse Date Time
+    String dtStr = (map['date_time'] as String?) ??
+        (map['dateTime'] as String?) ??
+        (map['date'] as String?) ??
+        '';
+    if (dtStr.isEmpty) {
+      final createdRaw = map['createdAt'] ?? map['timestamp'];
+      if (createdRaw is Timestamp) {
+        final d = createdRaw.toDate();
+        dtStr = '${d.day} ${_monthShortName(d.month)} ${d.year}, ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+      } else if (createdRaw is String && createdRaw.isNotEmpty) {
+        final parsed = DateTime.tryParse(createdRaw);
+        if (parsed != null) {
+          dtStr = '${parsed.day} ${_monthShortName(parsed.month)} ${parsed.year}, ${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}';
+        } else {
+          dtStr = createdRaw;
+        }
+      } else {
+        final now = DateTime.now();
+        dtStr = '${now.day} ${_monthShortName(now.month)} ${now.year}, ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+      }
+    }
+
+    // Parse Payment Method
+    String payMethod = (map['payment_method'] as String?) ??
+        (map['paymentMethod'] as String?) ??
+        (map['paymentChannel'] as String?) ??
+        (map['method'] as String?) ??
+        'Tunai (Cash)';
+    if (payMethod.toLowerCase() == 'cash' || payMethod.toLowerCase() == 'tunai') {
+      payMethod = 'Tunai di Kasir (Cash)';
+    } else if (payMethod.toLowerCase() == 'wallet' || payMethod.toLowerCase() == 'qris' || payMethod.toLowerCase().contains('qris')) {
+      payMethod = 'Digital Wallet (QRIS)';
+    } else if (payMethod.toLowerCase() == 'gopay') {
+      payMethod = 'Digital Wallet (GoPay)';
+    }
+
+    final custName = (map['customer_name'] as String?) ??
+        (map['customerName'] as String?) ??
+        (map['customer'] as String?) ??
+        'Pelanggan Umum';
+
+    final tableNum = (map['table_number'] as String?) ??
+        (map['tableNumber'] as String?) ??
+        (map['table'] as String?) ??
+        '-';
+
     return TransactionModel(
       id: rawId is num
           ? rawId.toInt()
           : (rawId != null ? int.tryParse(rawId.toString()) : null),
       docId: docId ?? map['doc_id'] as String? ?? map['docId'] as String?,
-      invoiceNumber: (map['invoice_number'] as String?) ??
-          (map['invoiceNumber'] as String?) ??
-          '',
-      dateTime: (map['date_time'] as String?) ??
-          (map['dateTime'] as String?) ??
-          (map['date'] as String?) ??
-          '',
+      invoiceNumber: invNumber,
+      dateTime: dtStr,
       cashierName: (map['cashier_name'] as String?) ??
           (map['cashierName'] as String?) ??
           (map['cashier'] as String?) ??
-          '',
-      paymentMethod: (map['payment_method'] as String?) ??
-          (map['paymentMethod'] as String?) ??
-          (map['method'] as String?) ??
-          '',
-      customerName: (map['customer_name'] as String?) ??
-          (map['customerName'] as String?) ??
-          (map['customer'] as String?) ??
-          '',
-      tableNumber: (map['table_number'] as String?) ??
-          (map['tableNumber'] as String?) ??
-          '-',
+          'Kasir',
+      paymentMethod: payMethod,
+      customerName: custName,
+      tableNumber: tableNum,
       subtotal: rawSubtotal is num
           ? rawSubtotal.toInt()
           : (int.tryParse(rawSubtotal?.toString() ?? '0') ?? 0),
@@ -312,16 +374,24 @@ class TransactionModel {
       if (id != null) 'id': id,
       if (docId != null) 'doc_id': docId,
       'invoice_number': invoiceNumber,
+      'invoiceNumber': invoiceNumber,
+      'orderId': invoiceNumber,
       'date_time': dateTime,
+      'dateTime': dateTime,
       'cashier_name': cashierName,
+      'cashierName': cashierName,
       'payment_method': paymentMethod,
+      'paymentMethod': paymentMethod,
       'customer_name': customerName,
+      'customerName': customerName,
       'table_number': tableNumber,
+      'tableNumber': tableNumber,
       'subtotal': subtotal,
       'tax': tax,
       'total': total,
       'status': status,
       'store_name': storeName,
+      'storeName': storeName,
     };
   }
 
@@ -330,27 +400,36 @@ class TransactionModel {
     return {
       'id': id ?? DateTime.now().millisecondsSinceEpoch,
       'invoice_number': invoiceNumber,
+      'invoiceNumber': invoiceNumber,
+      'orderId': invoiceNumber,
       'date_time': dateTime,
+      'dateTime': dateTime,
       'cashier_name': cashierName,
+      'cashierName': cashierName,
       'payment_method': paymentMethod,
+      'paymentMethod': paymentMethod,
       'customer_name': customerName,
+      'customerName': customerName,
       'table_number': tableNumber,
+      'tableNumber': tableNumber,
       'subtotal': subtotal,
       'tax': tax,
       'total': total,
       'status': status,
       'store_name': storeName,
+      'storeName': storeName,
       'items': items.map((e) => e.toFirestore()).toList(),
     };
   }
 
   Map<String, dynamic> toLegacyMap() {
     return {
-      'id': invoiceNumber,
+      'id': invoiceNumber.isNotEmpty ? invoiceNumber : (id != null ? '#INV-$id' : '#INV-001'),
       'date': dateTime,
       'cashier': cashierName,
       'method': paymentMethod,
       'customer': customerName,
+      'tableNumber': tableNumber,
       'items': items.map((e) => e.toLegacyMap()).toList(),
       'subtotal': subtotal,
       'tax': tax,

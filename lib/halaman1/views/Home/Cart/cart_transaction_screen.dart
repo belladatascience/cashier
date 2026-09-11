@@ -1,10 +1,14 @@
+import 'dart:async';
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/models/transaction_model.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/menu_data_store.dart';
+import 'package:cashier/halaman1/utils/transaction_data_store.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -57,6 +61,10 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
   final TextEditingController _cashInputController = TextEditingController();
   final TextEditingController _customerNameController = TextEditingController();
   final TextEditingController _tableNumberController = TextEditingController();
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  StreamSubscription<QuerySnapshot>? _menuSubscription;
 
   String _selectedCategory = 'Semua';
   String _selectedPaymentMethod = 'Tunai';
@@ -273,17 +281,91 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
     ),
   ];
 
+  List<String> get _categories {
+    final set = <String>{'Semua', 'Kopi', 'Non-Kopi', 'Makanan'};
+    for (final p in _products) {
+      if (p.category.trim().isNotEmpty) {
+        set.add(p.category.trim());
+      }
+    }
+    return set.toList();
+  }
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _loadProductsFromFirebase();
+    _listenToMenuRealtime();
     MenuDataStore.instance.menuDataNotifier.addListener(_onMenuDataUpdated);
   }
 
   void _onMenuDataUpdated() {
     if (mounted) {
       _loadProductsFromFirebase();
+    }
+  }
+
+  void _listenToMenuRealtime() {
+    try {
+      _menuSubscription?.cancel();
+      _menuSubscription = _firestore.collection('menu_items').snapshots().listen(
+        (snapshot) {
+          if (!mounted) return;
+          final List<ProductItem> fbProducts = [];
+          for (final doc in snapshot.docs) {
+            final data = doc.data();
+            final name = data['name'] as String? ?? 'Item';
+            final price = (data['price'] as num?)?.toInt() ?? 0;
+            final category = data['category'] as String? ?? 'Semua';
+            final image = (data['imagePath'] ??
+                    data['image'] ??
+                    data['imageUrl'] ??
+                    '')
+                as String;
+
+            IconData icon = Icons.restaurant;
+            final catLower = category.toLowerCase();
+            if (catLower.contains('drink') ||
+                catLower.contains('minuman') ||
+                catLower.contains('kopi') ||
+                catLower.contains('coffee')) {
+              icon = Icons.local_cafe;
+            } else if (catLower.contains('snack') ||
+                catLower.contains('camilan')) {
+              icon = Icons.fastfood;
+            } else if (catLower.contains('dessert') ||
+                catLower.contains('cake')) {
+              icon = Icons.cake;
+            }
+
+            fbProducts.add(
+              ProductItem(
+                id: doc.id,
+                name: name,
+                price: price,
+                category: category,
+                icon: icon,
+                imageUrl: image.startsWith('http')
+                    ? image
+                    : 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=300&q=80',
+              ),
+            );
+          }
+
+          if (fbProducts.isNotEmpty) {
+            setState(() {
+              _products.clear();
+              _products.addAll(fbProducts);
+            });
+          }
+        },
+        onError: (e) {
+          debugPrint('Error listening to menu_items Firestore: $e');
+        },
+      );
+    } catch (e) {
+      debugPrint('Error attaching menu stream: $e');
     }
   }
 
@@ -340,6 +422,7 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
 
   @override
   void dispose() {
+    _menuSubscription?.cancel();
     MenuDataStore.instance.menuDataNotifier.removeListener(_onMenuDataUpdated);
     _tabController.dispose();
     _searchController.dispose();
@@ -835,7 +918,7 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
     );
   }
 
-  void _showReceiptSuccessDialog(int cashGiven) {
+  void _showReceiptSuccessDialog(int cashGiven) async {
     final theme = AppTheme.instance;
     final receiptNo =
         '#POS-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
@@ -847,7 +930,11 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
     final activeCashier =
         UserDataStore.instance.userDataNotifier.value['cashierName'] ??
         UserDataStore.instance.userDataNotifier.value['name'] ??
+        _auth.currentUser?.displayName ??
         widget.cashierName;
+    final activeStore =
+        UserDataStore.instance.userDataNotifier.value['storeName'] ??
+        widget.storeName;
     final customerName = _customerNameController.text.trim().isEmpty
         ? 'Pelanggan Umum'
         : _customerNameController.text.trim();
@@ -865,7 +952,7 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
       tax: _taxAmount,
       total: _totalPayable,
       status: 'LUNAS',
-      storeName: widget.storeName,
+      storeName: activeStore.toString(),
       items: _cart
           .map(
             (c) => TransactionItemModel(
@@ -879,7 +966,14 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
           .toList(),
     );
 
-    DataBaseHelper().insertTransaction(txModel);
+    try {
+      await DataBaseHelper().insertTransaction(txModel);
+      TransactionDataStore.instance.initialize();
+    } catch (e) {
+      debugPrint('Error inserting transaction Firestore: $e');
+    }
+
+    if (!mounted) return;
 
     showDialog(
       context: context,
@@ -1317,18 +1411,12 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
                               SingleChildScrollView(
                                 scrollDirection: Axis.horizontal,
                                 child: Row(
-                                  children:
-                                      [
-                                        'Semua',
-                                        'Kopi',
-                                        'Non-Kopi',
-                                        'Makanan',
-                                      ].map((cat) {
-                                        final isSel = _selectedCategory == cat;
-                                        return Padding(
-                                          padding: const EdgeInsets.only(
-                                            right: 8.0,
-                                          ),
+                                  children: _categories.map((cat) {
+                                    final isSel = _selectedCategory == cat;
+                                    return Padding(
+                                      padding: const EdgeInsets.only(
+                                        right: 8.0,
+                                      ),
                                           child: ChoiceChip(
                                             label: Text(cat),
                                             selected: isSel,

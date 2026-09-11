@@ -807,14 +807,7 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
                           onPressed: () => Navigator.pop(context),
                         )
                       : null,
-                  title: Text(
-                    'BGA Co.',
-                    style: GoogleFonts.sourceSerif4(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: colorPrimary,
-                    ),
-                  ),
+                  title: null,
                   centerTitle: true,
                   actions: [
                     IconButton(

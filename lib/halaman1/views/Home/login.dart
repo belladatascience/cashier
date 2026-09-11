@@ -1,9 +1,9 @@
-﻿import 'package:cashier/extension/navigator.dart';
+import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/services/firebase_auth_service.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
-import 'package:cashier/halaman1/views/Home/Shift/store_showcase_screen.dart';
+import 'package:cashier/halaman1/views/Home/Shop/home_screen.dart';
 import 'package:cashier/halaman1/views/Home/register_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -142,7 +142,7 @@ class _cashierLogin1State extends State<cashierlogin1> {
 
     if (mounted) {
       Navigator.of(context, rootNavigator: true).pop(); // dismiss dialog
-      context.pushAndRemoveAll(const StoreShowcaseScreen());
+      context.pushAndRemoveAll(const HomeScreen());
     }
   }
 

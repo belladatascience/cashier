@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/models/store_model.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
 import 'package:cashier/halaman1/views/Home/Shop/home_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
@@ -20,6 +23,11 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
   final TextEditingController storeNameC = TextEditingController();
   final TextEditingController storeLocationC = TextEditingController();
   String? selectedShift;
+  bool _isLoading = false;
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  StreamSubscription<QuerySnapshot>? _storesSubscription;
 
   // Dynamic Color Tokens linked to AppTheme
   Color get colorPrimary => AppTheme.instance.primaryColor;
@@ -46,6 +54,7 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
   void initState() {
     super.initState();
     _loadStoresFromFirebase();
+    _listenToStoresRealtime();
   }
 
   Future<void> _loadStoresFromFirebase() async {
@@ -54,13 +63,52 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
       if (mounted) {
         setState(() {
           _existingStores = stores;
+          if (_existingStores.isNotEmpty && storeNameC.text.isEmpty) {
+            final firstStore = _existingStores.first;
+            storeNameC.text = firstStore.name;
+            storeLocationC.text = firstStore.location;
+            selectedShift ??= firstStore.defaultShift;
+          }
         });
       }
     } catch (_) {}
   }
 
+  void _listenToStoresRealtime() {
+    try {
+      _storesSubscription = _firestore.collection('stores').snapshots().listen(
+        (snapshot) {
+          if (!mounted) return;
+          final List<StoreModel> list = [];
+          for (final doc in snapshot.docs) {
+            final data = doc.data();
+            list.add(
+              StoreModel(
+                id: (data['id'] as num?)?.toInt() ?? 0,
+                name: (data['name'] as String?) ?? '',
+                location: (data['location'] as String?) ?? '',
+                defaultShift: (data['defaultShift'] as String?) ?? 'Pagi',
+              ),
+            );
+          }
+          if (list.isNotEmpty) {
+            setState(() {
+              _existingStores = list;
+            });
+          }
+        },
+        onError: (e) {
+          debugPrint('Firestore stores realtime stream error: $e');
+        },
+      );
+    } catch (e) {
+      debugPrint('Error attaching stores realtime listener: $e');
+    }
+  }
+
   @override
   void dispose() {
+    _storesSubscription?.cancel();
     storeNameC.dispose();
     storeLocationC.dispose();
     super.dispose();
@@ -223,7 +271,7 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
     }
   }
 
-  void _handleSubmit() async {
+  Future<void> _handleSubmit() async {
     final name = storeNameC.text.trim();
     final location = storeLocationC.text.trim();
     final shift = selectedShift;
@@ -242,16 +290,59 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
       return;
     }
 
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
+      // 1. Simpan toko ke Firestore collection 'stores'
       await DataBaseHelper().insertStore(
         StoreModel(name: name, location: location, defaultShift: shift),
       );
+
+      // 2. Simpan atau sinkronkan data user aktif di Firestore
+      final currentUser = _auth.currentUser;
+      if (currentUser != null) {
+        try {
+          await _firestore.collection('users').doc(currentUser.uid).set({
+            'storeName': name,
+            'location': location,
+            'shift': shift,
+            'lastActive': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        } catch (e) {
+          debugPrint('Error syncing active store to Firestore user: $e');
+        }
+      }
+
+      // 3. Simpan active store session ke Firestore collection 'active_session'
+      try {
+        await _firestore.collection('active_session').doc('current').set({
+          'storeName': name,
+          'location': location,
+          'shift': shift,
+          'timestamp': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('Error writing active_session to Firestore: $e');
+      }
+
+      // 4. Update data lokal reactive di UserDataStore
       await UserDataStore.instance.updateUserData({
         'storeName': name,
         'location': location,
         'shift': shift,
       });
-    } catch (_) {}
+      await UserDataStore.instance.reloadStoreList();
+    } catch (e) {
+      debugPrint('Error in _handleSubmit Firebase: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
 
     _showAppLogoSplashAndNavigate(name: name, location: location, shift: shift);
   }
@@ -570,7 +661,7 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
                           width: double.infinity,
                           height: 52,
                           child: ElevatedButton(
-                            onPressed: _handleSubmit,
+                            onPressed: _isLoading ? null : _handleSubmit,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: colorPrimary,
                               foregroundColor: colorOnPrimary,
@@ -579,15 +670,26 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                            child: Text(
-                              'Kirim',
-                              style: GoogleFonts.workSans(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.7,
-                                color: colorOnPrimary,
-                              ),
-                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : Text(
+                                    'Kirim',
+                                    style: GoogleFonts.workSans(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.7,
+                                      color: colorOnPrimary,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],

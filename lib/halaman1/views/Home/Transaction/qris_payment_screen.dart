@@ -34,6 +34,7 @@ class QrisPaymentScreen extends StatefulWidget {
 class _QrisPaymentScreenState extends State<QrisPaymentScreen> {
   late final String _activeTxId;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _qrisSubscription;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _walletSubscription;
   bool _isProcessing = false;
   int _walletBalance = 1250000;
 
@@ -60,24 +61,31 @@ class _QrisPaymentScreenState extends State<QrisPaymentScreen> {
 
     _createQrisSessionInFirestore();
     _listenToQrisStatus();
-    _loadWalletBalance();
+    _listenToWalletBalance();
   }
 
   @override
   void dispose() {
     _qrisSubscription?.cancel();
+    _walletSubscription?.cancel();
     super.dispose();
   }
 
-  Future<void> _loadWalletBalance() async {
+  void _listenToWalletBalance() {
     try {
-      final doc = await FirebaseFirestore.instance.doc('stores/wallet_info').get();
-      if (doc.exists && doc.data() != null) {
-        final bal = doc.data()!['balance'];
-        if (bal != null && mounted) {
-          setState(() => _walletBalance = (bal as num).toInt());
+      _walletSubscription = FirebaseFirestore.instance
+          .doc('stores/wallet_info')
+          .snapshots()
+          .listen((doc) {
+        if (doc.exists && doc.data() != null) {
+          final bal = doc.data()!['balance'];
+          if (bal != null && mounted) {
+            setState(() => _walletBalance = (bal as num).toInt());
+          }
         }
-      }
+      }, onError: (e) {
+        debugPrint('Firestore wallet listener error: $e');
+      });
     } catch (_) {}
   }
 
@@ -85,10 +93,12 @@ class _QrisPaymentScreenState extends State<QrisPaymentScreen> {
     try {
       final docId = _activeTxId.replaceAll('#', '').trim();
       final user = FirebaseAuth.instance.currentUser;
+      final activeStore = UserDataStore.instance.userDataNotifier.value['storeName'] ?? 'Bella Cafe';
 
       await FirebaseFirestore.instance.collection('qris_sessions').doc(docId).set({
         'invoiceNumber': _activeTxId,
         'merchantId': widget.merchantId,
+        'storeName': activeStore,
         'totalAmount': widget.totalAmount,
         'customerName': widget.customerName,
         'cashierUid': user?.uid ?? 'guest',
@@ -150,19 +160,52 @@ class _QrisPaymentScreenState extends State<QrisPaymentScreen> {
     setState(() => _isProcessing = true);
 
     final docId = _activeTxId.replaceAll('#', '').trim();
-    try {
-      await FirebaseFirestore.instance.collection('qris_sessions').doc(docId).set({
-        'status': 'paid',
-        'paidAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-    } catch (_) {}
-
+    final now = DateTime.now();
+    final dateStr =
+        '${now.day} Aug ${now.year}, ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
     final activeCashier = widget.cashierName ??
         FirebaseAuth.instance.currentUser?.displayName ??
         UserDataStore.instance.userDataNotifier.value['cashierName'] ??
         UserDataStore.instance.userDataNotifier.value['name'] ??
         UserDataStore.instance.userDataNotifier.value['accountName'] ??
         'Bella Gita Asmara';
+    final activeStore = UserDataStore.instance.userDataNotifier.value['storeName'] ?? 'Bella Cafe';
+
+    try {
+      // 1. Update QRIS session di Cloud Firestore
+      await FirebaseFirestore.instance.collection('qris_sessions').doc(docId).set({
+        'status': 'paid',
+        'paidAt': FieldValue.serverTimestamp(),
+        'settledAmount': widget.totalAmount,
+      }, SetOptions(merge: true));
+
+      // 2. Simpan transaksi resmi di Firestore
+      await FirebaseFirestore.instance.collection('transactions').doc(docId).set({
+        'invoiceNumber': _activeTxId,
+        'dateTime': dateStr,
+        'cashierName': activeCashier.toString(),
+        'paymentMethod': 'QRIS',
+        'customerName': widget.customerName.trim().isNotEmpty
+            ? widget.customerName.trim()
+            : 'Pelanggan Umum',
+        'tableNumber': '-',
+        'subtotal': (widget.totalAmount / 1.1).round(),
+        'tax': widget.totalAmount - (widget.totalAmount / 1.1).round(),
+        'total': widget.totalAmount,
+        'status': 'LUNAS',
+        'storeName': activeStore.toString(),
+        'timestamp': FieldValue.serverTimestamp(),
+        'createdAt': now.toIso8601String(),
+      }, SetOptions(merge: true));
+
+      // 3. Update saldo merchant di Firestore
+      await FirebaseFirestore.instance.doc('stores/wallet_info').set({
+        'balance': _walletBalance + widget.totalAmount,
+        'lastIncome': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Error finalizing QRIS transaction in Firestore: $e');
+    }
 
     if (!mounted) return;
 

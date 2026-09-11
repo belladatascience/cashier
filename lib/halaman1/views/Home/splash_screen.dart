@@ -1,9 +1,9 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:cashier/halaman1/utils/app_theme.dart';
 import 'package:cashier/halaman1/utils/user_data_store.dart';
-import 'package:cashier/halaman1/views/Home/Shift/store_showcase_screen.dart';
+import 'package:cashier/halaman1/views/Home/Shop/home_screen.dart';
 import 'package:cashier/halaman1/views/Home/login.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +32,7 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<Offset> _slideAnimation;
 
   late AnimationController _rotateController;
+  late AnimationController _progressController;
 
   // Status & Navigation
   int _currentStatusIndex = 0;
@@ -80,9 +81,40 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(seconds: 14),
     )..repeat();
 
-    _entranceController.forward();
+    // 3. Exact 3-Second Loading Progress Controller
+    _progressController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    );
 
-    // 3. Initialize Video Player & Firebase Session Check
+    _progressController.addListener(() {
+      if (!mounted || _hasNavigated) return;
+      final progress = _progressController.value;
+      final stepIndex = (progress * (_loadingSteps.length - 1)).floor().clamp(
+        0,
+        _loadingSteps.length - 1,
+      );
+      setState(() {
+        _currentProgress = progress;
+        _currentStatusIndex = stepIndex;
+      });
+    });
+
+    _progressController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _checkSessionAndNavigate();
+      }
+    });
+
+    _entranceController.forward();
+    _progressController.forward();
+
+    // 4. Fallback 3-Second Timer
+    _navigationTimer = Timer(const Duration(seconds: 3), () {
+      _checkSessionAndNavigate();
+    });
+
+    // 5. Initialize Video Player asynchronously
     _initializeVideo();
   }
 
@@ -103,19 +135,6 @@ class _SplashScreenState extends State<SplashScreen>
       await controller.setLooping(false);
       await controller.setVolume(1.0);
       await controller.play();
-
-      controller.addListener(_videoListener);
-
-      // Total duration of video or minimum 3.5 seconds
-      final duration = controller.value.duration;
-      final totalWait = duration > const Duration(seconds: 1)
-          ? duration + const Duration(milliseconds: 600)
-          : const Duration(milliseconds: 3500);
-
-      _navigationTimer?.cancel();
-      _navigationTimer = Timer(totalWait, () {
-        _checkSessionAndNavigate();
-      });
     } catch (e) {
       debugPrint('Error loading video: $e');
       if (mounted) {
@@ -123,53 +142,15 @@ class _SplashScreenState extends State<SplashScreen>
           _hasVideoError = true;
         });
       }
-      // If video fails to load, fallback to timer of 3.5 seconds
-      _navigationTimer?.cancel();
-      _navigationTimer = Timer(const Duration(milliseconds: 3500), () {
-        _checkSessionAndNavigate();
-      });
-    }
-  }
-
-  void _videoListener() {
-    if (!mounted || _hasNavigated) return;
-
-    final controller = _videoController;
-    if (controller == null || !controller.value.isInitialized) return;
-
-    final value = controller.value;
-    if (value.duration > const Duration(milliseconds: 300)) {
-      final progress =
-          (value.position.inMilliseconds / value.duration.inMilliseconds).clamp(
-            0.0,
-            1.0,
-          );
-
-      final stepIndex = (progress * (_loadingSteps.length - 1)).floor().clamp(
-        0,
-        _loadingSteps.length - 1,
-      );
-
-      setState(() {
-        _currentProgress = progress;
-        _currentStatusIndex = stepIndex;
-      });
-
-      // Video reaches end after playing at least 1.5 seconds
-      if (value.position >= value.duration &&
-          value.position > const Duration(milliseconds: 1500) &&
-          !value.isPlaying) {
-        _checkSessionAndNavigate();
-      }
     }
   }
 
   @override
   void dispose() {
     _navigationTimer?.cancel();
+    _progressController.dispose();
     final controller = _videoController;
     if (controller != null) {
-      controller.removeListener(_videoListener);
       controller.dispose();
     }
     _entranceController.dispose();
@@ -196,7 +177,7 @@ class _SplashScreenState extends State<SplashScreen>
         'email': email,
       });
 
-      targetScreen = const StoreShowcaseScreen();
+      targetScreen = const HomeScreen();
     } else {
       // User not logged in, go to Login Screen
       targetScreen = const cashierlogin1();
