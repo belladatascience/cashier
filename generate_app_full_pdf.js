@@ -1,0 +1,696 @@
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+const htmlContent = `<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Komprehensif & Dokumentasi Sistem Aplikasi Cashier Latte</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 14mm 12mm 14mm 12mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1e293b;
+      background-color: #ffffff;
+      line-height: 1.5;
+      font-size: 9.5pt;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .page-break {
+      page-break-before: always;
+      break-before: page;
+    }
+
+    .avoid-break {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    /* COVER / HEADER BANNER */
+    .cover-container {
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 80%, #6366f1 100%);
+      color: #ffffff;
+      padding: 24px 22px;
+      border-radius: 14px;
+      margin-bottom: 16px;
+      box-shadow: 0 6px 18px rgba(67, 56, 202, 0.22);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .cover-title h1 {
+      font-size: 20pt;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+      color: #ffffff;
+    }
+
+    .cover-title p {
+      font-size: 10.5pt;
+      color: #c7d2fe;
+      font-weight: 500;
+    }
+
+    .cover-badge {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #ffffff;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 8.5pt;
+      font-weight: 600;
+      text-align: right;
+      line-height: 1.4;
+    }
+
+    /* SECTION TITLE */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .section-number {
+      background: #4338ca;
+      color: #ffffff;
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10pt;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .section-header h2 {
+      font-size: 12.5pt;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.01em;
+    }
+
+    /* CARDS */
+    .card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .card-title {
+      font-size: 10.5pt;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .file-path {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8pt;
+      background: #f1f5f9;
+      color: #0f766e;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      font-weight: 600;
+    }
+
+    /* BADGES */
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 7.5pt;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .badge-c { background: #dcfce7; color: #166534; }
+    .badge-r { background: #e0f2fe; color: #075985; }
+    .badge-u { background: #fef9c3; color: #854d0e; }
+    .badge-d { background: #fee2e2; color: #991b1b; }
+    .badge-fb { background: #ffedd5; color: #c2410c; }
+    .badge-auth { background: #ede9fe; color: #6b21a8; }
+    .badge-pos { background: #fae8ff; color: #86198f; }
+
+    /* TABLES */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6px;
+      font-size: 8.5pt;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #475569;
+      font-weight: 700;
+      text-align: left;
+      padding: 6px 8px;
+      border-bottom: 2px solid #cbd5e1;
+    }
+
+    td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #fafafa;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8pt;
+      background: #f1f5f9;
+      color: #334155;
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+
+    /* CODE BOX */
+    .code-box {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8pt;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-top: 6px;
+      line-height: 1.45;
+    }
+
+    .kw { color: #f472b6; }
+    .fn { color: #38bdf8; }
+    .st { color: #a3e635; }
+    .cm { color: #94a3b8; font-style: italic; }
+
+    /* GRID */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* FEATURE HIGHLIGHT BOX */
+    .feature-box {
+      background: #f8fafc;
+      border-left: 4px solid #4338ca;
+      padding: 10px 12px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 8px;
+    }
+
+    .feature-box h4 {
+      font-size: 9.5pt;
+      color: #1e293b;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+
+    .feature-box p {
+      font-size: 8pt;
+      color: #64748b;
+    }
+
+    /* FOOTER */
+    .footer {
+      border-top: 1px solid #e2e8f0;
+      margin-top: 18px;
+      padding-top: 8px;
+      font-size: 7.5pt;
+      color: #94a3b8;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- COVER BANNER -->
+  <div class="cover-container">
+    <div class="cover-title">
+      <h1>Laporan Teknis Aplikasi Cashier Latte</h1>
+      <p>Sistem Point of Sale (POS), Manajemen Shift & Integrasi Cloud Firestore</p>
+    </div>
+    <div class="cover-badge">
+      <div>Framework: Flutter (Dart)</div>
+      <div>Platform: Multiplatform (Android/Windows/iOS/Web)</div>
+      <div>Arsitektur: Hybrid Offline-First</div>
+    </div>
+  </div>
+
+  <!-- RINGKASAN APLIKASI -->
+  <div class="card avoid-break" style="border-left: 4px solid #6366f1;">
+    <div class="card-title">
+      <span>Ikhtisar Sistem (Executive Summary)</span>
+      <span class="badge badge-pos">POS & Store Management</span>
+    </div>
+    <p style="font-size: 8.5pt; color: #475569; margin-bottom: 10px;">
+      <strong>Cashier Latte (BGA Co. Cashier)</strong> adalah aplikasi kasir pintar modern yang dirancang untuk kafe, resto, dan retail. Aplikasi ini menggabungkan keandalan operasional kasir secara offline melalui <strong>SQLite & In-Memory DataStore</strong> dengan kekuatan kolaborasi multi-perangkat via <strong>Firebase Cloud Firestore & Firebase Auth</strong>.
+    </p>
+    <div class="grid-3">
+      <div class="feature-box">
+        <h4>1. Kasir & Transaksi POS</h4>
+        <p>Katalog produk, keranjang belanja dinamis, kalkulasi pajak, diskon, dan cetak struk resmi.</p>
+      </div>
+      <div class="feature-box">
+        <h4>2. Multi-Store & Shifts</h4>
+        <p>Manajemen multi-cabang toko, rotasi shift kasir (pagi/sore), absensi, dan rekonsiliasi kas harian.</p>
+      </div>
+      <div class="feature-box">
+        <h4>3. Realtime Cloud Sync</h4>
+        <p>Sinkronisasi transaksi instan ke Firestore, sesi QRIS realtime, dan analitik interaksi staf.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEKSI 1: FITUR UTAMA & ALUR KERJA -->
+  <div class="section-header avoid-break">
+    <div class="section-number">1</div>
+    <h2>Struktur Modul & Alur Bisnis Aplikasi</h2>
+  </div>
+
+  <div class="grid-2 avoid-break">
+    <div class="card">
+      <div class="card-title">
+        <span>A. Modul Kasir & Pemesanan (Shop & Cart)</span>
+        <span class="file-path">views/Home/Shop/ & Cart/</span>
+      </div>
+      <ul style="padding-left: 16px; font-size: 8pt; color: #334155; line-height: 1.6;">
+        <li><strong>Katalog Produk:</strong> Filter kategori (Makanan, Minuman, Snack), pencarian nama produk, dan badge harga.</li>
+        <li><strong>Manajemen Cart:</strong> Tambah/kurang item, kalkulasi otomatis subtotal & pajak (10%), opsi nomor meja & nama pelanggan.</li>
+        <li><strong>Draft Pesanan:</strong> Menyimpan pesanan tertunda (*hold order*) dan memulihkannya kembali kapan saja.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>B. Modul Checkout & Pembayaran</span>
+        <span class="file-path">views/Home/Transaction/</span>
+      </div>
+      <ul style="padding-left: 16px; font-size: 8pt; color: #334155; line-height: 1.6;">
+        <li><strong>Tunai (Cash):</strong> Validasi nominal uang diterima, kalkulasi uang kembalian instan, dan dialog "Pesanan Selesai!".</li>
+        <li><strong>QRIS & E-Wallet:</strong> Sesi QRIS interaktif via Firestore, deteksi pelunasan realtime, dan top-up saldo merchant.</li>
+        <li><strong>Struk & Nota:</strong> Menampilkan identitas Toko/Outlet aktif, nomor transaksi unik, nama kasir, dan rincian belanja.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="grid-2 avoid-break">
+    <div class="card">
+      <div class="card-title">
+        <span>C. Manajemen Shift & Staf Kasir</span>
+        <span class="file-path">views/Home/Shift/</span>
+      </div>
+      <ul style="padding-left: 16px; font-size: 8pt; color: #334155; line-height: 1.6;">
+        <li><strong>Jadwal Shift:</strong> Pembagian shift pagi (07:00 - 15:00) & shift sore (15:00 - 23:00) terintegrasi kalender.</li>
+        <li><strong>Status Kehadiran:</strong> Pemantauan status hadir, istirahat, izin, dan rekap total staf aktif.</li>
+        <li><strong>CRUD Staf & Toko:</strong> Tambah, ubah, dan hapus jadwal serta outlet cabang secara cloud.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>D. Manajemen Menu & Katalog (Discover)</span>
+        <span class="file-path">views/Home/Discover/</span>
+      </div>
+      <ul style="padding-left: 16px; font-size: 8pt; color: #334155; line-height: 1.6;">
+        <li><strong>Keamanan PIN:</strong> Proteksi akses katalog menu dengan autentikasi PIN kasir / manajer.</li>
+        <li><strong>CRUD Menu:</strong> Tambah menu baru, ganti gambar, ubah harga jual, dan kelola kategori produk.</li>
+        <li><strong>Toggle Availability:</strong> Mengaktifkan atau menonaktifkan ketersediaan stok produk secara instan.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- SEKSI 2: IMPLEMENTASI CRUD -->
+  <div class="section-header avoid-break">
+    <div class="section-number">2</div>
+    <h2>Implementasi Lengkap Operasi CRUD (Create, Read, Update, Delete)</h2>
+  </div>
+
+  <div class="card avoid-break">
+    <div class="card-title">
+      <span>A. Database Utama Kasir (DatabaseHelper - SQLite & Firestore)</span>
+      <span class="file-path">lib/halaman1/database/database_helper.dart</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 14%;">Operasi</th>
+          <th style="width: 33%;">Method / Fungsi</th>
+          <th style="width: 25%;">Model & Entitas</th>
+          <th>Tujuan & Implementasi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge badge-c">CREATE</span></td>
+          <td>
+            <code>insertTransaction(TransactionModel)</code><br>
+            <code>insertStaff(StaffModel)</code><br>
+            <code>insertStore(StoreModel)</code><br>
+            <code>insertMenuItem(MenuItemModel)</code>
+          </td>
+          <td>
+            <code>TransactionModel</code><br>
+            <code>StaffModel</code><br>
+            <code>StoreModel</code><br>
+            <code>MenuItemModel</code>
+          </td>
+          <td>Menyimpan transaksi penjualan baru beserta item, mendaftarkan staf kasir, membuka cabang toko baru, dan menambah item menu ke katalog.</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-r">READ</span></td>
+          <td>
+            <code>getAllTransactions()</code><br>
+            <code>getAllStaff()</code> / <code>loginStaff()</code><br>
+            <code>getAllStores()</code><br>
+            <code>getAllMenuItems()</code>
+          </td>
+          <td>
+            <code>transactions</code><br>
+            <code>staff</code>, <code>users</code><br>
+            <code>stores</code><br>
+            <code>categories</code>
+          </td>
+          <td>Mengambil riwayat transaksi untuk laporan keuangan, memverifikasi PIN login, mengambil daftar toko cabang aktif, dan menampilkan daftar produk.</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-u">UPDATE</span></td>
+          <td>
+            <code>updateTransaction(...)</code><br>
+            <code>updateStaff(StaffModel)</code><br>
+            <code>updateMenuItem(...)</code><br>
+            <code>closeShift(...)</code>
+          </td>
+          <td>
+            <code>transactions</code><br>
+            <code>staff</code>, <code>menu_items</code><br>
+            <code>shifts</code>, <code>users</code>
+          </td>
+          <td>Memperbarui status pembayaran transaksi, mengubah profil staf/PIN, memperbarui harga/stok menu, dan merekonsiliasi kas fisik vs sistem saat tutup shift.</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-d">DELETE</span></td>
+          <td>
+            <code>deleteTransaction(int id)</code><br>
+            <code>deleteStaff(int id)</code><br>
+            <code>deleteStore(int id, {docId, name})</code><br>
+            <code>deleteMenuItem(int id)</code>
+          </td>
+          <td>
+            <code>transactions</code><br>
+            <code>staff</code>, <code>stores</code><br>
+            <code>menu_items</code><br>
+            <code>draft_orders</code>
+          </td>
+          <td>Menghapus data transaksi yang dibatalkan, menghapus akun staf, menghapus toko cabang dari SQLite & Firestore, dan membersihkan produk dari katalog.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid-2 avoid-break">
+    <div class="card">
+      <div class="card-title">
+        <span>B. Modul CRUD Latihan User (SQLite)</span>
+      </div>
+      <p style="font-size: 8pt; color: #64748b; margin-bottom: 6px;">
+        File: <span class="file-path">lib/8SQFLITE_CRUD/database/db_helper.dart</span>
+      </p>
+      <table>
+        <thead><tr><th>Aksi</th><th>Method</th><th>Keterangan</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge badge-c">CREATE</span></td><td><code>saveUser(UserModel)</code></td><td>Registrasi user baru</td></tr>
+          <tr><td><span class="badge badge-r">READ</span></td><td><code>getUser()</code>, <code>getLoginUser()</code></td><td>Ambil list & validasi login</td></tr>
+          <tr><td><span class="badge badge-u">UPDATE</span></td><td><code>updateUser(UserModel)</code></td><td>Update info user/password</td></tr>
+          <tr><td><span class="badge badge-d">DELETE</span></td><td><code>deleteUser(int id)</code></td><td>Hapus data pengguna</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>C. Katalog Menu & Kategori (DataStore)</span>
+      </div>
+      <p style="font-size: 8pt; color: #64748b; margin-bottom: 6px;">
+        File: <span class="file-path">lib/halaman1/utils/menu_data_store.dart</span>
+      </p>
+      <table>
+        <thead><tr><th>Aksi</th><th>Method</th><th>Keterangan</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge badge-c">CREATE</span></td><td><code>addItem()</code>, <code>addCategory()</code></td><td>Tambah produk & kategori</td></tr>
+          <tr><td><span class="badge badge-r">READ</span></td><td><code>getMenuItems()</code></td><td>Ambil menu aktif/filter</td></tr>
+          <tr><td><span class="badge badge-u">UPDATE</span></td><td><code>updateItem()</code>, <code>toggleItem()</code></td><td>Ubah harga & status stok</td></tr>
+          <tr><td><span class="badge badge-d">DELETE</span></td><td><code>deleteItem()</code>, <code>deleteCategory()</code></td><td>Hapus item dari katalog</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SEKSI 3: INTEGRASI FIREBASE -->
+  <div class="section-header avoid-break">
+    <div class="section-number">3</div>
+    <h2>Arsitektur Layanan Firebase Cloud</h2>
+  </div>
+
+  <div class="card avoid-break">
+    <div class="card-title">
+      <span>A. Konfigurasi Multi-Platform & Cache Persistence</span>
+      <span class="file-path">lib/main.dart & lib/firebase_options.dart</span>
+    </div>
+    <p style="font-size: 8.5pt; color: #475569; margin-bottom: 6px;">
+      Inisialisasi Firebase Core dilakukan saat startup aplikasi di fungsi <code>main()</code> dengan konfigurasi multi-platform (Android, iOS, Windows, Web, macOS) dan aktivasi cache offline unlimited:
+    </p>
+    <div class="code-box">
+<span class="cm">// lib/main.dart (Baris 32-48)</span>
+<span class="kw">await</span> Firebase.<span class="fn">initializeApp</span>(
+  options: DefaultFirebaseOptions.currentPlatformSafe,
+);
+
+<span class="cm">// Konfigurasi Offline Persistence Cloud Firestore</span>
+FirebaseFirestore.instance.settings = <span class="kw">const</span> <span class="fn">Settings</span>(
+  persistenceEnabled: <span class="kw">true</span>,
+  cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+);
+    </div>
+  </div>
+
+  <div class="card avoid-break">
+    <div class="card-title">
+      <span>B. Koleksi Cloud Firestore & Sinkronisasi Realtime</span>
+      <span class="file-path">lib/random_picker/ & lib/halaman1/utils/</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 22%;">Koleksi Firestore</th>
+          <th style="width: 28%;">Method / Operasi</th>
+          <th style="width: 22%;">Tipe Interaksi</th>
+          <th>Penjelasan Fungsi Cloud</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>transactions</code></td>
+          <td><code>doc(txId).set(...)</code></td>
+          <td><span class="badge badge-fb">CLOUD WRITE</span></td>
+          <td>Mencatat detail invoice pembayaran kasir secara aman ke cloud database.</td>
+        </tr>
+        <tr>
+          <td><code>qris_sessions</code></td>
+          <td><code>doc(docId).snapshots()</code></td>
+          <td><span class="badge badge-r">REALTIME STREAM</span></td>
+          <td>Mendengarkan event pelunasan QRIS secara langsung untuk konfirmasi bayar otomatis.</td>
+        </tr>
+        <tr>
+          <td><code>stores</code></td>
+          <td><code>_storesCol.snapshots()</code></td>
+          <td><span class="badge badge-fb">LIVE SYNC</span></td>
+          <td>Sinkronisasi live penambahan, pembaruan, dan penghapusan outlet cabang toko.</td>
+        </tr>
+        <tr>
+          <td><code>picker_state</code></td>
+          <td><code>saveStateToFirebase(...)</code></td>
+          <td><span class="badge badge-fb">STATE SYNC</span></td>
+          <td>Menyimpan konfigurasi dan tema roda putar staf secara realtime antar-kasir.</td>
+        </tr>
+        <tr>
+          <td><code>button_analytics</code></td>
+          <td><code>collection(...).add(...)</code></td>
+          <td><span class="badge badge-auth">EVENT LOGGING</span></td>
+          <td>Mencatat metrik interaksi tombol dan user tracking via <code>FirebaseAsyncButton</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- SEKSI 4: STRUKTUR BERKAS & KESIMPULAN -->
+  <div class="section-header avoid-break">
+    <div class="section-number">4</div>
+    <h2>Peta Berkas Kode (File Structure) & Desain Arsitektur</h2>
+  </div>
+
+  <div class="card avoid-break">
+    <div class="card-title">
+      <span>Daftar Berkas Inti Proyek Cashier Latte</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 38%;">Lokasi Berkas</th>
+          <th style="width: 26%;">Komponen Utama</th>
+          <th>Fungsi & Tanggung Jawab</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>lib/main.dart</code></td>
+          <td>Application Entry Point</td>
+          <td>Inisialisasi Firebase, tema aplikasi, dan routing utama.</td>
+        </tr>
+        <tr>
+          <td><code>lib/firebase_options.dart</code></td>
+          <td>Firebase Configuration</td>
+          <td>Konfigurasi kredensial platform Android, iOS, Windows, Web.</td>
+        </tr>
+        <tr>
+          <td><code>lib/halaman1/database/database_helper.dart</code></td>
+          <td>Database Helper</td>
+          <td>Sentral CRUD transaksi, staf, shifts, menu, dan stores.</td>
+        </tr>
+        <tr>
+          <td><code>lib/halaman1/utils/user_data_store.dart</code></td>
+          <td>User Data Store</td>
+          <td>Manajemen sesi user aktif, profil kasir, dan daftar toko.</td>
+        </tr>
+        <tr>
+          <td><code>lib/halaman1/utils/menu_data_store.dart</code></td>
+          <td>Menu Data Store</td>
+          <td>State katalog makanan, minuman, harga, dan ketersediaan.</td>
+        </tr>
+        <tr>
+          <td><code>lib/halaman1/views/Home/Shop/home_screen.dart</code></td>
+          <td>Main POS Dashboard</td>
+          <td>Layar utama kasir, grid produk, keranjang, dan laporan transaksi.</td>
+        </tr>
+        <tr>
+          <td><code>lib/halaman1/views/Home/Transaction/checkout_screen.dart</code></td>
+          <td>Checkout Screen</td>
+          <td>Kalkulasi pembayaran tunai, dialog sukses, dan rincian struk toko.</td>
+        </tr>
+        <tr>
+          <td><code>lib/halaman1/views/Home/Transaction/qris_payment_screen.dart</code></td>
+          <td>QRIS Payment Screen</td>
+          <td>Sesi QRIS dinamis & sinkronisasi saldo merchant via Firestore.</td>
+        </tr>
+        <tr>
+          <td><code>lib/halaman1/views/Home/Shift/staff_shift_screen.dart</code></td>
+          <td>Shift Management</td>
+          <td>Kalender shift, roster staf hadir/istirahat, dan manajemen toko.</td>
+        </tr>
+        <tr>
+          <td><code>lib/random_picker/picker_logic.dart</code></td>
+          <td>Random Wheel Service</td>
+          <td>Logika roda putar staf acak & histori pemenang Firestore.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card avoid-break" style="background: #fdfefe; border-left: 4px solid #16a34a;">
+    <div class="card-title" style="margin-bottom: 4px;">
+      <span>Kesimpulan & Keunggulan Sistem</span>
+      <span class="badge badge-c">Production Ready</span>
+    </div>
+    <p style="font-size: 8.5pt; color: #334155; line-height: 1.6;">
+      Sistem <strong>Cashier Latte</strong> berhasil menggabungkan kecepatan pemrosesan kasir di sisi klien dengan keandalan persistensi data berbasis Cloud Firestore. Dengan arsitektur data terisolasi, validasi transaksi yang ketat, dan dukungan kustomisasi nama toko serta cetak struk dinamis, aplikasi ini siap digunakan secara optimal pada berbagai skenario bisnis kafe dan ritel.
+    </p>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div>Buku Panduan & Dokumentasi Teknis - Aplikasi Cashier Latte (BGA Co.)</div>
+    <div>Dicetak Secara Otomatis ke Format PDF | Flutter & Firebase Architecture</div>
+  </div>
+
+</body>
+</html>
+`;
+
+const htmlFilePath = path.join(__dirname, 'Buku_Panduan_Dan_Laporan_Aplikasi_Cashier_Latte.html');
+const pdfFilePath = path.join(__dirname, 'Buku_Panduan_Dan_Laporan_Aplikasi_Cashier_Latte.pdf');
+
+fs.writeFileSync(htmlFilePath, htmlContent, 'utf8');
+console.log('HTML file created at: ' + htmlFilePath);
+
+const chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+const edgePath = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
+
+let browserPath = '';
+if (fs.existsSync(chromePath)) {
+  browserPath = chromePath;
+} else if (fs.existsSync(edgePath)) {
+  browserPath = edgePath;
+}
+
+if (!browserPath) {
+  console.error('No suitable browser found for PDF rendering');
+  process.exit(1);
+}
+
+console.log('Using browser binary: ' + browserPath);
+
+const fileUrl = 'file:///' + htmlFilePath.replace(/\\/g, '/');
+const cmd = `"${browserPath}" --headless=new --disable-gpu --no-pdf-header-footer --print-to-pdf="${pdfFilePath}" "${fileUrl}"`;
+
+console.log('Executing command to generate PDF...');
+try {
+  execSync(cmd, { stdio: 'inherit' });
+  console.log('PDF successfully generated at: ' + pdfFilePath);
+} catch (err) {
+  console.error('Error generating PDF:', err);
+  process.exit(1);
+}

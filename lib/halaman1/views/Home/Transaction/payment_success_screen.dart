@@ -66,6 +66,14 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
         : 'Bella Gita Asmara';
   }
 
+  String get _activeStoreName {
+    final stored =
+        UserDataStore.instance.userDataNotifier.value['storeName'];
+    return stored != null && stored.toString().trim().isNotEmpty
+        ? stored.toString().trim()
+        : 'Bella Cafe';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -303,6 +311,10 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                           padding: EdgeInsets.symmetric(vertical: 14),
                           child: Divider(),
                         ),
+
+                        // Store / Toko
+                        _buildDetailRow('Toko / Outlet', _activeStoreName),
+                        const SizedBox(height: 12),
 
                         // Cashier
                         _buildDetailRow('Kasir', _activeCashierName),

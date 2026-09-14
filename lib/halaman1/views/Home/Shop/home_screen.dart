@@ -2528,9 +2528,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                               ? '-'
                                               : _cartTableController.text
                                                     .trim();
+                                          final activeStore =
+                                              UserDataStore
+                                                      .instance
+                                                      .userDataNotifier
+                                                      .value['storeName']
+                                                  as String? ??
+                                              widget.storeName;
                                           return CheckoutScreen(
                                             cartItems: List.from(_cartItems),
-                                            storeName: widget.storeName,
+                                            storeName: activeStore,
                                             customerName: buyerName,
                                             tableNumber: tableNo,
                                             onOrderCompleted: () {
@@ -3133,7 +3140,33 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'ID Transaksi:',
+                    'Toko / Outlet:',
+                    style: GoogleFonts.workSans(
+                      fontSize: 12,
+                      color: colorOnSurfaceVariant,
+                    ),
+                  ),
+                  Text(
+                    tx['storeName'] ??
+                        UserDataStore
+                            .instance
+                            .userDataNotifier
+                            .value['storeName'] ??
+                        widget.storeName,
+                    style: GoogleFonts.workSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: colorPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'ID:',
                     style: GoogleFonts.workSans(
                       fontSize: 12,
                       color: colorOnSurfaceVariant,

@@ -86,6 +86,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return 0;
   }
 
+  String get _currentStoreName {
+    final fromUserData = (UserDataStore.instance.userDataNotifier.value['storeName'] as String?)?.trim();
+    if (fromUserData != null && fromUserData.isNotEmpty) {
+      return fromUserData;
+    }
+    final fromWidget = widget.storeName.trim();
+    if (fromWidget.isNotEmpty && fromWidget != 'Heritage Hearth') {
+      return fromWidget;
+    }
+    return 'Bella Cafe';
+  }
+
   String _formatCurrency(int amount) {
     return amount.toString().replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
@@ -150,7 +162,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         tax: _tax,
         total: _total,
         status: 'LUNAS',
-        storeName: widget.storeName.trim().isNotEmpty ? widget.storeName.trim() : 'Bella Cafe',
+        storeName: _currentStoreName,
         items: txItems,
       );
 
@@ -269,7 +281,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Terima kasih telah berbelanja di ${widget.storeName}.',
+              'Terima kasih telah berbelanja di $_currentStoreName.',
               textAlign: TextAlign.center,
               style: GoogleFonts.workSans(
                 fontSize: 13,
@@ -285,6 +297,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
               child: Column(
                 children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Toko / Outlet:',
+                        style: GoogleFonts.workSans(
+                          fontSize: 12,
+                          color: colorOnSurfaceVariant,
+                        ),
+                      ),
+                      Text(
+                        _currentStoreName,
+                        style: GoogleFonts.workSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: colorPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [

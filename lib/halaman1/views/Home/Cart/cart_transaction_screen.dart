@@ -1038,6 +1038,32 @@ class _CartTransactionScreenState extends State<CartTransactionScreen>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
+                            'Toko / Outlet:',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: theme.outlineColor,
+                            ),
+                          ),
+                          Text(
+                            UserDataStore
+                                    .instance
+                                    .userDataNotifier
+                                    .value['storeName'] ??
+                                widget.storeName ??
+                                'Bella Cafe',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: theme.primaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
                             'No. Struk:',
                             style: TextStyle(
                               fontSize: 12,

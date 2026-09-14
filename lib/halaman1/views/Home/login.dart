@@ -1,4 +1,4 @@
-import 'package:cashier/extension/navigator.dart';
+﻿import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/services/firebase_auth_service.dart';
 import 'package:cashier/halaman1/utils/app_localization.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
@@ -151,7 +151,10 @@ class _cashierLogin1State extends State<cashierlogin1> {
     final pass = passwordC.text.trim();
 
     if (user.isEmpty || pass.isEmpty) {
-      _showSnackBar('Harap isi ID Kasir / Email dan Kata Sandi!', isError: true);
+      _showSnackBar(
+        'Harap isi ID Kasir / Email dan Kata Sandi!',
+        isError: true,
+      );
       return;
     }
 
@@ -169,7 +172,8 @@ class _cashierLogin1State extends State<cashierlogin1> {
       if (!mounted) return;
 
       if (firebaseResult['success'] == true) {
-        final profile = firebaseResult['profile'] as Map<String, dynamic>? ?? {};
+        final profile =
+            firebaseResult['profile'] as Map<String, dynamic>? ?? {};
         final displayName = (profile['nama'] as String?)?.isNotEmpty == true
             ? profile['nama'] as String
             : (user.toLowerCase() == 'admin' ? 'Administrator' : 'Kasir');
@@ -199,7 +203,8 @@ class _cashierLogin1State extends State<cashierlogin1> {
           _isLoading = false;
         });
         _showSnackBar(
-          firebaseResult['message'] ?? 'Login gagal! Periksa email/ID dan kata sandi.',
+          firebaseResult['message'] ??
+              'Login gagal! Periksa email/ID dan kata sandi.',
           isError: true,
         );
       }
@@ -245,7 +250,9 @@ class _cashierLogin1State extends State<cashierlogin1> {
         builder: (context, setDialogState) {
           return AlertDialog(
             backgroundColor: colorSurfaceContainerLowest,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: Text(
               'Reset Kata Sandi Firebase',
               style: GoogleFonts.sourceSerif4(
@@ -294,18 +301,25 @@ class _cashierLogin1State extends State<cashierlogin1> {
                     : () async {
                         final email = resetEmailController.text.trim();
                         if (email.isEmpty || !email.contains('@')) {
-                          _showSnackBar('Masukkan format email yang valid!', isError: true);
+                          _showSnackBar(
+                            'Masukkan format email yang valid!',
+                            isError: true,
+                          );
                           return;
                         }
 
                         setDialogState(() => isSending = true);
 
                         try {
-                          await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+                          await FirebaseAuth.instance.sendPasswordResetEmail(
+                            email: email,
+                          );
                           if (dialogCtx.mounted) {
                             Navigator.pop(dialogCtx);
                           }
-                          _showSnackBar('Link reset kata sandi telah dikirim ke $email');
+                          _showSnackBar(
+                            'Link reset kata sandi telah dikirim ke $email',
+                          );
                         } on FirebaseAuthException catch (e) {
                           setDialogState(() => isSending = false);
                           String err = 'Gagal mengirim email reset';
@@ -328,11 +342,16 @@ class _cashierLogin1State extends State<cashierlogin1> {
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : Text(
                         'Kirim Link',
-                        style: GoogleFonts.workSans(fontWeight: FontWeight.bold),
+                        style: GoogleFonts.workSans(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
               ),
             ],

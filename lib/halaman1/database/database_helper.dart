@@ -864,8 +864,8 @@ class DataBaseHelper {
       final snapshot = await _storesCol.get();
       final items = snapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
-        return StoreModel.fromMap(data);
-      }).toList();
+        return StoreModel.fromMap(data, docId: doc.id);
+      }).where((s) => s.name.trim().isNotEmpty).toList();
       items.sort((a, b) => (a.id ?? 0).compareTo(b.id ?? 0));
       return items;
     } catch (e) {
@@ -887,12 +887,44 @@ class DataBaseHelper {
     }
   }
 
-  Future<bool> deleteStore(int id) async {
+  Future<bool> deleteStore(int id, {String? docId, String? name}) async {
     try {
-      final snapshot = await _storesCol.where('id', isEqualTo: id).get();
-      for (final doc in snapshot.docs) {
-        await doc.reference.delete();
+      if (docId != null && docId.isNotEmpty) {
+        try {
+          await _storesCol.doc(docId).delete();
+        } catch (_) {}
       }
+      if (id > 0) {
+        try {
+          await _storesCol.doc('store_$id').delete();
+        } catch (_) {}
+        final snapshot = await _storesCol.where('id', isEqualTo: id).get();
+        for (final doc in snapshot.docs) {
+          await doc.reference.delete();
+        }
+      }
+      if (name != null && name.trim().isNotEmpty) {
+        final trimmed = name.trim();
+        final nameSnap = await _storesCol.where('name', isEqualTo: trimmed).get();
+        for (final doc in nameSnap.docs) {
+          await doc.reference.delete();
+        }
+        final slugId = trimmed.toLowerCase().replaceAll(RegExp(r'\s+'), '_');
+        try {
+          await _storesCol.doc(slugId).delete();
+        } catch (_) {}
+      }
+      // Clean up any empty-name or invalid store documents in Firestore
+      try {
+        final allDocs = await _storesCol.get();
+        for (final doc in allDocs.docs) {
+          final data = doc.data() as Map<String, dynamic>?;
+          final docName = (data?['name'] as String?)?.trim() ?? '';
+          if (docName.isEmpty) {
+            await doc.reference.delete();
+          }
+        }
+      } catch (_) {}
       return true;
     } catch (e) {
       debugPrint('Error in deleteStore Firestore: $e');
@@ -902,9 +934,16 @@ class DataBaseHelper {
 
   Future<bool> deleteStoreByName(String name) async {
     try {
-      final snapshot = await _storesCol.where('name', isEqualTo: name.trim()).get();
-      for (final doc in snapshot.docs) {
-        await doc.reference.delete();
+      final trimmed = name.trim();
+      if (trimmed.isNotEmpty) {
+        final snapshot = await _storesCol.where('name', isEqualTo: trimmed).get();
+        for (final doc in snapshot.docs) {
+          await doc.reference.delete();
+        }
+        final slugId = trimmed.toLowerCase().replaceAll(RegExp(r'\s+'), '_');
+        try {
+          await _storesCol.doc(slugId).delete();
+        } catch (_) {}
       }
       return true;
     } catch (e) {

@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+
 import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/models/staff_model.dart';
 import 'package:cashier/halaman1/utils/app_theme.dart';
@@ -33,7 +34,9 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
   void initState() {
     super.initState();
     UserDataStore.instance.initFromFirebase();
-    _selectedStore = UserDataStore.instance.userDataNotifier.value['storeName'] as String? ?? 'Bella Cafe';
+    _selectedStore =
+        UserDataStore.instance.userDataNotifier.value['storeName'] as String? ??
+        'Bella Cafe';
   }
 
   final ImagePicker _picker = ImagePicker();
@@ -187,8 +190,11 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
         ? nama.substring(0, 2).toUpperCase()
         : nama.toUpperCase();
 
-    final selectedStoreName = _selectedStore ??
-        (UserDataStore.instance.userDataNotifier.value['storeName'] as String? ?? 'Bella Cafe');
+    final selectedStoreName =
+        _selectedStore ??
+        (UserDataStore.instance.userDataNotifier.value['storeName']
+                as String? ??
+            'Bella Cafe');
 
     // 1. Create Staff Model for Firestore
     final staffModel = StaffModel(
@@ -225,10 +231,7 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
       // Simpan jadwal shift ke koleksi 'shifts' di Cloud Firestore
       final now = DateTime.now();
       final dateKey = UserDataStore.instance.formatDateKey(now);
-      await _firestore
-          .collection('shifts')
-          .doc('${dateKey}_$newStaffId')
-          .set({
+      await _firestore.collection('shifts').doc('${dateKey}_$newStaffId').set({
         'date': dateKey,
         'staff_id': newStaffId,
         'staff_name': nama,

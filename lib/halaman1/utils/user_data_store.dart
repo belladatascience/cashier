@@ -8,6 +8,7 @@ import 'package:cashier/halaman1/models/shift_model.dart';
 import 'package:cashier/halaman1/models/staff_model.dart';
 import 'package:cashier/halaman1/models/user_login.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class UserDataStore {
   static final UserDataStore instance = UserDataStore._internal();
@@ -79,6 +80,7 @@ class UserDataStore {
   /// Initialize user, staff, stores, and shifts from Firebase
   Future<void> initFromDatabase() async {
     if (_isInitialized) return;
+    await _loadDeletedStoresFromPrefs();
     await reloadUserData();
     await reloadStoreList();
     await reloadStaffList();
@@ -662,7 +664,23 @@ class UserDataStore {
     }
   }
 
+  static const String _deletedStoresKey = 'deleted_store_names_set';
   final Set<String> _deletedStoreNames = {};
+
+  Future<void> _loadDeletedStoresFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = prefs.getStringList(_deletedStoresKey) ?? [];
+      _deletedStoreNames.addAll(list.map((e) => e.trim().toLowerCase()));
+    } catch (_) {}
+  }
+
+  Future<void> _saveDeletedStoresToPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_deletedStoresKey, _deletedStoreNames.toList());
+    } catch (_) {}
+  }
 
   bool isStoreDeleted(String storeName) =>
       _deletedStoreNames.contains(storeName.trim().toLowerCase());
@@ -672,9 +690,11 @@ class UserDataStore {
       final stores = await DataBaseHelper().getAllStores();
       final names = stores
           .map((s) => s.name.trim())
-          .where((name) => name.isNotEmpty && !_deletedStoreNames.contains(name.toLowerCase()))
+          .where((name) =>
+              name.isNotEmpty && !_deletedStoreNames.contains(name.toLowerCase()))
           .toList();
-      final currentStore = (userDataNotifier.value['storeName'] as String?)?.trim();
+      final currentStore =
+          (userDataNotifier.value['storeName'] as String?)?.trim();
       if (currentStore != null &&
           currentStore.isNotEmpty &&
           !_deletedStoreNames.contains(currentStore.toLowerCase()) &&
@@ -690,7 +710,9 @@ class UserDataStore {
         ]);
       }
       final uniqueNames = names
-          .where((name) => !_deletedStoreNames.contains(name.toLowerCase()))
+          .where((name) =>
+              name.trim().isNotEmpty &&
+              !_deletedStoreNames.contains(name.toLowerCase()))
           .toSet()
           .toList();
       storeListNotifier.value = uniqueNames;
@@ -703,40 +725,67 @@ class UserDataStore {
     final trimmed = storeName.trim();
     if (trimmed.isEmpty) return;
     _deletedStoreNames.remove(trimmed.toLowerCase());
+    _saveDeletedStoresToPrefs();
     final current = List<String>.from(storeListNotifier.value);
+    current.removeWhere((item) => item.trim().isEmpty);
     if (!current.contains(trimmed)) {
       current.add(trimmed);
       storeListNotifier.value = current;
     }
   }
 
-  Future<void> removeStore(String storeName, {int? id}) async {
+  Future<void> removeStore(String storeName, {int? id, String? docId}) async {
     final trimmed = storeName.trim();
-    if (trimmed.isEmpty) return;
-    _deletedStoreNames.add(trimmed.toLowerCase());
-
-    if (id != null) {
-      await DataBaseHelper().deleteStore(id);
+    if (trimmed.isNotEmpty) {
+      _deletedStoreNames.add(trimmed.toLowerCase());
+      await _saveDeletedStoresToPrefs();
     }
-    await DataBaseHelper().deleteStoreByName(trimmed);
 
+    if (id != null || docId != null || trimmed.isNotEmpty) {
+      await DataBaseHelper().deleteStore(
+        id ?? 0,
+        docId: docId,
+        name: trimmed.isNotEmpty ? trimmed : null,
+      );
+    }
+    if (trimmed.isNotEmpty) {
+      await DataBaseHelper().deleteStoreByName(trimmed);
+    }
+
+    // Clean current list
     final current = List<String>.from(storeListNotifier.value);
-    current.removeWhere((item) => item.trim().toLowerCase() == trimmed.toLowerCase());
+    current.removeWhere((item) =>
+        item.trim().isEmpty ||
+        (trimmed.isNotEmpty &&
+            item.trim().toLowerCase() == trimmed.toLowerCase()));
     storeListNotifier.value = current;
 
     // If the active store is the one being deleted, switch to another available store
-    final activeStore = (userDataNotifier.value['storeName'] as String?)?.trim();
-    if (activeStore != null && activeStore.toLowerCase() == trimmed.toLowerCase()) {
-      if (current.isNotEmpty) {
-        await updateUserData({
-          'storeName': current.first,
+    final activeStore =
+        (userDataNotifier.value['storeName'] as String?)?.trim() ?? '';
+    if (trimmed.isNotEmpty &&
+        activeStore.toLowerCase() == trimmed.toLowerCase()) {
+      final fallbackStore = current.isNotEmpty ? current.first : 'Bella Cafe';
+      await updateUserData({
+        'storeName': fallbackStore,
+        'location': 'Jakarta',
+      });
+      try {
+        final user = _auth.currentUser;
+        if (user != null) {
+          await _firestore.collection('users').doc(user.uid).set({
+            'storeName': fallbackStore,
+            'location': 'Jakarta',
+            'lastActive': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        }
+        await _firestore.collection('active_session').doc('current').set({
+          'storeName': fallbackStore,
           'location': 'Jakarta',
-        });
-      } else {
-        await updateUserData({
-          'storeName': '',
-          'location': '',
-        });
+          'timestamp': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('Error updating active session on store delete: $e');
       }
     }
 

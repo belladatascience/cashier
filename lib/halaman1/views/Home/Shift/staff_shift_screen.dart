@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/models/store_model.dart';
@@ -82,29 +83,47 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
     UserDataStore.instance.reloadShiftsForDate(now);
     _listenToFirebaseRealtime();
 
-    UserDataStore.instance.shiftRosterPagiNotifier.addListener(_onUserDataStoreChanged);
-    UserDataStore.instance.shiftRosterSoreNotifier.addListener(_onUserDataStoreChanged);
-    UserDataStore.instance.cafeStaffListNotifier.addListener(_onUserDataStoreChanged);
-    UserDataStore.instance.shiftCalendarHistoryNotifier.addListener(_onUserDataStoreChanged);
-    UserDataStore.instance.userDataNotifier.addListener(_onUserDataStoreChanged);
+    UserDataStore.instance.shiftRosterPagiNotifier.addListener(
+      _onUserDataStoreChanged,
+    );
+    UserDataStore.instance.shiftRosterSoreNotifier.addListener(
+      _onUserDataStoreChanged,
+    );
+    UserDataStore.instance.cafeStaffListNotifier.addListener(
+      _onUserDataStoreChanged,
+    );
+    UserDataStore.instance.shiftCalendarHistoryNotifier.addListener(
+      _onUserDataStoreChanged,
+    );
+    UserDataStore.instance.userDataNotifier.addListener(
+      _onUserDataStoreChanged,
+    );
   }
 
   void _listenToFirebaseRealtime() {
     try {
-      _storesSubscription = _firestore.collection('stores').snapshots().listen((_) {
+      _storesSubscription = _firestore.collection('stores').snapshots().listen((
+        _,
+      ) {
         UserDataStore.instance.reloadStoreList();
         if (mounted) setState(() {});
       });
-      _shiftsSubscription = _firestore.collection('shifts').snapshots().listen((_) {
+      _shiftsSubscription = _firestore.collection('shifts').snapshots().listen((
+        _,
+      ) {
         UserDataStore.instance.reloadShiftsForDate(_selectedDate);
         if (mounted) setState(() {});
       });
-      _staffSubscription = _firestore.collection('staff').snapshots().listen((_) {
+      _staffSubscription = _firestore.collection('staff').snapshots().listen((
+        _,
+      ) {
         UserDataStore.instance.reloadStaffList();
         if (mounted) setState(() {});
       });
     } catch (e) {
-      debugPrint('Error attaching Firebase listeners to staff shift screen: $e');
+      debugPrint(
+        'Error attaching Firebase listeners to staff shift screen: $e',
+      );
     }
   }
 
@@ -113,11 +132,21 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
     _storesSubscription?.cancel();
     _shiftsSubscription?.cancel();
     _staffSubscription?.cancel();
-    UserDataStore.instance.shiftRosterPagiNotifier.removeListener(_onUserDataStoreChanged);
-    UserDataStore.instance.shiftRosterSoreNotifier.removeListener(_onUserDataStoreChanged);
-    UserDataStore.instance.cafeStaffListNotifier.removeListener(_onUserDataStoreChanged);
-    UserDataStore.instance.shiftCalendarHistoryNotifier.removeListener(_onUserDataStoreChanged);
-    UserDataStore.instance.userDataNotifier.removeListener(_onUserDataStoreChanged);
+    UserDataStore.instance.shiftRosterPagiNotifier.removeListener(
+      _onUserDataStoreChanged,
+    );
+    UserDataStore.instance.shiftRosterSoreNotifier.removeListener(
+      _onUserDataStoreChanged,
+    );
+    UserDataStore.instance.cafeStaffListNotifier.removeListener(
+      _onUserDataStoreChanged,
+    );
+    UserDataStore.instance.shiftCalendarHistoryNotifier.removeListener(
+      _onUserDataStoreChanged,
+    );
+    UserDataStore.instance.userDataNotifier.removeListener(
+      _onUserDataStoreChanged,
+    );
     super.dispose();
   }
 
@@ -526,7 +555,9 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                       location: location,
                                       defaultShift: 'Pagi',
                                     );
-                                    await DataBaseHelper().insertStore(newStore);
+                                    await DataBaseHelper().insertStore(
+                                      newStore,
+                                    );
 
                                     // Simpan ke collection 'stores' Firestore
                                     final docId = storeName
@@ -536,11 +567,12 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                         .collection('stores')
                                         .doc(docId)
                                         .set({
-                                      'name': storeName,
-                                      'location': location,
-                                      'defaultShift': 'Pagi',
-                                      'updatedAt': FieldValue.serverTimestamp(),
-                                    }, SetOptions(merge: true));
+                                          'name': storeName,
+                                          'location': location,
+                                          'defaultShift': 'Pagi',
+                                          'updatedAt':
+                                              FieldValue.serverTimestamp(),
+                                        }, SetOptions(merge: true));
 
                                     // Update Firestore user document
                                     final currentUser = _auth.currentUser;
@@ -549,18 +581,23 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                           .collection('users')
                                           .doc(currentUser.uid)
                                           .set({
-                                        'storeName': storeName,
-                                        'location': location,
-                                        'lastActive':
-                                            FieldValue.serverTimestamp(),
-                                      }, SetOptions(merge: true));
+                                            'storeName': storeName,
+                                            'location': location,
+                                            'lastActive':
+                                                FieldValue.serverTimestamp(),
+                                          }, SetOptions(merge: true));
                                     }
                                   } catch (e) {
-                                    debugPrint('Error inserting store to Firestore: $e');
+                                    debugPrint(
+                                      'Error inserting store to Firestore: $e',
+                                    );
                                   }
 
-                                  UserDataStore.instance.addStoreName(storeName);
-                                  await UserDataStore.instance.reloadStoreList();
+                                  UserDataStore.instance.addStoreName(
+                                    storeName,
+                                  );
+                                  await UserDataStore.instance
+                                      .reloadStoreList();
 
                                   await UserDataStore.instance.updateUserData({
                                     'storeName': storeName,
@@ -636,6 +673,15 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
   }
 
   void _showDeleteStoreDialog(StoreModel store) {
+    final displayName = store.name.trim().isNotEmpty
+        ? store.name.trim()
+        : (store.location.isNotEmpty
+              ? 'Toko (${store.location})'
+              : 'Toko Cabang');
+    final displayLocation = store.location.trim().isNotEmpty
+        ? store.location
+        : 'Indonesia';
+
     showDialog(
       context: context,
       builder: (dialogCtx) {
@@ -672,7 +718,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
             ],
           ),
           content: Text(
-            'Apakah Anda yakin ingin menghapus toko "${store.name}" (${store.location}) dari daftar toko?',
+            'Apakah Anda yakin ingin menghapus "$displayName" ($displayLocation) dari daftar toko?',
             style: GoogleFonts.workSans(
               fontSize: 14,
               color: colorOnSurfaceVariant,
@@ -707,24 +753,65 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                     onPressed: () async {
                       Navigator.pop(dialogCtx);
                       try {
-                        final snapshot = await _firestore
-                            .collection('stores')
-                            .where('name', isEqualTo: store.name.trim())
-                            .get();
-                        for (final doc in snapshot.docs) {
-                          await doc.reference.delete();
+                        if (store.docId != null && store.docId!.isNotEmpty) {
+                          try {
+                            await _firestore
+                                .collection('stores')
+                                .doc(store.docId)
+                                .delete();
+                          } catch (_) {}
+                        }
+                        if (store.name.trim().isNotEmpty) {
+                          final snapshot = await _firestore
+                              .collection('stores')
+                              .where('name', isEqualTo: store.name.trim())
+                              .get();
+                          for (final doc in snapshot.docs) {
+                            await doc.reference.delete();
+                          }
+                          final slugDoc = store.name
+                              .trim()
+                              .toLowerCase()
+                              .replaceAll(RegExp(r'\s+'), '_');
+                          try {
+                            await _firestore
+                                .collection('stores')
+                                .doc(slugDoc)
+                                .delete();
+                          } catch (_) {}
+                        }
+                        if (store.id != null) {
+                          try {
+                            await _firestore
+                                .collection('stores')
+                                .doc('store_${store.id}')
+                                .delete();
+                          } catch (_) {}
+                          final idSnapshot = await _firestore
+                              .collection('stores')
+                              .where('id', isEqualTo: store.id)
+                              .get();
+                          for (final doc in idSnapshot.docs) {
+                            await doc.reference.delete();
+                          }
                         }
                       } catch (e) {
                         debugPrint('Error deleting store from Firestore: $e');
                       }
-                      await UserDataStore.instance.removeStore(store.name, id: store.id);
+
+                      await UserDataStore.instance.removeStore(
+                        store.name,
+                        id: store.id,
+                        docId: store.docId,
+                      );
+
                       if (mounted) {
                         setState(() {});
                         ScaffoldMessenger.of(context).hideCurrentSnackBar();
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              'Toko "${store.name}" berhasil dihapus! 🗑️',
+                              'Toko "$displayName" berhasil dihapus! 🗑️',
                               style: GoogleFonts.workSans(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -906,8 +993,11 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
       text: staff['time'] ?? 'In: 07:00',
     );
     String selectedStatus = staff['status'] ?? 'Hadir';
-    String selectedStore = staff['storeName'] as String? ??
-        (UserDataStore.instance.userDataNotifier.value['storeName'] as String? ?? 'Bella Cafe');
+    String selectedStore =
+        staff['storeName'] as String? ??
+        (UserDataStore.instance.userDataNotifier.value['storeName']
+                as String? ??
+            'Bella Cafe');
     String? errorMessage;
 
     final List<String> rolePresets = [
@@ -1162,10 +1252,10 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                           }
                           final activeValue =
                               storeOptions.contains(selectedStore)
-                                  ? selectedStore
-                                  : (storeOptions.isNotEmpty
-                                      ? storeOptions.first
-                                      : null);
+                              ? selectedStore
+                              : (storeOptions.isNotEmpty
+                                    ? storeOptions.first
+                                    : null);
                           return Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             decoration: BoxDecoration(
@@ -1767,7 +1857,8 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                                       .format(_focusedMonth)
                                                       .toUpperCase(),
                                                   maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                   style: GoogleFonts.workSans(
                                                     fontSize: 12.5,
                                                     fontWeight: FontWeight.bold,
@@ -1786,7 +1877,9 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            dateFormatFull.format(_selectedDate),
+                                            dateFormatFull.format(
+                                              _selectedDate,
+                                            ),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: GoogleFonts.sourceSerif4(
@@ -2356,7 +2449,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                               );
                             }).toList(),
                           ),
-                                    ] else if (_selectedTabIndex == 1) ...[
+                      ] else if (_selectedTabIndex == 1) ...[
                         // TAB 2: MANAJEMEN SHIFT VIEW
                         // Header Title & Description
                         Row(
@@ -2534,10 +2627,7 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                             color: colorSurfaceContainerLowest,
                             borderRadius: BorderRadius.circular(20),
                             border: Border(
-                              left: BorderSide(
-                                color: colorSecondary,
-                                width: 5,
-                              ),
+                              left: BorderSide(color: colorSecondary, width: 5),
                             ),
                             boxShadow: const [
                               BoxShadow(
@@ -2703,7 +2793,9 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                               color: colorSurfaceContainerLowest,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: colorOutlineVariant.withValues(alpha: 0.5),
+                                color: colorOutlineVariant.withValues(
+                                  alpha: 0.5,
+                                ),
                               ),
                             ),
                             child: Column(
@@ -2712,7 +2804,9 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                 Icon(
                                   Icons.people_outline_rounded,
                                   size: 48,
-                                  color: colorOnSurfaceVariant.withValues(alpha: 0.5),
+                                  color: colorOnSurfaceVariant.withValues(
+                                    alpha: 0.5,
+                                  ),
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
@@ -2736,357 +2830,382 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                             ),
                           )
                         else
-                          ...List.generate((_selectedShiftTab == 0
+                          ...List.generate(
+                            (_selectedShiftTab == 0
+                                    ? _shiftRosterPagi
+                                    : _shiftRosterSore)
+                                .length,
+                            (index) {
+                              final currentList = _selectedShiftTab == 0
                                   ? _shiftRosterPagi
-                                  : _shiftRosterSore)
-                              .length, (index) {
-                            final currentList = _selectedShiftTab == 0
-                                ? _shiftRosterPagi
-                                : _shiftRosterSore;
-                            final staff = currentList[index];
-                            final status =
-                                staff['status'] as String? ?? 'Hadir';
+                                  : _shiftRosterSore;
+                              final staff = currentList[index];
+                              final status =
+                                  staff['status'] as String? ?? 'Hadir';
 
-                            Color badgeBgColor = colorGreenBg;
-                            Color badgeTextColor = colorGreenText;
-                            if (status == 'Istirahat') {
-                              badgeBgColor = const Color(0xFFFEF3C7);
-                              badgeTextColor = const Color(0xFF92400E);
-                            } else if (status == 'Belum Hadir') {
-                              badgeBgColor = const Color(0xFFFEE2E2);
-                              badgeTextColor = const Color(0xFF991B1B);
-                            } else if (status == 'Izin' || status == 'Libur') {
-                              badgeBgColor = const Color(0xFFF3F4F6);
-                              badgeTextColor = const Color(0xFF4B5563);
-                            }
+                              Color badgeBgColor = colorGreenBg;
+                              Color badgeTextColor = colorGreenText;
+                              if (status == 'Istirahat') {
+                                badgeBgColor = const Color(0xFFFEF3C7);
+                                badgeTextColor = const Color(0xFF92400E);
+                              } else if (status == 'Belum Hadir') {
+                                badgeBgColor = const Color(0xFFFEE2E2);
+                                badgeTextColor = const Color(0xFF991B1B);
+                              } else if (status == 'Izin' ||
+                                  status == 'Libur') {
+                                badgeBgColor = const Color(0xFFF3F4F6);
+                                badgeTextColor = const Color(0xFF4B5563);
+                              }
 
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: colorSurfaceContainerLowest,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color.fromRGBO(68, 42, 34, 0.06),
-                                    blurRadius: 10,
-                                    offset: Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  // Staff Avatar
-                                  _buildStaffAvatarBadge(staff, size: 48),
-                                  const SizedBox(width: 14),
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 14,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: colorSurfaceContainerLowest,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color.fromRGBO(68, 42, 34, 0.06),
+                                      blurRadius: 10,
+                                      offset: Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    // Staff Avatar
+                                    _buildStaffAvatarBadge(staff, size: 44),
+                                    const SizedBox(width: 10),
 
-                                  // Staff Details
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          staff['name'] as String? ?? 'Staf',
-                                          style: GoogleFonts.workSans(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold,
-                                            color: colorPrimary,
+                                    // Staff Details
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            staff['name'] as String? ?? 'Staf',
+                                            style: GoogleFonts.workSans(
+                                              fontSize: 14.5,
+                                              fontWeight: FontWeight.bold,
+                                              color: colorPrimary,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 3),
-                                        Row(
-                                          children: [
-                                            Text(
-                                              staff['role'] as String? ??
-                                                  'Barista',
-                                              style: GoogleFonts.workSans(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w500,
-                                                color: colorOnSurfaceVariant,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 6,
-                                                    vertical: 2,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: _selectedShiftTab == 0
-                                                    ? const Color(0xFFDCFCE7)
-                                                    : const Color(0xFFE0F2FE),
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                _selectedShiftTab == 0
-                                                    ? 'Shift Pagi'
-                                                    : 'Shift Sore',
+                                          const SizedBox(height: 3),
+                                          Wrap(
+                                            spacing: 6,
+                                            runSpacing: 3,
+                                            crossAxisAlignment:
+                                                WrapCrossAlignment.center,
+                                            children: [
+                                              Text(
+                                                staff['role'] as String? ??
+                                                    'Barista',
                                                 style: GoogleFonts.workSans(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 11.5,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: colorOnSurfaceVariant,
+                                                ),
+                                              ),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 5,
+                                                      vertical: 1.5,
+                                                    ),
+                                                decoration: BoxDecoration(
                                                   color: _selectedShiftTab == 0
-                                                      ? const Color(0xFF166534)
-                                                      : const Color(0xFF0369A1),
+                                                      ? const Color(0xFFDCFCE7)
+                                                      : const Color(0xFFE0F2FE),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  _selectedShiftTab == 0
+                                                      ? 'Shift Pagi'
+                                                      : 'Shift Sore',
+                                                  style: GoogleFonts.workSans(
+                                                    fontSize: 9.5,
+                                                    fontWeight: FontWeight.bold,
+                                                    color:
+                                                        _selectedShiftTab == 0
+                                                        ? const Color(
+                                                            0xFF166534,
+                                                          )
+                                                        : const Color(
+                                                            0xFF0369A1,
+                                                          ),
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 4),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
 
-                                        // Store Name & Shift Time Badge Row
-                                        Wrap(
-                                          spacing: 6,
-                                          runSpacing: 4,
-                                          children: [
-                                            // Badge Store Name
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 6,
-                                                    vertical: 2,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: colorPrimary.withValues(
-                                                  alpha: 0.08,
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                                border: Border.all(
+                                          // Store Name & Shift Time Badge Row
+                                          Wrap(
+                                            spacing: 4,
+                                            runSpacing: 4,
+                                            children: [
+                                              // Badge Store Name
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 5,
+                                                      vertical: 2,
+                                                    ),
+                                                decoration: BoxDecoration(
                                                   color: colorPrimary
-                                                      .withValues(alpha: 0.2),
-                                                ),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(
-                                                    Icons.storefront_rounded,
-                                                    size: 11,
-                                                    color: colorPrimary,
+                                                      .withValues(alpha: 0.08),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                  border: Border.all(
+                                                    color: colorPrimary
+                                                        .withValues(alpha: 0.2),
                                                   ),
-                                                  const SizedBox(width: 3),
-                                                  Text(
-                                                    staff['storeName'] ??
-                                                        (UserDataStore
-                                                                .instance
-                                                                .userDataNotifier
-                                                                .value[
-                                                            'storeName'] ??
-                                                            'Bella Cafe'),
-                                                    style: GoogleFonts.workSans(
-                                                      fontSize: 10.5,
-                                                      fontWeight:
-                                                          FontWeight.w600,
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.storefront_rounded,
+                                                      size: 11,
                                                       color: colorPrimary,
                                                     ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            // Badge Shift Time
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 6,
-                                                    vertical: 2,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: colorSecondaryContainer
-                                                    .withValues(alpha: 0.45),
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(
-                                                    Icons.access_time_rounded,
-                                                    size: 11,
-                                                    color: colorSecondary,
-                                                  ),
-                                                  const SizedBox(width: 3),
-                                                  Text(
-                                                    _formatStaffShiftTime(
-                                                      staff['shiftTime'],
-                                                      _selectedShiftTab,
+                                                    const SizedBox(width: 3),
+                                                    Text(
+                                                      staff['storeName'] ??
+                                                          (UserDataStore
+                                                                  .instance
+                                                                  .userDataNotifier
+                                                                  .value['storeName'] ??
+                                                              'Bella Cafe'),
+                                                      style:
+                                                          GoogleFonts.workSans(
+                                                            fontSize: 10,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            color: colorPrimary,
+                                                          ),
                                                     ),
-                                                    style: GoogleFonts.workSans(
-                                                      fontSize: 10.5,
-                                                      fontWeight:
-                                                          FontWeight.w600,
+                                                  ],
+                                                ),
+                                              ),
+                                              // Badge Shift Time
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 5,
+                                                      vertical: 2,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: colorSecondaryContainer
+                                                      .withValues(alpha: 0.45),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.access_time_rounded,
+                                                      size: 11,
                                                       color: colorSecondary,
                                                     ),
+                                                    const SizedBox(width: 3),
+                                                    Text(
+                                                      _formatStaffShiftTime(
+                                                        staff['shiftTime'],
+                                                        _selectedShiftTab,
+                                                      ),
+                                                      style:
+                                                          GoogleFonts.workSans(
+                                                            fontSize: 10,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            color:
+                                                                colorSecondary,
+                                                          ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+
+                                    // Status Badge, In-Time & Edit/Delete Action Buttons
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 7,
+                                            vertical: 2.5,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: badgeBgColor,
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            (staff['status'] as String? ??
+                                                    'HADIR')
+                                                .toUpperCase(),
+                                            style: GoogleFonts.workSans(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 0.5,
+                                              color: badgeTextColor,
+                                            ),
+                                          ),
+                                        ),
+                                        if (staff['time'] != null &&
+                                            staff['time'] != '-') ...[
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            staff['time'] as String,
+                                            style: GoogleFonts.workSans(
+                                              fontSize: 10.5,
+                                              color: colorOnSurfaceVariant,
+                                            ),
+                                          ),
+                                        ],
+                                        const SizedBox(height: 5),
+
+                                        // Edit and Delete Buttons Row
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            // Edit Button
+                                            InkWell(
+                                              onTap: () => _showEditStaffDialog(
+                                                staff,
+                                                index,
+                                                _selectedShiftTab,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 3,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: colorSecondaryContainer
+                                                      .withValues(alpha: 0.6),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                  border: Border.all(
+                                                    color: colorSecondary
+                                                        .withValues(alpha: 0.3),
                                                   ),
-                                                ],
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.edit_outlined,
+                                                      size: 11,
+                                                      color: colorSecondary,
+                                                    ),
+                                                    const SizedBox(width: 2),
+                                                    Text(
+                                                      'Edit',
+                                                      style:
+                                                          GoogleFonts.workSans(
+                                                            fontSize: 10,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color:
+                                                                colorSecondary,
+                                                          ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+
+                                            // Delete Button
+                                            InkWell(
+                                              onTap: () =>
+                                                  _showDeleteStaffDialog(
+                                                    staff,
+                                                    index,
+                                                    _selectedShiftTab,
+                                                  ),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 3,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(
+                                                    0xFFFEE2E2,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                  border: Border.all(
+                                                    color: const Color(
+                                                      0xFFEF4444,
+                                                    ).withValues(alpha: 0.3),
+                                                  ),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    const Icon(
+                                                      Icons
+                                                          .delete_outline_rounded,
+                                                      size: 11,
+                                                      color: Color(0xFFDC2626),
+                                                    ),
+                                                    const SizedBox(width: 2),
+                                                    Text(
+                                                      'Hapus',
+                                                      style:
+                                                          GoogleFonts.workSans(
+                                                            fontSize: 10,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: const Color(
+                                                              0xFFDC2626,
+                                                            ),
+                                                          ),
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
                                             ),
                                           ],
                                         ),
                                       ],
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-
-                                  // Status Badge, In-Time & Edit/Delete Action Buttons
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 3,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: badgeBgColor,
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          (staff['status'] as String? ??
-                                                  'HADIR')
-                                              .toUpperCase(),
-                                          style: GoogleFonts.workSans(
-                                            fontSize: 10.5,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 0.5,
-                                            color: badgeTextColor,
-                                          ),
-                                        ),
-                                      ),
-                                      if (staff['time'] != null &&
-                                          staff['time'] != '-') ...[
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          staff['time'] as String,
-                                          style: GoogleFonts.workSans(
-                                            fontSize: 11,
-                                            color: colorOnSurfaceVariant,
-                                          ),
-                                        ),
-                                      ],
-                                      const SizedBox(height: 6),
-
-                                      // Edit and Delete Buttons Row
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          // Edit Button
-                                          InkWell(
-                                            onTap: () => _showEditStaffDialog(
-                                              staff,
-                                              index,
-                                              _selectedShiftTab,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              6,
-                                            ),
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 7,
-                                                    vertical: 3.5,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: colorSecondaryContainer
-                                                    .withValues(alpha: 0.6),
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                                border: Border.all(
-                                                  color: colorSecondary
-                                                      .withValues(alpha: 0.3),
-                                                ),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(
-                                                    Icons.edit_outlined,
-                                                    size: 12,
-                                                    color: colorSecondary,
-                                                  ),
-                                                  const SizedBox(width: 3),
-                                                  Text(
-                                                    'Edit',
-                                                    style: GoogleFonts.workSans(
-                                                      fontSize: 10.5,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: colorSecondary,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 5),
-
-                                          // Delete Button
-                                          InkWell(
-                                            onTap: () => _showDeleteStaffDialog(
-                                              staff,
-                                              index,
-                                              _selectedShiftTab,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              6,
-                                            ),
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 7,
-                                                    vertical: 3.5,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFFEE2E2),
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                                border: Border.all(
-                                                  color: const Color(
-                                                    0xFFEF4444,
-                                                  ).withValues(alpha: 0.3),
-                                                ),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  const Icon(
-                                                    Icons
-                                                        .delete_outline_rounded,
-                                                    size: 12,
-                                                    color: Color(0xFFDC2626),
-                                                  ),
-                                                  const SizedBox(width: 3),
-                                                  Text(
-                                                    'Hapus',
-                                                    style: GoogleFonts.workSans(
-                                                      fontSize: 10.5,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: const Color(
-                                                        0xFFDC2626,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
                       ] else if (_selectedTabIndex == 2) ...[
                         // TAB 3: DAFTAR TOKO & CABANG VIEW
                         _buildStoresTabView(),
@@ -3352,32 +3471,60 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
 
                     // 1. Fallback presets only if not explicitly deleted
                     final defaultPresets = [
-                      StoreModel(id: 1, name: 'Bella Cafe', location: 'Jakarta Selatan', defaultShift: 'Pagi'),
-                      StoreModel(id: 2, name: 'BGA Co. - Central Perk', location: 'Jakarta Pusat', defaultShift: 'Pagi'),
-                      StoreModel(id: 3, name: 'BGA Co. - Downtown Latte', location: 'Jakarta Selatan', defaultShift: 'Sore'),
-                      StoreModel(id: 4, name: 'BGA Co. - Westside Brew', location: 'Jakarta Barat', defaultShift: 'Pagi'),
+                      StoreModel(
+                        id: 1,
+                        name: 'Bella Cafe',
+                        location: 'Jakarta Selatan',
+                        defaultShift: 'Pagi',
+                      ),
+                      StoreModel(
+                        id: 2,
+                        name: 'BGA Co. - Central Perk',
+                        location: 'Jakarta Pusat',
+                        defaultShift: 'Pagi',
+                      ),
+                      StoreModel(
+                        id: 3,
+                        name: 'BGA Co. - Downtown Latte',
+                        location: 'Jakarta Selatan',
+                        defaultShift: 'Sore',
+                      ),
+                      StoreModel(
+                        id: 4,
+                        name: 'BGA Co. - Westside Brew',
+                        location: 'Jakarta Barat',
+                        defaultShift: 'Pagi',
+                      ),
                     ];
                     for (final s in defaultPresets) {
-                      if (!UserDataStore.instance.isStoreDeleted(s.name)) {
-                        mergedStoresMap[s.name.trim().toLowerCase()] = s;
+                      final trimmed = s.name.trim();
+                      if (trimmed.isNotEmpty &&
+                          !UserDataStore.instance.isStoreDeleted(trimmed)) {
+                        mergedStoresMap[trimmed.toLowerCase()] = s;
                       }
                     }
 
                     // 2. Add stores from SQLite/Firestore database
                     for (final s in dbStores) {
-                      if (!UserDataStore.instance.isStoreDeleted(s.name)) {
-                        mergedStoresMap[s.name.trim().toLowerCase()] = s;
+                      final trimmed = s.name.trim();
+                      if (trimmed.isNotEmpty &&
+                          !UserDataStore.instance.isStoreDeleted(trimmed)) {
+                        mergedStoresMap[trimmed.toLowerCase()] = s;
                       }
                     }
 
                     // 3. Add stores from UserDataStore storeListNotifier
                     for (final name in registeredStoreNames) {
-                      final key = name.trim().toLowerCase();
-                      if (!UserDataStore.instance.isStoreDeleted(name) &&
+                      final trimmed = name.trim();
+                      if (trimmed.isEmpty) continue;
+                      final key = trimmed.toLowerCase();
+                      if (!UserDataStore.instance.isStoreDeleted(trimmed) &&
                           !mergedStoresMap.containsKey(key)) {
                         mergedStoresMap[key] = StoreModel(
-                          name: name,
-                          location: name.toLowerCase() == currentActiveStoreName.toLowerCase()
+                          name: trimmed,
+                          location:
+                              trimmed.toLowerCase() ==
+                                  currentActiveStoreName.toLowerCase()
                               ? currentActiveLocation
                               : 'Indonesia',
                           defaultShift: 'Pagi',
@@ -3386,12 +3533,13 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                     }
 
                     // 4. Ensure current active store is in list if not deleted
-                    if (currentActiveStoreName.isNotEmpty &&
-                        !UserDataStore.instance.isStoreDeleted(currentActiveStoreName)) {
-                      final key = currentActiveStoreName.toLowerCase();
+                    final trimmedActive = currentActiveStoreName.trim();
+                    if (trimmedActive.isNotEmpty &&
+                        !UserDataStore.instance.isStoreDeleted(trimmedActive)) {
+                      final key = trimmedActive.toLowerCase();
                       if (!mergedStoresMap.containsKey(key)) {
                         mergedStoresMap[key] = StoreModel(
-                          name: currentActiveStoreName,
+                          name: trimmedActive,
                           location: currentActiveLocation.isNotEmpty
                               ? currentActiveLocation
                               : 'Indonesia',
@@ -3579,33 +3727,40 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                                 .collection('users')
                                                 .doc(currentUser.uid)
                                                 .set({
-                                              'storeName': store.name,
-                                              'location': store.location,
-                                              'lastActive':
-                                                  FieldValue.serverTimestamp(),
-                                            }, SetOptions(merge: true));
+                                                  'storeName': store.name,
+                                                  'location': store.location,
+                                                  'lastActive':
+                                                      FieldValue.serverTimestamp(),
+                                                }, SetOptions(merge: true));
                                           }
                                           await _firestore
                                               .collection('active_session')
                                               .doc('current')
                                               .set({
-                                            'storeName': store.name,
-                                            'location': store.location,
-                                            'timestamp':
-                                                FieldValue.serverTimestamp(),
-                                          }, SetOptions(merge: true));
+                                                'storeName': store.name,
+                                                'location': store.location,
+                                                'timestamp':
+                                                    FieldValue.serverTimestamp(),
+                                              }, SetOptions(merge: true));
                                         } catch (e) {
-                                          debugPrint('Error syncing active store to Firestore: $e');
+                                          debugPrint(
+                                            'Error syncing active store to Firestore: $e',
+                                          );
                                         }
 
-                                        await UserDataStore.instance.updateUserData({
-                                          'storeName': store.name,
-                                          'location': store.location,
-                                        });
+                                        await UserDataStore.instance
+                                            .updateUserData({
+                                              'storeName': store.name,
+                                              'location': store.location,
+                                            });
                                         if (mounted) {
                                           setState(() {});
-                                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                                          ScaffoldMessenger.of(context).showSnackBar(
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).hideCurrentSnackBar();
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
                                             SnackBar(
                                               content: Text(
                                                 'Toko "${store.name}" berhasil diaktifkan! 🏪',
@@ -3614,14 +3769,18 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                                 ),
                                               ),
                                               backgroundColor: colorSecondary,
-                                              behavior: SnackBarBehavior.floating,
-                                              duration: const Duration(seconds: 2),
+                                              behavior:
+                                                  SnackBarBehavior.floating,
+                                              duration: const Duration(
+                                                seconds: 2,
+                                              ),
                                             ),
                                           );
                                         }
                                       },
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: colorSecondaryContainer,
+                                        backgroundColor:
+                                            colorSecondaryContainer,
                                         foregroundColor: colorSecondary,
                                         elevation: 0,
                                         padding: const EdgeInsets.symmetric(
@@ -3629,7 +3788,9 @@ class _StaffShiftScreenState extends State<StaffShiftScreen> {
                                           vertical: 6,
                                         ),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
                                       ),
                                       child: Text(

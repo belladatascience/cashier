@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:cashier/extension/navigator.dart';
 import 'package:cashier/halaman1/database/database_helper.dart';
 import 'package:cashier/halaman1/models/store_model.dart';
@@ -76,31 +77,34 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
 
   void _listenToStoresRealtime() {
     try {
-      _storesSubscription = _firestore.collection('stores').snapshots().listen(
-        (snapshot) {
-          if (!mounted) return;
-          final List<StoreModel> list = [];
-          for (final doc in snapshot.docs) {
-            final data = doc.data();
-            list.add(
-              StoreModel(
-                id: (data['id'] as num?)?.toInt() ?? 0,
-                name: (data['name'] as String?) ?? '',
-                location: (data['location'] as String?) ?? '',
-                defaultShift: (data['defaultShift'] as String?) ?? 'Pagi',
-              ),
-            );
-          }
-          if (list.isNotEmpty) {
-            setState(() {
-              _existingStores = list;
-            });
-          }
-        },
-        onError: (e) {
-          debugPrint('Firestore stores realtime stream error: $e');
-        },
-      );
+      _storesSubscription = _firestore
+          .collection('stores')
+          .snapshots()
+          .listen(
+            (snapshot) {
+              if (!mounted) return;
+              final List<StoreModel> list = [];
+              for (final doc in snapshot.docs) {
+                final data = doc.data();
+                list.add(
+                  StoreModel(
+                    id: (data['id'] as num?)?.toInt() ?? 0,
+                    name: (data['name'] as String?) ?? '',
+                    location: (data['location'] as String?) ?? '',
+                    defaultShift: (data['defaultShift'] as String?) ?? 'Pagi',
+                  ),
+                );
+              }
+              if (list.isNotEmpty) {
+                setState(() {
+                  _existingStores = list;
+                });
+              }
+            },
+            onError: (e) {
+              debugPrint('Firestore stores realtime stream error: $e');
+            },
+          );
     } catch (e) {
       debugPrint('Error attaching stores realtime listener: $e');
     }
@@ -456,7 +460,11 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
                                   letterSpacing: 0.8,
                                 ),
                               ),
-                              Icon(Icons.cloud_done_outlined, size: 16, color: colorSecondary),
+                              Icon(
+                                Icons.cloud_done_outlined,
+                                size: 16,
+                                color: colorSecondary,
+                              ),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -464,7 +472,8 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
                             scrollDirection: Axis.horizontal,
                             child: Row(
                               children: _existingStores.map((store) {
-                                final isSelected = storeNameC.text.trim() == store.name;
+                                final isSelected =
+                                    storeNameC.text.trim() == store.name;
                                 return Padding(
                                   padding: const EdgeInsets.only(right: 8.0),
                                   child: ChoiceChip(
@@ -472,8 +481,12 @@ class _StoreShowcaseScreenState extends State<StoreShowcaseScreen>
                                     selected: isSelected,
                                     selectedColor: colorPrimary,
                                     labelStyle: GoogleFonts.workSans(
-                                      color: isSelected ? Colors.white : colorOnSurface,
-                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : colorOnSurface,
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
                                       fontSize: 12,
                                     ),
                                     onSelected: (selected) {
