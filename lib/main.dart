@@ -1,11 +1,11 @@
 import 'dart:io';
 
 import 'package:cashier/firebase_options.dart';
-import 'package:cashier/halaman1/utils/app_localization.dart';
-import 'package:cashier/halaman1/utils/app_theme.dart';
-import 'package:cashier/halaman1/utils/menu_data_store.dart';
-import 'package:cashier/halaman1/utils/user_data_store.dart';
-import 'package:cashier/halaman1/views/Home/splash_screen.dart';
+import 'package:cashier/CASHIER/utils/app_localization.dart';
+import 'package:cashier/CASHIER/utils/app_theme.dart';
+import 'package:cashier/CASHIER/utils/menu_data_store.dart';
+import 'package:cashier/CASHIER/utils/user_data_store.dart';
+import 'package:cashier/CASHIER/views/Home/splash_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';

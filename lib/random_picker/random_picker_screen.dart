@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:cashier/9FondasiProject/constants/app_colors.dart';
-import 'package:cashier/halaman1/utils/app_theme.dart';
+import 'package:cashier/CASHIER/utils/app_theme.dart';
 import 'package:cashier/random_picker/picker_logic.dart';
 import 'package:cashier/utils/button.dart';
 import 'package:confetti/confetti.dart';
